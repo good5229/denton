@@ -14,6 +14,7 @@ data/
 # Editable presentation deliverables
 *.ppt
 *.pptx
+reports/ppt/preview/
 
 # Local reference documents
 reference/*.pdf
