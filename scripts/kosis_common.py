@@ -16,6 +16,20 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
+CSV_ENCODING = "cp949"
+
+CP949_REPLACEMENTS = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u2013": "-",
+        "\u2014": "-",
+        "\u2212": "-",
+        "\u00a0": " ",
+    }
+)
 
 
 def load_env() -> dict[str, str]:
@@ -67,25 +81,42 @@ def write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def cp949_safe(value: Any) -> Any:
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        return value
+    text = value.translate(CP949_REPLACEMENTS)
+    return text.encode(CSV_ENCODING, errors="replace").decode(CSV_ENCODING)
+
+
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
-        path.write_text("", encoding="utf-8")
+        path.write_text("", encoding=CSV_ENCODING)
         return
     fields: list[str] = []
     for row in rows:
         for key in row:
             if key not in fields:
                 fields.append(key)
-    with path.open("w", encoding="utf-8", newline="") as f:
+    with path.open("w", encoding=CSV_ENCODING, newline="", errors="replace") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows([{key: cp949_safe(value) for key, value in row.items()} for row in rows])
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
-    with path.open("r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
+    last_exc: UnicodeDecodeError | None = None
+    for encoding in ("utf-8-sig", "utf-8", CSV_ENCODING):
+        try:
+            with path.open("r", encoding=encoding, newline="") as f:
+                return list(csv.DictReader(f))
+        except UnicodeDecodeError as exc:
+            last_exc = exc
+    if last_exc:
+        raise last_exc
+    return []
 
 
 def parse_number(value: Any) -> float | None:

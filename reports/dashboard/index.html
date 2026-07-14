@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Regional GVA Forecast Dashboard</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Denton Regional GVA</p>
+        <h1>예측값·실제값 비교 대시보드</h1>
+      </div>
+      <div id="loadStatus" class="status">CSV 로딩 중</div>
+    </header>
+
+    <section class="controls" aria-label="filters">
+      <label>
+        지역 수준
+        <select id="levelSelect">
+          <option value="sido">시도</option>
+          <option value="sigungu">시군구</option>
+          <option value="emd">읍면동</option>
+        </select>
+      </label>
+      <label>
+        지역
+        <select id="regionSelect"></select>
+      </label>
+      <label>
+        산업군
+        <select id="sectorSelect"></select>
+      </label>
+      <label>
+        시점 단위
+        <select id="grainSelect">
+          <option value="annual">연도</option>
+          <option value="quarter">분기</option>
+          <option value="month">월간</option>
+        </select>
+      </label>
+      <label>
+        시작
+        <select id="startSelect"></select>
+      </label>
+      <label>
+        종료
+        <select id="endSelect"></select>
+      </label>
+    </section>
+
+    <section class="summary" aria-label="summary metrics">
+      <article>
+        <span>예측 행</span>
+        <strong id="metricRows">-</strong>
+      </article>
+      <article>
+        <span>비교 가능 행</span>
+        <strong id="metricComparable">-</strong>
+      </article>
+      <article>
+        <span>MAPE</span>
+        <strong id="metricMape">-</strong>
+      </article>
+      <article>
+        <span>최신 예측</span>
+        <strong id="metricLatest">-</strong>
+      </article>
+    </section>
+
+    <section id="message" class="message" hidden></section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 id="chartTitle">그래프</h2>
+        <span id="chartSubtitle"></span>
+      </div>
+      <svg id="chart" viewBox="0 0 1120 420" role="img" aria-label="prediction chart"></svg>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>테이블</h2>
+        <span id="tableNote">원천 CSV: data/processed/*.csv (CP949)</span>
+      </div>
+      <div class="table-wrap">
+        <table id="resultTable"></table>
+      </div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

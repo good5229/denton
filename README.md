@@ -11,6 +11,8 @@ This project reconstructs quarterly regional gross value added (GVA) estimates f
 
 The collected data files, local harness instructions, and PowerPoint files are intentionally excluded from git. Re-run the collection scripts with a valid KOSIS API key to reproduce local outputs.
 
+CSV outputs are written in `cp949` so Korean text opens cleanly in Korean MS Office environments. Legacy UTF-8 outputs can still be read by the helper and rewritten as `cp949`.
+
 ## Project Structure
 
 ```text
@@ -23,6 +25,7 @@ scripts/
   make_figures.py               # Generate SVG/PNG documentation figures
   make_portfolio_ppt.py         # Generate editable portfolio PPT assets
 reports/
+  dashboard/                    # Static HTML dashboard reading local CSV outputs
   data_requirements.md          # Data requirements from the BOK note
   run_summary.md                # Baseline reconstruction summary
   expanded_data_feasibility.md  # 시군구/읍면동/KSIC feasibility findings
@@ -71,6 +74,20 @@ PYTHONPATH=scripts .venv/bin/python scripts/collect_expanded_kosis.py
 ```bash
 PYTHONPATH=scripts .venv/bin/python scripts/denton_sigungu.py
 ```
+
+7. Verify or rewrite local CSV outputs as CP949:
+
+```bash
+PYTHONPATH=scripts .venv/bin/python scripts/ensure_cp949_csv.py
+```
+
+8. Open the local dashboard:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then visit `http://localhost:8000/reports/dashboard/`.
 
 ## Current Feasibility Findings
 
