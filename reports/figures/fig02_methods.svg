@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+<style>
+@font-face{font-family:NB;src:local('NanumBarunGothic');}
+text{font-family:NB, Apple SD Gothic Neo, Arial, sans-serif; dominant-baseline:hanging;}
+.title{font-size:54px;font-weight:700;fill:#17212b;}
+.h1{font-size:36px;font-weight:700;}
+.h2{font-size:30px;font-weight:700;fill:#17212b;}
+.body{font-size:27px;fill:#17212b;}
+.small{font-size:23px;fill:#5c6875;}
+.badge{font-size:25px;font-weight:700;fill:#fff;}
+</style>
+</defs>
+<rect width="1920" height="1080" fill="#f7f8fa"/>
+<text x="84" y="58" class="title" text-anchor="start">전 업종 추정 전략</text>
+<rect x="95" y="170" width="405" height="620" rx="8" fill="#ffffff" stroke="#ccd4df" stroke-width="2"/>
+<text x="123" y="198" class="h1" text-anchor="start" style="fill:#2f6fbb">지역 생산지수</text>
+<rect x="123" y="266" width="230" height="56" rx="8" fill="#2f6fbb" stroke="#2f6fbb" stroke-width="0"/>
+<text x="238" y="280" class="badge" text-anchor="middle">비례형 덴튼</text>
+<rect x="123" y="360" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="147" y="378" class="body" text-anchor="start">광업</text>
+<rect x="123" y="448" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="147" y="466" class="body" text-anchor="start">제조업</text>
+<rect x="123" y="536" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="147" y="554" class="body" text-anchor="start">전기가스</text>
+<rect x="548" y="170" width="405" height="620" rx="8" fill="#ffffff" stroke="#ccd4df" stroke-width="2"/>
+<text x="576" y="198" class="h1" text-anchor="start" style="fill:#21867a">서비스업 지수</text>
+<rect x="576" y="266" width="230" height="56" rx="8" fill="#21867a" stroke="#21867a" stroke-width="0"/>
+<text x="691" y="280" class="badge" text-anchor="middle">비례형 덴튼</text>
+<rect x="576" y="360" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="600" y="378" class="body" text-anchor="start">도소매·운수</text>
+<rect x="576" y="448" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="600" y="466" class="body" text-anchor="start">정보통신·금융</text>
+<rect x="576" y="536" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="600" y="554" class="body" text-anchor="start">교육·보건</text>
+<rect x="576" y="624" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="600" y="642" class="body" text-anchor="start">기타서비스</text>
+<rect x="1001" y="170" width="405" height="620" rx="8" fill="#ffffff" stroke="#ccd4df" stroke-width="2"/>
+<text x="1029" y="198" class="h1" text-anchor="start" style="fill:#b07822">건설수주</text>
+<rect x="1029" y="266" width="230" height="56" rx="8" fill="#b07822" stroke="#b07822" stroke-width="0"/>
+<text x="1144" y="280" class="badge" text-anchor="middle">분산 후 덴튼</text>
+<rect x="1029" y="360" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="1053" y="378" class="body" text-anchor="start">건축 12분기</text>
+<rect x="1029" y="448" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="1053" y="466" class="body" text-anchor="start">토목 24분기</text>
+<rect x="1454" y="170" width="405" height="620" rx="8" fill="#ffffff" stroke="#ccd4df" stroke-width="2"/>
+<text x="1482" y="198" class="h1" text-anchor="start" style="fill:#7a5fa8">전국 GDP 비중</text>
+<rect x="1482" y="266" width="230" height="56" rx="8" fill="#7a5fa8" stroke="#7a5fa8" stroke-width="0"/>
+<text x="1597" y="280" class="badge" text-anchor="middle">분기비중 덴튼</text>
+<rect x="1482" y="360" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="1506" y="378" class="body" text-anchor="start">농림어업</text>
+<rect x="1482" y="448" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="1506" y="466" class="body" text-anchor="start">공공행정</text>
+<rect x="1482" y="536" width="349" height="70" rx="8" fill="#f8fafc" stroke="#d7dee8" stroke-width="2"/>
+<text x="1506" y="554" class="body" text-anchor="start">무지표 업종</text>
+<rect x="170" y="850" width="1580" height="110" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="215" y="878" class="h1" text-anchor="start">공통 산식</text>
+<text x="460" y="885" class="h2" text-anchor="start" style="fill:#475569">2019-2022 배분 → 2023 외삽 → 실제 2023 GVA와 오차 비교</text>
+<text x="170" y="1010" class="small" text-anchor="start">주: 생산지수 없는 산업은 원문 취지에 따라 전국 GDP 분기 흐름을 참고지표로 사용</text>
+</svg>

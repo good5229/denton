@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+<style>
+@font-face{font-family:NB;src:local('NanumBarunGothic');}
+text{font-family:NB, Apple SD Gothic Neo, Arial, sans-serif; dominant-baseline:hanging;}
+.title{font-size:54px;font-weight:700;fill:#17212b;}
+.h1{font-size:36px;font-weight:700;}
+.h2{font-size:30px;font-weight:700;fill:#17212b;}
+.body{font-size:27px;fill:#17212b;}
+.small{font-size:23px;fill:#5c6875;}
+.badge{font-size:25px;font-weight:700;fill:#fff;}
+</style>
+</defs>
+<rect width="1920" height="1080" fill="#f7f8fa"/>
+<text x="84" y="58" class="title" text-anchor="start">2023년 외삽 오차 요약</text>
+<rect x="1415" y="62" width="190" height="56" rx="8" fill="#b6544a" stroke="#b6544a" stroke-width="0"/>
+<text x="1510" y="76" class="badge" text-anchor="middle">MAPE 7.33%</text>
+<rect x="1640" y="62" width="115" height="56" rx="8" fill="#475569" stroke="#475569" stroke-width="0"/>
+<text x="1697" y="76" class="badge" text-anchor="middle">N 288</text>
+<rect x="170" y="210" width="1110" height="650" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="210" y="245" class="h1" text-anchor="start">방법별 평균 절대오차율</text>
+<text x="220" y="349" class="body" text-anchor="start">생산지수</text>
+<rect x="500" y="335" width="530" height="58" rx="8" fill="#7a5fa8" stroke="#7a5fa8" stroke-width="2"/>
+<text x="1054" y="348" class="body" text-anchor="start" style="fill:#475569">17.5% · 50개</text>
+<text x="220" y="454" class="body" text-anchor="start">건설수주</text>
+<rect x="500" y="440" width="256" height="58" rx="8" fill="#b07822" stroke="#b07822" stroke-width="2"/>
+<text x="780" y="453" class="body" text-anchor="start" style="fill:#475569">8.5% · 18개</text>
+<text x="220" y="559" class="body" text-anchor="start">GDP비중</text>
+<rect x="500" y="545" width="235" height="58" rx="8" fill="#2f6fbb" stroke="#2f6fbb" stroke-width="2"/>
+<text x="759" y="558" class="body" text-anchor="start" style="fill:#475569">7.8% · 50개</text>
+<text x="220" y="664" class="body" text-anchor="start">서비스지수</text>
+<rect x="500" y="650" width="123" height="58" rx="8" fill="#21867a" stroke="#21867a" stroke-width="2"/>
+<text x="647" y="663" class="body" text-anchor="start" style="fill:#475569">4.1% · 170개</text>
+<rect x="1360" y="210" width="400" height="650" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="1400" y="245" class="h1" text-anchor="start">상위 오차</text>
+<text x="1400" y="330" class="body" text-anchor="start">24 · D00</text>
+<text x="1640" y="330" class="body" text-anchor="start" style="fill:#b6544a">+270.6%</text>
+<text x="1400" y="404" class="body" text-anchor="start">11 · B00</text>
+<text x="1640" y="404" class="body" text-anchor="start" style="fill:#b6544a">+131.1%</text>
+<text x="1400" y="478" class="body" text-anchor="start">26 · B00</text>
+<text x="1640" y="478" class="body" text-anchor="start" style="fill:#b6544a">+124.3%</text>
+<text x="1400" y="552" class="body" text-anchor="start">24 · B00</text>
+<text x="1640" y="552" class="body" text-anchor="start" style="fill:#b6544a">+57.2%</text>
+<text x="1400" y="626" class="body" text-anchor="start">33 · D00</text>
+<text x="1640" y="626" class="body" text-anchor="start" style="fill:#b6544a">+42.5%</text>
+<text x="1400" y="760" class="small" text-anchor="start">
+<tspan x="1400" dy="0">큰 오차는 소규모·변동성</tspan>
+<tspan x="1400" dy="34">높은 업종에 집중</tspan>
+</text>
+<text x="170" y="1005" class="small" text-anchor="start">주: 2019-2022년 배분 후 2023년을 직전 BI 비율로 외삽하여 실제 2023년 연간 GVA와 비교</text>
+</svg>

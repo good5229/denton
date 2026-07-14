@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+<style>
+@font-face{font-family:NB;src:local('NanumBarunGothic');}
+text{font-family:NB, Apple SD Gothic Neo, Arial, sans-serif; dominant-baseline:hanging;}
+.title{font-size:54px;font-weight:700;fill:#17212b;}
+.h1{font-size:36px;font-weight:700;}
+.h2{font-size:30px;font-weight:700;fill:#17212b;}
+.body{font-size:27px;fill:#17212b;}
+.small{font-size:23px;fill:#5c6875;}
+.badge{font-size:25px;font-weight:700;fill:#fff;}
+</style>
+</defs>
+<rect width="1920" height="1080" fill="#f7f8fa"/>
+<text x="84" y="50" class="title" text-anchor="start">통계 지표 기반 지역 GVA 분기화 엔진</text>
+<rect x="1460" y="58" width="285" height="56" rx="8" fill="#475569" stroke="#475569" stroke-width="0"/>
+<text x="1602" y="72" class="badge" text-anchor="middle">Portfolio Tech</text>
+<text x="90" y="130" class="h2" text-anchor="start" style="fill:#475569">KOSIS 원천통계와 한국은행 방법론을 연결해 연간 지역 총부가가치를 분기 시계열로 복원</text>
+<rect x="88" y="205" width="380" height="180" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<rect x="114" y="232" width="56" height="56" rx="28" fill="#2f6fbb" stroke="#2f6fbb" stroke-width="0"/>
+<text x="142" y="247" class="badge" text-anchor="middle">1</text>
+<text x="196" y="227" class="h1" text-anchor="start" style="fill:#2f6fbb">수집</text>
+<text x="196" y="282" class="body" text-anchor="start">KOSIS OpenAPI</text>
+<text x="196" y="326" class="small" text-anchor="start" style="fill:#475569">GVA·생산지수·GDP</text>
+<line x1="478" y1="295" x2="526" y2="295" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="526.0,295.0 509.8,302.8 509.8,287.2" fill="#6b7785"/>
+<rect x="543" y="205" width="380" height="180" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<rect x="569" y="232" width="56" height="56" rx="28" fill="#21867a" stroke="#21867a" stroke-width="0"/>
+<text x="597" y="247" class="badge" text-anchor="middle">2</text>
+<text x="651" y="227" class="h1" text-anchor="start" style="fill:#21867a">매핑</text>
+<text x="651" y="282" class="body" text-anchor="start">지역 × 업종 × 분기</text>
+<text x="651" y="326" class="small" text-anchor="start" style="fill:#475569">지표 우선순위 적용</text>
+<line x1="933" y1="295" x2="981" y2="295" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="981.0,295.0 964.8,302.8 964.8,287.2" fill="#6b7785"/>
+<rect x="998" y="205" width="380" height="180" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<rect x="1024" y="232" width="56" height="56" rx="28" fill="#7a5fa8" stroke="#7a5fa8" stroke-width="0"/>
+<text x="1052" y="247" class="badge" text-anchor="middle">3</text>
+<text x="1106" y="227" class="h1" text-anchor="start" style="fill:#7a5fa8">추정</text>
+<text x="1106" y="282" class="body" text-anchor="start">비례형 덴튼</text>
+<text x="1106" y="326" class="small" text-anchor="start" style="fill:#475569">연간합 제약 + 평활화</text>
+<line x1="1388" y1="295" x2="1436" y2="295" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="1436.0,295.0 1419.8,302.8 1419.8,287.2" fill="#6b7785"/>
+<rect x="1453" y="205" width="380" height="180" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<rect x="1479" y="232" width="56" height="56" rx="28" fill="#b6544a" stroke="#b6544a" stroke-width="0"/>
+<text x="1507" y="247" class="badge" text-anchor="middle">4</text>
+<text x="1561" y="227" class="h1" text-anchor="start" style="fill:#b6544a">검증</text>
+<text x="1561" y="282" class="body" text-anchor="start">2023 외삽 오차</text>
+<text x="1561" y="326" class="small" text-anchor="start" style="fill:#475569">실제 GVA와 비교</text>
+<rect x="110" y="450" width="1080" height="410" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="155" y="485" class="h1" text-anchor="start" style="fill:#17212b">핵심 구현</text>
+<text x="155" y="545" class="h2" text-anchor="start" style="fill:#2f6fbb">입력 벡터</text>
+<text x="360" y="545" class="h2" text-anchor="start">Aᵧ: 연간 GVA</text>
+<rect x="610" y="526" width="90" height="62" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="655.0" y="542.0" class="h2" text-anchor="middle" style="fill:#ffffff">I₁</text>
+<rect x="700" y="526" width="74" height="62" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="737.0" y="542.0" class="h2" text-anchor="middle" style="fill:#ffffff">I₂</text>
+<rect x="774" y="526" width="119" height="62" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="833.5" y="542.0" class="h2" text-anchor="middle" style="fill:#ffffff">I₃</text>
+<rect x="893" y="526" width="127" height="62" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="956.5" y="542.0" class="h2" text-anchor="middle" style="fill:#ffffff">I₄</text>
+<text x="1040" y="545" class="small" text-anchor="start" style="fill:#475569">분기 지표</text>
+<line x1="170" y1="630" x2="1135" y2="630" stroke="#d5dbe5" stroke-width="3" stroke-linecap="round"/>
+<text x="155" y="675" class="h2" text-anchor="start" style="fill:#7a5fa8">최적화</text>
+<text x="360" y="672" class="h2" text-anchor="start">min Σ [(Xₜ/Iₜ) - (Xₜ₋₁/Iₜ₋₁)]²</text>
+<text x="360" y="730" class="h2" text-anchor="start" style="fill:#475569">s.t. 각 연도 Σ분기 Xᵧq = Aᵧ</text>
+<text x="155" y="790" class="h2" text-anchor="start" style="fill:#21867a">산출</text>
+<rect x="360" y="772" width="158" height="62" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="439.0" y="788.0" class="h2" text-anchor="middle" style="fill:#ffffff">X₁</text>
+<rect x="518" y="772" width="125" height="62" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="580.5" y="788.0" class="h2" text-anchor="middle" style="fill:#ffffff">X₂</text>
+<rect x="643" y="772" width="178" height="62" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="732.0" y="788.0" class="h2" text-anchor="middle" style="fill:#ffffff">X₃</text>
+<rect x="821" y="772" width="199" height="62" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="920.5" y="788.0" class="h2" text-anchor="middle" style="fill:#ffffff">X₄</text>
+<text x="1040" y="790" class="small" text-anchor="start" style="fill:#475569">분기 GVA</text>
+<rect x="1260" y="450" width="575" height="410" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="1305" y="485" class="h1" text-anchor="start" style="fill:#17212b">구현 결과</text>
+<text x="1305" y="550" class="title" text-anchor="start" style="fill:#50884f">5,760</text>
+<text x="1518" y="570" class="body" text-anchor="start" style="fill:#475569">분기 GVA 추정 행</text>
+<text x="1305" y="642" class="title" text-anchor="start" style="fill:#b6544a">288</text>
+<text x="1518" y="662" class="body" text-anchor="start" style="fill:#475569">2023 외삽 검증 건</text>
+<text x="1305" y="734" class="title" text-anchor="start" style="fill:#b07822">7.33%</text>
+<text x="1518" y="754" class="body" text-anchor="start" style="fill:#475569">외삽 MAPE</text>
+<rect x="1305" y="805" width="480" height="36" rx="6" fill="#eef3f8" stroke="#eef3f8" stroke-width="0"/>
+<text x="1325" y="811" class="small" text-anchor="start" style="fill:#475569">재현 가능한 Python 파이프라인 + CSV 산출물</text>
+<rect x="135" y="910" width="500" height="78" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="163" y="926" class="body" text-anchor="start" style="fill:#2f6fbb">데이터 엔지니어링</text>
+<text x="400" y="928" class="small" text-anchor="start" style="fill:#475569">API 수집 · 정규화</text>
+<rect x="695" y="910" width="500" height="78" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="723" y="926" class="body" text-anchor="start" style="fill:#2f6fbb">알고리즘 구현</text>
+<text x="960" y="928" class="small" text-anchor="start" style="fill:#475569">Denton 최적화</text>
+<rect x="1255" y="910" width="500" height="78" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="1283" y="926" class="body" text-anchor="start" style="fill:#2f6fbb">검증 설계</text>
+<text x="1520" y="928" class="small" text-anchor="start" style="fill:#475569">외삽 오차 비교</text>
+</svg>

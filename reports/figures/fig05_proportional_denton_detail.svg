@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+<style>
+@font-face{font-family:NB;src:local('NanumBarunGothic');}
+text{font-family:NB, Apple SD Gothic Neo, Arial, sans-serif; dominant-baseline:hanging;}
+.title{font-size:54px;font-weight:700;fill:#17212b;}
+.h1{font-size:36px;font-weight:700;}
+.h2{font-size:30px;font-weight:700;fill:#17212b;}
+.body{font-size:27px;fill:#17212b;}
+.small{font-size:23px;fill:#5c6875;}
+.badge{font-size:25px;font-weight:700;fill:#fff;}
+</style>
+</defs>
+<rect width="1920" height="1080" fill="#f7f8fa"/>
+<text x="84" y="50" class="title" text-anchor="start">비례형 덴튼 배분 상세 로직</text>
+<rect x="1508" y="58" width="230" height="56" rx="8" fill="#475569" stroke="#475569" stroke-width="0"/>
+<text x="1623" y="72" class="badge" text-anchor="middle">분기 GVA 추정</text>
+<rect x="85" y="155" width="515" height="300" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="119" y="185" class="h1" text-anchor="start" style="fill:#2f6fbb">입력 1: 연간 기준값</text>
+<text x="119" y="247" class="body" text-anchor="start" style="fill:#475569">지역 r · 업종 s</text>
+<rect x="119" y="305" width="447" height="70" rx="0" fill="#2f6fbb" stroke="#173a63" stroke-width="3"/>
+<text x="342.5" y="325.0" class="h2" text-anchor="middle" style="fill:#ffffff">Aᵧ = 연간 총부가가치</text>
+<text x="119" y="393" class="small" text-anchor="start" style="fill:#475569">제약: 해당 연도 4개 분기 합</text>
+<rect x="675" y="155" width="515" height="300" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="709" y="185" class="h1" text-anchor="start" style="fill:#21867a">입력 2: 분기 참고지표</text>
+<text x="709" y="247" class="body" text-anchor="start" style="fill:#475569">생산지수·서비스지수·건설수주·GDP</text>
+<rect x="709" y="305" width="98" height="70" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="758.0" y="325.0" class="h2" text-anchor="middle" style="fill:#ffffff">I₁</text>
+<rect x="807" y="305" width="80" height="70" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="847.0" y="325.0" class="h2" text-anchor="middle" style="fill:#ffffff">I₂</text>
+<rect x="887" y="305" width="130" height="70" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="952.0" y="325.0" class="h2" text-anchor="middle" style="fill:#ffffff">I₃</text>
+<rect x="1017" y="305" width="139" height="70" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="1086.5" y="325.0" class="h2" text-anchor="middle" style="fill:#ffffff">I₄</text>
+<text x="709" y="393" class="small" text-anchor="start" style="fill:#475569">분기별 경기 흐름: 22 · 18 · 29 · 31%</text>
+<rect x="1290" y="155" width="545" height="300" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="1324" y="185" class="h1" text-anchor="start" style="fill:#b07822">초기 비례 배분</text>
+<text x="1324" y="247" class="body" text-anchor="start" style="fill:#475569">먼저 지표 비중으로 연간값을 나눔</text>
+<rect x="1324" y="305" width="477" height="70" rx="0" fill="#fff8ed" stroke="#d7b77d" stroke-width="3"/>
+<text x="1562.5" y="325.0" class="h2" text-anchor="middle" style="fill:#17212b">Aᵧ × Iq / ΣIq</text>
+<text x="1324" y="393" class="small" text-anchor="start" style="fill:#475569">단순 비례값은 덴튼의 출발점</text>
+<line x1="604" y1="305" x2="660" y2="305" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="660.0,305.0 643.8,312.8 643.8,297.2" fill="#6b7785"/>
+<line x1="1194" y1="305" x2="1275" y2="305" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="1275.0,305.0 1258.8,312.8 1258.8,297.2" fill="#6b7785"/>
+<rect x="135" y="505" width="1650" height="215" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="180" y="533" class="h1" text-anchor="start" style="fill:#7a5fa8">비례형 덴튼 조정</text>
+<text x="180" y="593" class="h2" text-anchor="start" style="fill:#7a5fa8">목적</text>
+<text x="310" y="597" class="h2" text-anchor="start" style="fill:#17212b">Σ [(Xₜ / Iₜ) - (Xₜ₋₁ / Iₜ₋₁)]² 최소화</text>
+<text x="180" y="653" class="h2" text-anchor="start" style="fill:#2f6fbb">제약</text>
+<text x="310" y="657" class="h2" text-anchor="start" style="fill:#17212b">각 연도마다 Σ분기 Xᵧq = Aᵧ</text>
+<text x="995" y="657" class="h2" text-anchor="start" style="fill:#475569">즉, 연간 총량은 고정하고 분기 흐름만 조정</text>
+<line x1="960" y1="455" x2="960" y2="500" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="960.0,500.0 952.2,483.8 967.8,483.8" fill="#6b7785"/>
+<line x1="960" y1="720" x2="960" y2="765" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="960.0,765.0 952.2,748.8 967.8,748.8" fill="#6b7785"/>
+<rect x="135" y="770" width="1015" height="210" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="180" y="798" class="h1" text-anchor="start" style="fill:#21867a">배분 결과</text>
+<rect x="180" y="868" width="215" height="70" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="287.5" y="888.0" class="h2" text-anchor="middle" style="fill:#ffffff">X₁</text>
+<rect x="395" y="868" width="170" height="70" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="480.0" y="888.0" class="h2" text-anchor="middle" style="fill:#ffffff">X₂</text>
+<rect x="565" y="868" width="242" height="70" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="686.0" y="888.0" class="h2" text-anchor="middle" style="fill:#ffffff">X₃</text>
+<rect x="807" y="868" width="268" height="70" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="941.0" y="888.0" class="h2" text-anchor="middle" style="fill:#ffffff">X₄</text>
+<text x="180" y="948" class="small" text-anchor="start" style="fill:#475569">분기별 추정 GVA: 합계는 Aᵧ, 움직임은 Iq 흐름을 따름</text>
+<rect x="1210" y="770" width="575" height="210" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="1250" y="798" class="h1" text-anchor="start" style="fill:#b6544a">2023 외삽 검증</text>
+<text x="1250" y="858" class="h2" text-anchor="start" style="fill:#475569">직전 비율 유지</text>
+<text x="1250" y="902" class="h2" text-anchor="start" style="fill:#17212b">2023년 Xq = Iq × (B / I직전)</text>
+<text x="1250" y="948" class="small" text-anchor="start" style="fill:#475569">B = 2022년 4분기 덴튼 추정값</text>
+<text x="150" y="1015" class="small" text-anchor="start">해석: 지표 비중을 그대로 베끼는 방식이 아니라, 연간 기준값을 지키면서 추정값/지표 비율이 부드럽게 이어지도록 배분</text>
+</svg>

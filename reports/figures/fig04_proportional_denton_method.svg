@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+<style>
+@font-face{font-family:NB;src:local('NanumBarunGothic');}
+text{font-family:NB, Apple SD Gothic Neo, Arial, sans-serif; dominant-baseline:hanging;}
+.title{font-size:54px;font-weight:700;fill:#17212b;}
+.h1{font-size:36px;font-weight:700;}
+.h2{font-size:30px;font-weight:700;fill:#17212b;}
+.body{font-size:27px;fill:#17212b;}
+.small{font-size:23px;fill:#5c6875;}
+.badge{font-size:25px;font-weight:700;fill:#fff;}
+</style>
+</defs>
+<rect width="1920" height="1080" fill="#f7f8fa"/>
+<text x="84" y="58" class="title" text-anchor="start">연간 총부가가치의 분기 배분 방식</text>
+<rect x="1470" y="65" width="265" height="56" rx="8" fill="#475569" stroke="#475569" stroke-width="0"/>
+<text x="1602" y="79" class="badge" text-anchor="middle">현재 로직 기준</text>
+<text x="95" y="271" class="h2" text-anchor="start" style="fill:#475569">연간 총부가가치</text>
+<rect x="350" y="245" width="1370" height="84" rx="0" fill="#2f6fbb" stroke="#173a63" stroke-width="3"/>
+<text x="1035.0" y="272.0" class="h2" text-anchor="middle" style="fill:#ffffff">A_2022: 연간 지역·업종 GVA</text>
+<line x1="692" y1="245" x2="692" y2="329" stroke="#173a63" stroke-width="3" stroke-linecap="round"/>
+<line x1="1035" y1="245" x2="1035" y2="329" stroke="#173a63" stroke-width="3" stroke-linecap="round"/>
+<line x1="1377" y1="245" x2="1377" y2="329" stroke="#173a63" stroke-width="3" stroke-linecap="round"/>
+<text x="370" y="353" class="small" text-anchor="start" style="fill:#475569">네 분기의 합이 반드시 연간값과 일치</text>
+<text x="95" y="440" class="h2" text-anchor="start" style="fill:#475569">분기 참고지표</text>
+<text x="95" y="478" class="small" text-anchor="start" style="fill:#475569">생산지수 등</text>
+<rect x="350" y="430" width="342" height="84" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="521.0" y="457.0" class="h2" text-anchor="middle" style="fill:#ffffff">2022 1Q</text>
+<rect x="692" y="430" width="342" height="84" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="863.0" y="457.0" class="h2" text-anchor="middle" style="fill:#ffffff">2022 2Q</text>
+<rect x="1034" y="430" width="342" height="84" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="1205.0" y="457.0" class="h2" text-anchor="middle" style="fill:#ffffff">2022 3Q</text>
+<rect x="1376" y="430" width="344" height="84" rx="0" fill="#4f84bf" stroke="#173a63" stroke-width="3"/>
+<text x="1548.0" y="457.0" class="h2" text-anchor="middle" style="fill:#ffffff">2022 4Q</text>
+<text x="370" y="538" class="small" text-anchor="start" style="fill:#475569">I_1, I_2, I_3, I_4: 분기별 경기 흐름</text>
+<text x="95" y="627" class="h2" text-anchor="start" style="fill:#475569">비례형 덴튼</text>
+<text x="95" y="665" class="small" text-anchor="start" style="fill:#475569">비율 변동 최소화</text>
+<rect x="350" y="615" width="1370" height="84" rx="0" fill="#ffffff" stroke="#b8c2d0" stroke-width="3"/>
+<text x="1035.0" y="642.0" class="h2" text-anchor="middle" style="fill:#17212b">I_q / ΣI_q 비중을 따르되 X_t / I_t 변화를 평활화</text>
+<line x1="1035" y1="552" x2="1035" y2="601" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="1035.0,601.0 1027.2,584.8 1042.8,584.8" fill="#6b7785"/>
+<line x1="1035" y1="367" x2="1035" y2="601" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="1035.0,601.0 1027.2,584.8 1042.8,584.8" fill="#6b7785"/>
+<text x="95" y="804" class="h2" text-anchor="start" style="fill:#475569">추정 분기 GVA</text>
+<text x="95" y="842" class="small" text-anchor="start" style="fill:#475569">배분 결과</text>
+<rect x="350" y="800" width="342" height="84" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="521.0" y="827.0" class="h2" text-anchor="middle" style="fill:#ffffff">X_1</text>
+<rect x="692" y="800" width="342" height="84" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="863.0" y="827.0" class="h2" text-anchor="middle" style="fill:#ffffff">X_2</text>
+<rect x="1034" y="800" width="342" height="84" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="1205.0" y="827.0" class="h2" text-anchor="middle" style="fill:#ffffff">X_3</text>
+<rect x="1376" y="800" width="344" height="84" rx="0" fill="#21867a" stroke="#145b55" stroke-width="3"/>
+<text x="1548.0" y="827.0" class="h2" text-anchor="middle" style="fill:#ffffff">X_4</text>
+<line x1="1035" y1="737" x2="1035" y2="786" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="1035.0,786.0 1027.2,769.8 1042.8,769.8" fill="#6b7785"/>
+<rect x="285" y="930" width="1470" height="86" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<text x="330" y="956" class="h1" text-anchor="start" style="fill:#2f6fbb">제약</text>
+<text x="470" y="963" class="h2" text-anchor="start" style="fill:#17212b">X_1 + X_2 + X_3 + X_4 = A_2022</text>
+<text x="945" y="963" class="h2" text-anchor="start" style="fill:#475569">2023 외삽: X_2023,q = I_2023,q × (X_2022,4Q / I_2022,4Q)</text>
+</svg>

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+<style>
+@font-face{font-family:NB;src:local('NanumBarunGothic');}
+text{font-family:NB, Apple SD Gothic Neo, Arial, sans-serif; dominant-baseline:hanging;}
+.title{font-size:54px;font-weight:700;fill:#17212b;}
+.h1{font-size:36px;font-weight:700;}
+.h2{font-size:30px;font-weight:700;fill:#17212b;}
+.body{font-size:27px;fill:#17212b;}
+.small{font-size:23px;fill:#5c6875;}
+.badge{font-size:25px;font-weight:700;fill:#fff;}
+</style>
+</defs>
+<rect width="1920" height="1080" fill="#f7f8fa"/>
+<text x="84" y="58" class="title" text-anchor="start">지역경기상황지수 복원 파이프라인</text>
+<rect x="90" y="170" width="340" height="620" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<rect x="90" y="170" width="340" height="84" rx="8" fill="#2f6fbb" stroke="#2f6fbb" stroke-width="2"/>
+<text x="118" y="194" class="h1" text-anchor="start" style="fill:#ffffff">원천 데이터</text>
+<rect x="118" y="294" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="142" y="310" class="h2" text-anchor="start">연간 GVA</text>
+<text x="142" y="350" class="body" text-anchor="start" style="fill:#2f6fbb">2,340행</text>
+<rect x="118" y="416" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="142" y="432" class="h2" text-anchor="start">생산지수</text>
+<text x="142" y="472" class="body" text-anchor="start" style="fill:#2f6fbb">5,752행</text>
+<rect x="118" y="538" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="142" y="554" class="h2" text-anchor="start">GDP·디플레이터</text>
+<text x="142" y="594" class="body" text-anchor="start" style="fill:#2f6fbb">1,500행</text>
+<rect x="118" y="660" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="142" y="676" class="h2" text-anchor="start">건설수주</text>
+<text x="142" y="716" class="body" text-anchor="start" style="fill:#2f6fbb">2,640행</text>
+<line x1="460" y1="480" x2="525" y2="480" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="525.0,480.0 508.8,487.8 508.8,472.2" fill="#6b7785"/>
+<rect x="555" y="170" width="340" height="620" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<rect x="555" y="170" width="340" height="84" rx="8" fill="#21867a" stroke="#21867a" stroke-width="2"/>
+<text x="583" y="194" class="h1" text-anchor="start" style="fill:#ffffff">업종별 참고지표</text>
+<rect x="583" y="294" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="607" y="310" class="h2" text-anchor="start">생산지수</text>
+<text x="607" y="350" class="body" text-anchor="start" style="fill:#21867a">광업·제조업</text>
+<rect x="583" y="416" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="607" y="432" class="h2" text-anchor="start">서비스 지수</text>
+<text x="607" y="472" class="body" text-anchor="start" style="fill:#21867a">10개 업종</text>
+<rect x="583" y="538" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="607" y="554" class="h2" text-anchor="start">건설 수주</text>
+<text x="607" y="594" class="body" text-anchor="start" style="fill:#21867a">12/24분기</text>
+<rect x="583" y="660" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="607" y="676" class="h2" text-anchor="start">전국 GDP</text>
+<text x="607" y="716" class="body" text-anchor="start" style="fill:#21867a">무지표 업종</text>
+<line x1="925" y1="480" x2="990" y2="480" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="990.0,480.0 973.8,487.8 973.8,472.2" fill="#6b7785"/>
+<rect x="1020" y="170" width="340" height="620" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<rect x="1020" y="170" width="340" height="84" rx="8" fill="#b07822" stroke="#b07822" stroke-width="2"/>
+<text x="1048" y="194" class="h1" text-anchor="start" style="fill:#ffffff">비례형 덴튼</text>
+<rect x="1048" y="294" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="1072" y="310" class="h2" text-anchor="start">배분</text>
+<text x="1072" y="350" class="body" text-anchor="start" style="fill:#b07822">2019-2022</text>
+<rect x="1048" y="416" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="1072" y="432" class="h2" text-anchor="start">외삽</text>
+<text x="1072" y="472" class="body" text-anchor="start" style="fill:#b07822">2023</text>
+<rect x="1048" y="538" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="1072" y="554" class="h2" text-anchor="start">제약</text>
+<text x="1072" y="594" class="body" text-anchor="start" style="fill:#b07822">연간 GVA</text>
+<rect x="1048" y="660" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="1072" y="676" class="h2" text-anchor="start">BI 비율</text>
+<text x="1072" y="716" class="body" text-anchor="start" style="fill:#b07822">직전분기</text>
+<line x1="1390" y1="480" x2="1455" y2="480" stroke="#6b7785" stroke-width="5" stroke-linecap="round"/>
+<polygon points="1455.0,480.0 1438.8,487.8 1438.8,472.2" fill="#6b7785"/>
+<rect x="1485" y="170" width="340" height="620" rx="8" fill="#ffffff" stroke="#cad2de" stroke-width="2"/>
+<rect x="1485" y="170" width="340" height="84" rx="8" fill="#50884f" stroke="#50884f" stroke-width="2"/>
+<text x="1513" y="194" class="h1" text-anchor="start" style="fill:#ffffff">검증·보정</text>
+<rect x="1513" y="294" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="1537" y="310" class="h2" text-anchor="start">외삽 오차</text>
+<text x="1537" y="350" class="body" text-anchor="start" style="fill:#50884f">288개</text>
+<rect x="1513" y="416" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="1537" y="432" class="h2" text-anchor="start">MAPE</text>
+<text x="1537" y="472" class="body" text-anchor="start" style="fill:#50884f">7.33%</text>
+<rect x="1513" y="538" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="1537" y="554" class="h2" text-anchor="start">GDP 보정</text>
+<text x="1537" y="594" class="body" text-anchor="start" style="fill:#50884f">1:1 업종</text>
+<rect x="1513" y="660" width="284" height="96" rx="8" fill="#f9fbfd" stroke="#d9e0ea" stroke-width="2"/>
+<text x="1537" y="676" class="h2" text-anchor="start">산출물</text>
+<text x="1537" y="716" class="body" text-anchor="start" style="fill:#50884f">5,760행</text>
+<text x="95" y="930" class="h2" text-anchor="start">원문 방식: 연간 GRDP 제약 + 분기 참고지표 흐름 + 전국 GDP 정합성</text>
+<text x="95" y="980" class="small" text-anchor="start">주: 한국은행 GDP 묶음 업종은 임의 분할 없이 보정 제외 상태로 표시</text>
+</svg>
