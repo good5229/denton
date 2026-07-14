@@ -1,0 +1,19 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Local harness and run records
+harness_doc/
+harness_docs/
+
+# Collected/raw/processed statistical data
+data/
+
+# Editable presentation deliverables
+*.ppt
+*.pptx
+
+# Local reference documents
+reference/*.pdf
