@@ -75,13 +75,25 @@ PYTHONPATH=scripts .venv/bin/python scripts/collect_expanded_kosis.py
 PYTHONPATH=scripts .venv/bin/python scripts/denton_sigungu.py
 ```
 
-7. Verify or rewrite local CSV outputs as CP949:
+7. Check Seoul district-to-city quarterly consistency:
+
+```bash
+PYTHONPATH=scripts .venv/bin/python scripts/check_seoul_sigungu_consistency.py
+```
+
+8. Verify or rewrite local CSV outputs as CP949:
 
 ```bash
 PYTHONPATH=scripts .venv/bin/python scripts/ensure_cp949_csv.py
 ```
 
-8. Open the local dashboard:
+9. Stop any previous dashboard server before starting a refreshed one:
+
+```bash
+python3 scripts/stop_dashboard_server.py 8000
+```
+
+10. Open the local dashboard:
 
 ```bash
 python3 -m http.server 8000
@@ -92,6 +104,7 @@ Then visit `http://localhost:8000/reports/dashboard/`.
 ## Current Feasibility Findings
 
 - 시군구 annual GRVA benchmarks are available for 16 provincial tables, with full common availability over `2020-2022`.
+- Seoul district quarterly estimates can be checked against the parent Seoul quarterly path by summing the 25 district rows and comparing them with the Seoul 시도 estimate.
 - Mining/manufacturing supports stable `시군구 × KSIC 중분류` coverage for 2020-2024.
 - KSIC 소분류 and 세분류 rows are mostly limited to 시도 or national coverage in KOSIS.
 - 읍면동 economic GVA/production benchmarks were not found in KOSIS, so 읍면동 extension should be treated as a proxy allocation problem.
