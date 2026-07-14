@@ -1,6 +1,7 @@
 const DATA_PATHS = {
   sidoAnnual: "../../data/processed/rolling_annual_prediction_comparisons.csv",
   sidoQuarter: "../../data/processed/rolling_quarterly_gva_predictions.csv",
+  sidoActual: "../../data/processed/rolling_annual_grva_real.csv",
   sigunguQuarter: "../../data/processed/sigungu_quarterly_gva_estimates.csv",
   sigunguAnnual: "../../data/processed/sigungu_denton_constraint_diagnostics.csv",
   emdInventory: "../../data/processed/eupmyeondong_source_inventory.csv",
@@ -9,6 +10,10 @@ const DATA_PATHS = {
 const state = {
   data: {},
   rows: [],
+  lookup: {
+    areaNames: {},
+    sectorNames: {},
+  },
 };
 
 const $ = (id) => document.getElementById(id);
@@ -92,6 +97,26 @@ function setOptions(select, options, selected) {
   if (selected && options.some(([value]) => value === selected)) select.value = selected;
 }
 
+function buildLookups() {
+  const areaNames = {};
+  const sectorNames = {};
+  (state.data.sidoActual || []).forEach((row) => {
+    if (row.c1_id && row.c1_nm) areaNames[row.c1_id] = row.c1_nm;
+    if (row.c2_id && row.c2_nm) sectorNames[row.c2_id] = row.c2_nm;
+  });
+  state.lookup = { areaNames, sectorNames };
+}
+
+function enrichSidoRows() {
+  ["sidoAnnual", "sidoQuarter"].forEach((key) => {
+    state.data[key] = (state.data[key] || []).map((row) => ({
+      ...row,
+      area_name: row.area_name || state.lookup.areaNames[row.area_code] || row.area_code,
+      sector_name: row.sector_name || state.lookup.sectorNames[row.sector_code] || row.sector_code,
+    }));
+  });
+}
+
 function regionKey(row, level) {
   if (level === "sigungu") return row.sigungu_code;
   if (level === "emd") return row.table_id;
@@ -101,7 +126,7 @@ function regionKey(row, level) {
 function regionName(row, level) {
   if (level === "sigungu") return `${row.source_region} ${row.sigungu_name} (${row.sigungu_code})`;
   if (level === "emd") return `${row.source} ${row.table_id}`;
-  return row.area_code;
+  return `${row.area_name || state.lookup.areaNames[row.area_code] || row.area_code} (${row.area_code})`;
 }
 
 function sectorKey(row, level) {
@@ -111,7 +136,7 @@ function sectorKey(row, level) {
 
 function sectorName(row, level) {
   if (level === "emd") return row.assessment || row.name;
-  return `${row.sector_name || row.sector_code} (${row.sector_code})`;
+  return `${row.sector_name || state.lookup.sectorNames[row.sector_code] || row.sector_code} (${row.sector_code})`;
 }
 
 function periodKey(row, grain) {
@@ -199,6 +224,7 @@ function updateMessage(level, grain, rows) {
   if (grain === "month") messages.push("현재 원천 데이터는 월간 예측값을 포함하지 않습니다. 연도 또는 분기를 선택해 주세요.");
   if (level === "emd") messages.push("읍면동은 아직 예측값이 아니라 자료 후보 인벤토리만 표시합니다.");
   if (level === "sigungu" && grain === "quarter") messages.push("시군구 분기 실제값은 공개되지 않아 예측값만 표시합니다. 연간 실제 벤치마크 비교는 시점 단위 '연도'에서 볼 수 있습니다.");
+  if (level === "sido" && grain === "quarter") messages.push("시도 분기 실제 GVA는 별도 공개값이 없어 예측값만 표시합니다. 실제 연간 GRVA 비교는 시점 단위 '연도'에서 볼 수 있습니다.");
   if (!rows.length) messages.push("선택한 조건에 해당하는 행이 없습니다.");
   box.hidden = messages.length === 0;
   box.textContent = messages.join(" ");
@@ -293,7 +319,7 @@ function renderTable(rows) {
     .sort((a, b) => periodNumber(periodKey(a, grain)) - periodNumber(periodKey(b, grain)))
     .map((row) => ({
       period: periodKey(row, grain),
-      region: level === "sigungu" ? row.sigungu_name : row.area_code,
+      region: level === "sigungu" ? row.sigungu_name : regionName(row, level),
       sector: row.sector_name,
       predicted: fmt(row[fields.predicted], 3),
       actual: fields.actual ? fmt(row[fields.actual], 3) : "-",
@@ -323,6 +349,8 @@ async function init() {
   try {
     const entries = await Promise.all(Object.entries(DATA_PATHS).map(async ([key, path]) => [key, await loadCsv(path)]));
     state.data = Object.fromEntries(entries);
+    buildLookups();
+    enrichSidoRows();
     $("loadStatus").textContent = "CSV 로딩 완료";
   } catch (error) {
     $("loadStatus").textContent = "CSV 로딩 실패";

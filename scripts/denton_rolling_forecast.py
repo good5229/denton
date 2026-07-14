@@ -45,6 +45,21 @@ def load_annual(rows: list[dict[str, str]]) -> dict[tuple[str, str], dict[int, f
     return annual
 
 
+def load_labels(rows: list[dict[str, str]]) -> tuple[dict[str, str], dict[str, str]]:
+    area_names: dict[str, str] = {}
+    sector_names: dict[str, str] = {}
+    for row in rows:
+        if row.get("dataset") != "annual_grva_real":
+            continue
+        area_code = row.get("c1_id", "")
+        sector_code = row.get("c2_id", "")
+        if area_code and row.get("c1_nm"):
+            area_names[area_code] = row["c1_nm"]
+        if sector_code and row.get("c2_nm"):
+            sector_names[sector_code] = row["c2_nm"]
+    return area_names, sector_names
+
+
 def all_quarters(start_year: int, end_year: int) -> list[tuple[int, int]]:
     return [(year, quarter) for year in range(start_year, end_year + 1) for quarter in range(1, 5)]
 
@@ -111,6 +126,7 @@ def available_full_years(indicator: dict[tuple[int, int], float]) -> list[int]:
 def estimate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     rows = load_rolling_rows()
     annual = load_annual(rows)
+    area_names, sector_name_labels = load_labels(rows)
     indicators, methods = merge_indicators(rows)
     predictions: list[dict[str, Any]] = []
     comparisons: list[dict[str, Any]] = []
@@ -149,8 +165,9 @@ def estimate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                 predictions.append(
                     {
                         "area_code": area,
+                        "area_name": area_names.get(area, area),
                         "sector_code": sector,
-                        "sector_name": SECTOR_NAMES.get(sector, sector),
+                        "sector_name": sector_name_labels.get(sector, SECTOR_NAMES.get(sector, sector)),
                         "target_year": target_year,
                         "quarter": quarter,
                         "period": quarter_label(target_year, quarter),
@@ -164,8 +181,9 @@ def estimate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                 )
             comparison = {
                 "area_code": area,
+                "area_name": area_names.get(area, area),
                 "sector_code": sector,
-                "sector_name": SECTOR_NAMES.get(sector, sector),
+                "sector_name": sector_name_labels.get(sector, SECTOR_NAMES.get(sector, sector)),
                 "target_year": target_year,
                 "train_start_year": train_years[0],
                 "train_end_year": train_years[-1],
