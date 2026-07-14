@@ -22,6 +22,10 @@ scripts/
   denton_reci.py                # Core proportional Denton implementation for selected sectors
   denton_all_industries.py      # All-industry 시도 quarterly estimation
   denton_sigungu.py             # 시군구 quarterly estimation using annual GRVA benchmarks
+  allocate_detailed_industry.py # 시군구 제조업 KSIC 세부산업 allocation
+  collect_emd_economic_census.py # 읍면동 economic census proxy collection
+  allocate_emd_gva.py           # 읍면동 proxy GVA allocation
+  build_reci.py                 # RECI index construction and validation
   make_figures.py               # Generate SVG/PNG documentation figures
   make_portfolio_ppt.py         # Generate editable portfolio PPT assets
 reports/
@@ -81,19 +85,39 @@ PYTHONPATH=scripts .venv/bin/python scripts/denton_sigungu.py
 PYTHONPATH=scripts .venv/bin/python scripts/check_seoul_sigungu_consistency.py
 ```
 
-8. Verify or rewrite local CSV outputs as CP949:
+8. Allocate detailed manufacturing industries:
+
+```bash
+PYTHONPATH=scripts .venv/bin/python scripts/allocate_detailed_industry.py
+```
+
+9. Collect and allocate eup/myeon/dong proxy GVA:
+
+```bash
+PYTHONPATH=scripts .venv/bin/python scripts/collect_emd_economic_census.py
+PYTHONPATH=scripts .venv/bin/python scripts/allocate_emd_gva.py
+```
+
+10. Collect energy exogenous indicators and build RECI:
+
+```bash
+PYTHONPATH=scripts .venv/bin/python scripts/collect_energy_exogenous.py
+PYTHONPATH=scripts .venv/bin/python scripts/build_reci.py
+```
+
+11. Verify or rewrite local CSV outputs as CP949:
 
 ```bash
 PYTHONPATH=scripts .venv/bin/python scripts/ensure_cp949_csv.py
 ```
 
-9. Stop any previous dashboard server before starting a refreshed one:
+12. Stop any previous dashboard server before starting a refreshed one:
 
 ```bash
 python3 scripts/stop_dashboard_server.py 8000
 ```
 
-10. Open the local dashboard:
+13. Open the local dashboard:
 
 ```bash
 python3 -m http.server 8000
@@ -107,4 +131,4 @@ Then visit `http://localhost:8000/reports/dashboard/`.
 - Seoul district quarterly estimates can be checked against the parent Seoul quarterly path by summing the 25 district rows and comparing them with the Seoul 시도 estimate.
 - Mining/manufacturing supports stable `시군구 × KSIC 중분류` coverage for 2020-2024.
 - KSIC 소분류 and 세분류 rows are mostly limited to 시도 or national coverage in KOSIS.
-- 읍면동 economic GVA/production benchmarks were not found in KOSIS, so 읍면동 extension should be treated as a proxy allocation problem.
+- 읍면동 economic GVA/production benchmarks were not found in KOSIS, but 2015 economic census proxy data can allocate 시군구 quarterly GVA down to 읍면동. These estimates should be treated as proxy allocations, not official GVA.
