@@ -2,10 +2,62 @@ const DATA_PATHS = {
   sidoAnnual: "../../data/processed/rolling_annual_prediction_comparisons.csv",
   sidoQuarter: "../../data/processed/rolling_quarterly_gva_predictions.csv",
   sidoActual: "../../data/processed/rolling_annual_grva_real.csv",
+  nationalQuarterActual: "../../data/processed/rolling_national_quarterly_gdp_real.csv",
   sigunguQuarter: "../../data/processed/sigungu_quarterly_gva_estimates.csv",
   sigunguAnnual: "../../data/processed/sigungu_denton_constraint_diagnostics.csv",
+  seoulDistrictAnnual: "../../data/processed/seoul_district_grdp_annual.csv",
   emdInventory: "../../data/processed/eupmyeondong_source_inventory.csv",
 };
+
+const OPTIONAL_DATA_KEYS = new Set(["seoulDistrictAnnual"]);
+const ALL_SECTOR = "__ALL__";
+
+const REGION_CODE_NAMES = {
+  "00": "전국",
+  "11": "서울특별시",
+  "21": "부산광역시",
+  "22": "대구광역시",
+  "23": "인천광역시",
+  "24": "광주광역시",
+  "25": "대전광역시",
+  "26": "울산광역시",
+  "29": "세종특별자치시",
+  "31": "경기도",
+  "32": "강원특별자치도",
+  "33": "충청북도",
+  "34": "충청남도",
+  "35": "전북특별자치도",
+  "36": "전라남도",
+  "37": "경상북도",
+  "38": "경상남도",
+  "39": "제주특별자치도",
+};
+
+const SECTOR_TO_GDP_CODE = {
+  A00: "13102136275ACC_ITEM.1101",
+  B00: "13102136275ACC_ITEM.1102",
+  C00: "13102136275ACC_ITEM.1103",
+  D00: "13102136275ACC_ITEM.1104",
+  F00: "13102136275ACC_ITEM.1105",
+  G00: "13102136275ACC_ITEM.1106",
+  H00: "13102136275ACC_ITEM.1107",
+  I00: "13102136275ACC_ITEM.1106",
+  J00: "13102136275ACC_ITEM.1114",
+  K00: "13102136275ACC_ITEM.1108",
+  L00: "13102136275ACC_ITEM.1109",
+  MN0: "13102136275ACC_ITEM.1115",
+  O00: "13102136275ACC_ITEM.1110",
+  P00: "13102136275ACC_ITEM.1111",
+  Q00: "13102136275ACC_ITEM.1112",
+  ERS: "13102136275ACC_ITEM.1113",
+};
+
+const GDP_CODE_TO_SECTORS = Object.entries(SECTOR_TO_GDP_CODE).reduce((acc, [sector, code]) => {
+  acc[code] = acc[code] || [];
+  acc[code].push(sector);
+  return acc;
+}, {});
+const UNIQUE_GDP_CODES = [...new Set(Object.values(SECTOR_TO_GDP_CODE))];
 
 const state = {
   data: {},
@@ -13,6 +65,9 @@ const state = {
   lookup: {
     areaNames: {},
     sectorNames: {},
+    nationalQuarterBySector: {},
+    nationalQuarterByCode: {},
+    seoulDistrictAnnual: {},
   },
 };
 
@@ -98,23 +153,63 @@ function setOptions(select, options, selected) {
 }
 
 function buildLookups() {
-  const areaNames = {};
+  const areaNames = { ...REGION_CODE_NAMES };
   const sectorNames = {};
   (state.data.sidoActual || []).forEach((row) => {
     if (row.c1_id && row.c1_nm) areaNames[row.c1_id] = row.c1_nm;
     if (row.c2_id && row.c2_nm) sectorNames[row.c2_id] = row.c2_nm;
   });
-  state.lookup = { areaNames, sectorNames };
+  const nationalQuarterBySector = {};
+  const nationalQuarterByCode = {};
+  (state.data.nationalQuarterActual || []).forEach((row) => {
+    const period = quarterPeriod(row.prd_de);
+    const value = number(row.value);
+    if (!period || !Number.isFinite(value) || !row.c1_id) return;
+    const scaled = value * 1000;
+    nationalQuarterByCode[`${row.c1_id}|${period}`] = scaled;
+    (GDP_CODE_TO_SECTORS[row.c1_id] || []).forEach((sector) => {
+      nationalQuarterBySector[`${sector}|${period}`] = scaled;
+    });
+  });
+  const seoulDistrictAnnual = {};
+  (state.data.seoulDistrictAnnual || []).forEach((row) => {
+    const year = String(row.year || row.prd_de || "");
+    const code = row.sigungu_code || row.c1_id || row.region_code || "";
+    const value = number(row.value || row.actual_annual_gva || row.grdp);
+    if (year && code && Number.isFinite(value)) {
+      seoulDistrictAnnual[`${code}|${year}`] = value;
+    }
+  });
+  state.lookup = { areaNames, sectorNames, nationalQuarterBySector, nationalQuarterByCode, seoulDistrictAnnual };
 }
 
 function enrichSidoRows() {
   ["sidoAnnual", "sidoQuarter"].forEach((key) => {
-    state.data[key] = (state.data[key] || []).map((row) => ({
-      ...row,
-      area_name: row.area_name || state.lookup.areaNames[row.area_code] || row.area_code,
-      sector_name: row.sector_name || state.lookup.sectorNames[row.sector_code] || row.sector_code,
-    }));
+    state.data[key] = (state.data[key] || []).map((row) => {
+      const out = {
+        ...row,
+        area_name: row.area_name || state.lookup.areaNames[row.area_code] || row.area_code,
+        sector_name: row.sector_name || state.lookup.sectorNames[row.sector_code] || row.sector_code,
+      };
+      if (key === "sidoQuarter" && out.area_code === "00") {
+        const actual = state.lookup.nationalQuarterBySector[`${out.sector_code}|${out.period}`];
+        if (Number.isFinite(actual)) {
+          out.actual_quarterly_gva = String(actual);
+          const predicted = number(out.predicted_gva);
+          out.quarter_percent_error = Number.isFinite(predicted) && actual !== 0 ? String(((predicted - actual) / actual) * 100) : "";
+        }
+      }
+      return out;
+    });
   });
+}
+
+function quarterPeriod(prdDe) {
+  const text = String(prdDe || "");
+  if (!/^\d{6}$/.test(text)) return "";
+  const quarter = Number(text.slice(4));
+  if (quarter < 1 || quarter > 4) return "";
+  return `${text.slice(0, 4)}Q${quarter}`;
 }
 
 function regionKey(row, level) {
@@ -126,7 +221,7 @@ function regionKey(row, level) {
 function regionName(row, level) {
   if (level === "sigungu") return `${row.source_region} ${row.sigungu_name} (${row.sigungu_code})`;
   if (level === "emd") return `${row.source} ${row.table_id}`;
-  return `${row.area_name || state.lookup.areaNames[row.area_code] || row.area_code} (${row.area_code})`;
+  return row.area_name || state.lookup.areaNames[row.area_code] || row.area_code;
 }
 
 function sectorKey(row, level) {
@@ -167,7 +262,7 @@ function valueFields(level, grain) {
   if (grain === "annual") {
     return { predicted: "predicted_annual_gva", actual: "actual_annual_gva", error: "percent_error" };
   }
-  return { predicted: "predicted_gva", actual: "", error: "" };
+  return { predicted: "predicted_gva", actual: "actual_quarterly_gva", error: "quarter_percent_error" };
 }
 
 function refreshFilters(keep = {}) {
@@ -182,6 +277,7 @@ function refreshFilters(keep = {}) {
     const found = rows.find((row) => sectorKey(row, level) === key);
     return [key, sectorName(found, level)];
   });
+  if (level !== "emd") sectors.unshift([ALL_SECTOR, "전체"]);
   setOptions($("regionSelect"), regions, keep.region);
   setOptions($("sectorSelect"), sectors, keep.sector);
   refreshPeriods(keep);
@@ -206,7 +302,7 @@ function filteredBaseRows(applyPeriod = true) {
   const end = $("endSelect").value;
   let rows = [...(datasetFor(level, grain) || [])];
   if (region) rows = rows.filter((row) => regionKey(row, level) === region);
-  if (sector) rows = rows.filter((row) => sectorKey(row, level) === sector);
+  if (sector && sector !== ALL_SECTOR) rows = rows.filter((row) => sectorKey(row, level) === sector);
   if (applyPeriod && start && end && level !== "emd") {
     const lo = Math.min(periodNumber(start), periodNumber(end));
     const hi = Math.max(periodNumber(start), periodNumber(end));
@@ -218,13 +314,67 @@ function filteredBaseRows(applyPeriod = true) {
   return rows;
 }
 
+function aggregateIfNeeded(rows) {
+  const level = $("levelSelect").value;
+  const grain = $("grainSelect").value;
+  const sector = $("sectorSelect").value;
+  if (level === "emd" || sector !== ALL_SECTOR) return rows;
+  const fields = valueFields(level, grain);
+  const groups = new Map();
+  rows.forEach((row) => {
+    const key = `${regionKey(row, level)}|${periodKey(row, grain)}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        ...row,
+        sector_code: ALL_SECTOR,
+        sector_name: "전체",
+        [fields.predicted]: 0,
+        [fields.actual]: "",
+        [fields.error]: "",
+        actualCount: 0,
+      });
+    }
+    const item = groups.get(key);
+    const predicted = number(row[fields.predicted]);
+    if (Number.isFinite(predicted)) item[fields.predicted] += predicted;
+    const actual = number(row[fields.actual]);
+    if (Number.isFinite(actual)) {
+      item[fields.actual] = number(item[fields.actual]) || 0;
+      item[fields.actual] += actual;
+      item.actualCount += 1;
+    }
+  });
+  return [...groups.values()]
+    .map((row) => {
+      if (level === "sido" && grain === "quarter" && row.area_code === "00") {
+        const period = periodKey(row, grain);
+        const totalActual = UNIQUE_GDP_CODES.reduce((sum, code) => {
+          const actual = number(state.lookup.nationalQuarterByCode[`${code}|${period}`]);
+          return Number.isFinite(actual) ? sum + actual : sum;
+        }, 0);
+        row[fields.actual] = totalActual > 0 ? totalActual : "";
+      }
+      if (level === "sigungu" && grain === "annual") {
+        const seoulActual = number(state.lookup.seoulDistrictAnnual[`${row.sigungu_code}|${periodKey(row, grain)}`]);
+        if (Number.isFinite(seoulActual)) row[fields.actual] = seoulActual;
+      }
+      if (row.actualCount === 0 && !Number.isFinite(number(row[fields.actual]))) row[fields.actual] = "";
+      const predicted = number(row[fields.predicted]);
+      const actual = number(row[fields.actual]);
+      row[fields.error] = Number.isFinite(predicted) && Number.isFinite(actual) && actual !== 0 ? String(((predicted - actual) / actual) * 100) : "";
+      delete row.actualCount;
+      return row;
+    })
+    .sort((a, b) => periodNumber(periodKey(a, grain)) - periodNumber(periodKey(b, grain)));
+}
+
 function updateMessage(level, grain, rows) {
   const box = $("message");
   const messages = [];
   if (grain === "month") messages.push("현재 원천 데이터는 월간 예측값을 포함하지 않습니다. 연도 또는 분기를 선택해 주세요.");
   if (level === "emd") messages.push("읍면동은 아직 예측값이 아니라 자료 후보 인벤토리만 표시합니다.");
   if (level === "sigungu" && grain === "quarter") messages.push("시군구 분기 실제값은 공개되지 않아 예측값만 표시합니다. 연간 실제 벤치마크 비교는 시점 단위 '연도'에서 볼 수 있습니다.");
-  if (level === "sido" && grain === "quarter") messages.push("시도 분기 실제 GVA는 별도 공개값이 없어 예측값만 표시합니다. 실제 연간 GRVA 비교는 시점 단위 '연도'에서 볼 수 있습니다.");
+  if (level === "sido" && grain === "quarter") messages.push("전국은 GDP 분기 실측치와 비교하고, 시도별 분기 GRVA는 공개 actual이 없어 예측값만 표시합니다.");
   if (!rows.length) messages.push("선택한 조건에 해당하는 행이 없습니다.");
   box.hidden = messages.length === 0;
   box.textContent = messages.join(" ");
@@ -320,7 +470,7 @@ function renderTable(rows) {
     .map((row) => ({
       period: periodKey(row, grain),
       region: level === "sigungu" ? row.sigungu_name : regionName(row, level),
-      sector: row.sector_name,
+      sector: row.sector_name || (sectorKey(row, level) === ALL_SECTOR ? "전체" : ""),
       predicted: fmt(row[fields.predicted], 3),
       actual: fields.actual ? fmt(row[fields.actual], 3) : "-",
       error: fields.error ? pct(row[fields.error]) : "-",
@@ -331,7 +481,8 @@ function renderTable(rows) {
 }
 
 function render() {
-  const rows = filteredBaseRows(true);
+  const baseRows = filteredBaseRows(true);
+  const rows = aggregateIfNeeded(baseRows);
   state.rows = rows;
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
@@ -347,7 +498,14 @@ function render() {
 
 async function init() {
   try {
-    const entries = await Promise.all(Object.entries(DATA_PATHS).map(async ([key, path]) => [key, await loadCsv(path)]));
+    const entries = await Promise.all(Object.entries(DATA_PATHS).map(async ([key, path]) => {
+      try {
+        return [key, await loadCsv(path)];
+      } catch (error) {
+        if (OPTIONAL_DATA_KEYS.has(key)) return [key, []];
+        throw error;
+      }
+    }));
     state.data = Object.fromEntries(entries);
     buildLookups();
     enrichSidoRows();
