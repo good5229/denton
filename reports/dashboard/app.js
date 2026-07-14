@@ -8,10 +8,12 @@ const DATA_PATHS = {
   seoulDistrictAnnual: "../../data/processed/seoul_district_grdp_annual.csv",
   detailQuarter: "../../data/processed/detailed_industry_quarterly_estimates.csv",
   detailAnnual: "../../data/processed/detailed_industry_annual_estimates.csv",
+  emdQuarter: "../../data/processed/emd_quarterly_gva_estimates.csv",
+  emdAnnual: "../../data/processed/emd_annual_gva_estimates.csv",
   emdInventory: "../../data/processed/eupmyeondong_source_inventory.csv",
 };
 
-const OPTIONAL_DATA_KEYS = new Set(["seoulDistrictAnnual", "detailQuarter", "detailAnnual"]);
+const OPTIONAL_DATA_KEYS = new Set(["seoulDistrictAnnual", "detailQuarter", "detailAnnual", "emdQuarter", "emdAnnual"]);
 const ALL_SECTOR = "__ALL__";
 
 const REGION_CODE_NAMES = {
@@ -217,26 +219,26 @@ function quarterPeriod(prdDe) {
 function regionKey(row, level) {
   if (level === "detail") return row.sigungu_code;
   if (level === "sigungu") return row.sigungu_code;
-  if (level === "emd") return row.table_id;
+  if (level === "emd") return row.emd_code || row.table_id;
   return row.area_code;
 }
 
 function regionName(row, level) {
   if (level === "detail") return `${row.source_region} ${row.sigungu_name} (${row.sigungu_code})`;
   if (level === "sigungu") return `${row.source_region} ${row.sigungu_name} (${row.sigungu_code})`;
-  if (level === "emd") return `${row.source} ${row.table_id}`;
+  if (level === "emd") return row.emd_code ? `${row.source_region} ${row.sigungu_name} ${row.emd_name} (${row.emd_code})` : `${row.source} ${row.table_id}`;
   return row.area_name || state.lookup.areaNames[row.area_code] || row.area_code;
 }
 
 function sectorKey(row, level) {
   if (level === "detail") return row.detail_code;
-  if (level === "emd") return row.assessment || row.name;
+  if (level === "emd") return row.sector_code || row.assessment || row.name;
   return row.sector_code;
 }
 
 function sectorName(row, level) {
   if (level === "detail") return `${row.detail_name || row.detail_code} (${row.detail_code}, ${row.detail_level || ""})`;
-  if (level === "emd") return row.assessment || row.name;
+  if (level === "emd") return row.sector_code ? `${row.sector_name || row.sector_code} (${row.sector_code})` : row.assessment || row.name;
   return `${row.sector_name || state.lookup.sectorNames[row.sector_code] || row.sector_code} (${row.sector_code})`;
 }
 
@@ -253,13 +255,19 @@ function periodNumber(period) {
 }
 
 function datasetFor(level, grain) {
-  if (level === "emd") return state.data.emdInventory;
+  if (level === "emd") return grain === "annual" ? state.data.emdAnnual : state.data.emdQuarter;
   if (level === "detail") return grain === "annual" ? state.data.detailAnnual : state.data.detailQuarter;
   if (level === "sigungu") return grain === "annual" ? state.data.sigunguAnnual : state.data.sigunguQuarter;
   return grain === "annual" ? state.data.sidoAnnual : state.data.sidoQuarter;
 }
 
 function valueFields(level, grain) {
+  if (level === "emd" && grain === "annual") {
+    return { predicted: "estimated_annual_gva", actual: "", error: "" };
+  }
+  if (level === "emd") {
+    return { predicted: "estimated_gva", actual: "", error: "" };
+  }
   if (level === "detail" && grain === "annual") {
     return { predicted: "estimated_annual_gva", actual: "actual_proxy_value", error: "percent_proxy_error" };
   }
@@ -331,7 +339,7 @@ function aggregateIfNeeded(rows) {
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
   const sector = $("sectorSelect").value;
-  if (level === "emd" || sector !== ALL_SECTOR) return rows;
+  if (sector !== ALL_SECTOR) return rows;
   const fields = valueFields(level, grain);
   const groups = new Map();
   rows.forEach((row) => {
@@ -385,7 +393,7 @@ function updateMessage(level, grain, rows) {
   const box = $("message");
   const messages = [];
   if (grain === "month") messages.push("현재 원천 데이터는 월간 예측값을 포함하지 않습니다. 연도 또는 분기를 선택해 주세요.");
-  if (level === "emd") messages.push("읍면동은 아직 예측값이 아니라 자료 후보 인벤토리만 표시합니다.");
+  if (level === "emd") messages.push("읍면동은 2015 경제총조사 프록시로 시군구 분기 GVA를 하향 배분한 추정값입니다.");
   if (level === "detail" && grain === "quarter") messages.push("세부산업 분기값은 시군구 제조업 분기 총량을 KSIC 연간 프록시 비중으로 배분한 추정값입니다.");
   if (level === "detail" && grain === "annual") messages.push("세부산업 연도 actual은 제조업조사 부가가치 프록시가 있는 경우에만 비교합니다.");
   if (level === "sigungu" && grain === "quarter") messages.push("시군구 분기 실제값은 공개되지 않아 예측값만 표시합니다. 연간 실제 벤치마크 비교는 시점 단위 '연도'에서 볼 수 있습니다.");
@@ -400,7 +408,7 @@ function drawChart(rows) {
   svg.innerHTML = "";
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
-  if (!rows.length || level === "emd" || grain === "month") {
+  if (!rows.length || grain === "month") {
     svg.innerHTML = `<text x="560" y="210" text-anchor="middle" class="tick">표시할 시계열이 없습니다.</text>`;
     return;
   }
@@ -475,7 +483,7 @@ function renderTable(rows) {
   const grain = $("grainSelect").value;
   const fields = valueFields(level, grain);
   const table = $("resultTable");
-  if (level === "emd") {
+  if (level === "emd" && rows.length && !("estimated_gva" in rows[0]) && !("estimated_annual_gva" in rows[0])) {
     const cols = ["source", "table_id", "name", "period", "dimensions", "assessment"];
     table.innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${cols.map((c) => `<td>${row[c] || ""}</td>`).join("")}</tr>`).join("")}</tbody>`;
     return;
@@ -484,7 +492,7 @@ function renderTable(rows) {
     .sort((a, b) => periodNumber(periodKey(a, grain)) - periodNumber(periodKey(b, grain)))
     .map((row) => ({
       period: periodKey(row, grain),
-      region: level === "sigungu" || level === "detail" ? row.sigungu_name : regionName(row, level),
+      region: level === "sigungu" || level === "detail" ? row.sigungu_name : level === "emd" ? row.emd_name : regionName(row, level),
       sector: row.sector_name || row.detail_name || (sectorKey(row, level) === ALL_SECTOR ? "전체" : ""),
       predicted: fmt(row[fields.predicted], 3),
       actual: fields.actual ? fmt(row[fields.actual], 3) : "-",
