@@ -6,10 +6,12 @@ const DATA_PATHS = {
   sigunguQuarter: "../../data/processed/sigungu_quarterly_gva_estimates.csv",
   sigunguAnnual: "../../data/processed/sigungu_denton_constraint_diagnostics.csv",
   seoulDistrictAnnual: "../../data/processed/seoul_district_grdp_annual.csv",
+  detailQuarter: "../../data/processed/detailed_industry_quarterly_estimates.csv",
+  detailAnnual: "../../data/processed/detailed_industry_annual_estimates.csv",
   emdInventory: "../../data/processed/eupmyeondong_source_inventory.csv",
 };
 
-const OPTIONAL_DATA_KEYS = new Set(["seoulDistrictAnnual"]);
+const OPTIONAL_DATA_KEYS = new Set(["seoulDistrictAnnual", "detailQuarter", "detailAnnual"]);
 const ALL_SECTOR = "__ALL__";
 
 const REGION_CODE_NAMES = {
@@ -213,23 +215,27 @@ function quarterPeriod(prdDe) {
 }
 
 function regionKey(row, level) {
+  if (level === "detail") return row.sigungu_code;
   if (level === "sigungu") return row.sigungu_code;
   if (level === "emd") return row.table_id;
   return row.area_code;
 }
 
 function regionName(row, level) {
+  if (level === "detail") return `${row.source_region} ${row.sigungu_name} (${row.sigungu_code})`;
   if (level === "sigungu") return `${row.source_region} ${row.sigungu_name} (${row.sigungu_code})`;
   if (level === "emd") return `${row.source} ${row.table_id}`;
   return row.area_name || state.lookup.areaNames[row.area_code] || row.area_code;
 }
 
 function sectorKey(row, level) {
+  if (level === "detail") return row.detail_code;
   if (level === "emd") return row.assessment || row.name;
   return row.sector_code;
 }
 
 function sectorName(row, level) {
+  if (level === "detail") return `${row.detail_name || row.detail_code} (${row.detail_code}, ${row.detail_level || ""})`;
   if (level === "emd") return row.assessment || row.name;
   return `${row.sector_name || state.lookup.sectorNames[row.sector_code] || row.sector_code} (${row.sector_code})`;
 }
@@ -248,11 +254,18 @@ function periodNumber(period) {
 
 function datasetFor(level, grain) {
   if (level === "emd") return state.data.emdInventory;
+  if (level === "detail") return grain === "annual" ? state.data.detailAnnual : state.data.detailQuarter;
   if (level === "sigungu") return grain === "annual" ? state.data.sigunguAnnual : state.data.sigunguQuarter;
   return grain === "annual" ? state.data.sidoAnnual : state.data.sidoQuarter;
 }
 
 function valueFields(level, grain) {
+  if (level === "detail" && grain === "annual") {
+    return { predicted: "estimated_annual_gva", actual: "actual_proxy_value", error: "percent_proxy_error" };
+  }
+  if (level === "detail") {
+    return { predicted: "estimated_gva", actual: "", error: "" };
+  }
   if (level === "sigungu" && grain === "annual") {
     return { predicted: "estimated_annual_sum", actual: "benchmark_annual_gva", error: "percent_constraint_error" };
   }
@@ -373,6 +386,8 @@ function updateMessage(level, grain, rows) {
   const messages = [];
   if (grain === "month") messages.push("현재 원천 데이터는 월간 예측값을 포함하지 않습니다. 연도 또는 분기를 선택해 주세요.");
   if (level === "emd") messages.push("읍면동은 아직 예측값이 아니라 자료 후보 인벤토리만 표시합니다.");
+  if (level === "detail" && grain === "quarter") messages.push("세부산업 분기값은 시군구 제조업 분기 총량을 KSIC 연간 프록시 비중으로 배분한 추정값입니다.");
+  if (level === "detail" && grain === "annual") messages.push("세부산업 연도 actual은 제조업조사 부가가치 프록시가 있는 경우에만 비교합니다.");
   if (level === "sigungu" && grain === "quarter") messages.push("시군구 분기 실제값은 공개되지 않아 예측값만 표시합니다. 연간 실제 벤치마크 비교는 시점 단위 '연도'에서 볼 수 있습니다.");
   if (level === "sido" && grain === "quarter") messages.push("전국은 GDP 분기 실측치와 비교하고, 시도별 분기 GRVA는 공개 actual이 없어 예측값만 표시합니다.");
   if (!rows.length) messages.push("선택한 조건에 해당하는 행이 없습니다.");
@@ -469,8 +484,8 @@ function renderTable(rows) {
     .sort((a, b) => periodNumber(periodKey(a, grain)) - periodNumber(periodKey(b, grain)))
     .map((row) => ({
       period: periodKey(row, grain),
-      region: level === "sigungu" ? row.sigungu_name : regionName(row, level),
-      sector: row.sector_name || (sectorKey(row, level) === ALL_SECTOR ? "전체" : ""),
+      region: level === "sigungu" || level === "detail" ? row.sigungu_name : regionName(row, level),
+      sector: row.sector_name || row.detail_name || (sectorKey(row, level) === ALL_SECTOR ? "전체" : ""),
       predicted: fmt(row[fields.predicted], 3),
       actual: fields.actual ? fmt(row[fields.actual], 3) : "-",
       error: fields.error ? pct(row[fields.error]) : "-",
