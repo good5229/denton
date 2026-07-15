@@ -922,23 +922,34 @@ function buildChartSeries(rows, level, grain, fields) {
     .sort((a, b) => a.label.localeCompare(b.label, "ko"));
 }
 
+function resetChart(chart) {
+  if (window.Plotly && chart._fullLayout) {
+    window.Plotly.purge(chart);
+  }
+  chart.replaceChildren();
+}
+
+function showEmptyChart(chart, message) {
+  resetChart(chart);
+  chart.innerHTML = `<div class="empty-chart">${escapeHtml(message)}</div>`;
+}
+
 function drawChart(rows) {
   const chart = $("chart");
-  chart.innerHTML = "";
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
   if (!rows.length || grain === "month") {
-    chart.innerHTML = `<div class="empty-chart">표시할 시계열이 없습니다.</div>`;
+    showEmptyChart(chart, "표시할 시계열이 없습니다.");
     return;
   }
   if (!window.Plotly) {
-    chart.innerHTML = `<div class="empty-chart">Plotly를 불러오지 못했습니다. 인터넷 연결 또는 CDN 접근을 확인해 주세요.</div>`;
+    showEmptyChart(chart, "Plotly를 불러오지 못했습니다. 인터넷 연결 또는 CDN 접근을 확인해 주세요.");
     return;
   }
   const fields = valueFields(level, grain);
   const series = buildChartSeries(rows, level, grain, fields);
   if (!series.length) {
-    chart.innerHTML = `<div class="empty-chart">표시할 시계열이 없습니다.</div>`;
+    showEmptyChart(chart, "표시할 시계열이 없습니다.");
     return;
   }
   const traces = [];
@@ -972,6 +983,10 @@ function drawChart(rows) {
       });
     }
   });
+  if (!traces.length) {
+    showEmptyChart(chart, "표시할 시계열이 없습니다.");
+    return;
+  }
 
   const layout = {
     margin: { l: 76, r: 24, t: 12, b: 56 },
@@ -997,7 +1012,10 @@ function drawChart(rows) {
     },
   };
   const config = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["lasso2d", "select2d"] };
-  window.Plotly.react(chart, traces, layout, config);
+  Promise.resolve(window.Plotly.react(chart, traces, layout, config)).catch((error) => {
+    console.error("Plotly render failed", error);
+    showEmptyChart(chart, "차트를 렌더링하지 못했습니다. 선택 조건을 다시 확인해 주세요.");
+  });
 }
 
 function updateMetrics(rows) {
