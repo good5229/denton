@@ -6,7 +6,7 @@ from typing import Any
 from kosis_common import PROCESSED_DIR, parse_number, read_csv, write_csv
 
 
-TARGET_YEARS = {2024, 2025}
+TARGET_YEARS = {2023, 2024, 2025}
 
 
 def parent_key(row: dict[str, str]) -> tuple[str, str, int, int]:

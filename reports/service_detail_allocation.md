@@ -9,6 +9,9 @@
 - `data/processed/sigungu_quarterly_gva_estimates.csv`
   - 시군구 × 산업대분류 분기 GVA 추정치
   - 연간 시군구 GRVA 벤치마크와 시도 분기 경로로 제약된 값
+- `data/processed/sigungu_quarterly_gva_forecasts.csv`
+  - 시군구 × 산업대분류 분기 GVA 예측치
+  - 상위 시도 분기 예측 경로에 최신 가용 시군구 비중을 적용한 값
 - `data/processed/expanded_national_service_ksic_production_index.csv`
   - 전국 서비스업생산지수 세부 코드
   - 분기별 세부 서비스업 활동 프록시
@@ -31,11 +34,19 @@
 | P | P00 |
 | Q | Q00 |
 
-각 `시군구 × 부모 산업 × 분기 × 세부수준`에서 세부 서비스업생산지수의 비중을 계산한 뒤, 부모 산업의 시군구 분기 GVA를 비례 배분했다.
+각 `시군구 × 부모 산업 × 분기 × 세부수준`에서 세부 서비스업생산지수의 비중을 계산한 뒤, 부모 산업의 시군구 분기 GVA를 비례 배분했다. 벤치마크 제약 추정 구간은 해당 분기의 세부지수를 사용하고, 예측 구간은 목표연도 1월 1일 기준으로 공표된 최신 세부지수만 사용한다.
 
 ```text
 share_{d,t} = indicator_{d,t} / sum(indicator_{d,t})
 estimated_gva_{r,d,t} = parent_gva_{r,p,t} * share_{d,t}
+```
+
+예측 구간의 공표시점 필터는 다음과 같다.
+
+```text
+forecast_as_of = target_year-01-01
+indicator_period <= latest period released by forecast_as_of
+publication_lag = 2 months
 ```
 
 세부수준은 서로 섞지 않고 별도로 산출했다.
@@ -52,10 +63,10 @@ estimated_gva_{r,d,t} = parent_gva_{r,p,t} * share_{d,t}
 
 | 파일 | 행 수 | 설명 |
 | --- | ---: | --- |
-| `service_detail_quarterly_estimates.csv` | 1,058,116 | 시군구 × 서비스 세부산업 × 분기 추정치 |
-| `service_detail_annual_estimates.csv` | 258,692 | 분기 추정치를 연간 합산한 값 |
-| `service_detail_constraint_diagnostics.csv` | 122,460 | 부모 산업 분기 GVA와 배분합 일치 여부 |
-| `service_detail_allocation_skipped.csv` | 4,204 | 세부 서비스업생산지수 부재로 배분하지 못한 조합 |
+| `service_detail_quarterly_estimates.csv` | 1,632,564 | 시군구 × 서비스 세부산업 × 분기 추정치 |
+| `service_detail_annual_estimates.csv` | 398,748 | 분기 추정치를 연간 합산한 값 |
+| `service_detail_constraint_diagnostics.csv` | 188,580 | 부모 산업 분기 GVA와 배분합 일치 여부 |
+| `service_detail_allocation_skipped.csv` | 6,476 | 세부 서비스업생산지수 부재로 배분하지 못한 조합 |
 | `service_detail_summary.csv` | 1 | 산출 요약 |
 
 제약 진단의 최대 절대 오차는 `0.000000007`로, 반올림 수준을 제외하면 부모 산업 분기 합계와 일치한다.
@@ -63,6 +74,12 @@ estimated_gva_{r,d,t} = parent_gva_{r,p,t} * share_{d,t}
 ## 미배분 항목
 
 `O00` 공공행정, 국방 및 사회보장 행정은 전국 서비스업생산지수 세부 프록시가 연결되지 않아 배분하지 않았다. 해당 산업은 행정 서비스 성격이 강하고 일반 서비스업 매출/생산 프록시와 다르게 움직일 수 있으므로, 별도 행정·재정·고용 자료가 확보되기 전까지 세부산업 확장을 보류한다.
+
+## 확장 결과
+
+이번 확장 후 서비스 상세 산출물은 2019~2025년을 포함한다. `parent_status`가 `benchmark_constrained_estimate`인 행은 연간 벤치마크로 제약된 부모 시군구 GVA를 세부산업으로 배분한 값이고, `out_of_sample_forecast`인 행은 시군구 부모 산업 예측치를 세부산업으로 배분한 값이다.
+
+중분류, 소분류, 세분류는 모두 생성되지만 부모 산업별로 가용한 세부지수 코드 수가 다르다. 대시보드에서는 산업 검색 시 세부수준을 먼저 좁힌 뒤 비교하는 방식이 가장 안전하다.
 
 ## 해석상 한계
 

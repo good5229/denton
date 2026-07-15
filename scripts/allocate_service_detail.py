@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from data_availability import annual_forecast_origin, is_available_as_of
 from kosis_common import PROCESSED_DIR, parse_number, read_csv, write_csv
 
 
@@ -23,6 +24,9 @@ SERVICE_PARENT = {
     "S": "ERS",
 }
 SERVICE_SECTORS = set(SERVICE_PARENT.values())
+QUARTERLY_INDICATOR_PUBLICATION_LAG_MONTHS = 2
+FORECAST_ORIGIN_MONTH = 1
+FORECAST_ORIGIN_DAY = 1
 
 
 def period_from_prd(prd_de: str) -> str:
@@ -30,6 +34,14 @@ def period_from_prd(prd_de: str) -> str:
     if len(text) == 6:
         return f"{text[:4]}Q{text[-1]}"
     return text
+
+
+def period_sort_key(period: str) -> tuple[int, int]:
+    text = str(period)
+    if "Q" not in text:
+        return (0, 0)
+    year, quarter = text.split("Q", 1)
+    return (int(year), int(quarter))
 
 
 def detail_level(code: str) -> str:
@@ -44,8 +56,8 @@ def detail_level(code: str) -> str:
     return "class"
 
 
-def load_detail_indicators() -> dict[tuple[str, str, str], list[dict[str, Any]]]:
-    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+def load_detail_indicators() -> dict[tuple[str, str], dict[str, list[dict[str, Any]]]]:
+    grouped: dict[tuple[str, str], dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     for row in read_csv(PROCESSED_DIR / "expanded_national_service_ksic_production_index.csv"):
         code = row.get("c1_id", "")
         if len(code) <= 1:
@@ -58,15 +70,80 @@ def load_detail_indicators() -> dict[tuple[str, str, str], list[dict[str, Any]]]
             continue
         period = period_from_prd(row.get("prd_de", ""))
         level = detail_level(code)
-        grouped[(parent, period, level)].append(
+        grouped[(parent, level)][period].append(
             {
                 "detail_code": code,
                 "detail_name": row.get("c1_nm", ""),
                 "detail_level": level,
+                "indicator_period": period,
                 "indicator": value,
             }
         )
     return grouped
+
+
+def latest_available_indicator_period(periods: set[str], target_year: int) -> str | None:
+    as_of = annual_forecast_origin(target_year, FORECAST_ORIGIN_MONTH, FORECAST_ORIGIN_DAY)
+    candidates = [
+        period
+        for period in periods
+        if is_available_as_of(period, "Q", QUARTERLY_INDICATOR_PUBLICATION_LAG_MONTHS, as_of)
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=period_sort_key)
+
+
+def load_parent_rows() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, int, int]] = set()
+    for row in read_csv(PROCESSED_DIR / "sigungu_quarterly_gva_estimates.csv"):
+        sector = row.get("sector_code", "")
+        if sector not in SERVICE_SECTORS:
+            continue
+        value = parse_number(row.get("estimated_gva"))
+        if value is None:
+            continue
+        key = (row.get("sigungu_code", ""), sector, int(row.get("year", 0)), int(row.get("quarter", 0)))
+        seen.add(key)
+        rows.append(
+            {
+                **row,
+                "parent_value": value,
+                "parent_status": "benchmark_constrained_estimate",
+                "parent_method": row.get("method", ""),
+            }
+        )
+    forecast_path = PROCESSED_DIR / "sigungu_quarterly_gva_forecasts.csv"
+    if not forecast_path.exists():
+        return rows
+    for row in read_csv(forecast_path):
+        sector = row.get("sector_code", "")
+        if sector not in SERVICE_SECTORS:
+            continue
+        value = parse_number(row.get("predicted_gva"))
+        if value is None:
+            continue
+        key = (row.get("sigungu_code", ""), sector, int(row.get("year", 0)), int(row.get("quarter", 0)))
+        if key in seen:
+            continue
+        rows.append(
+            {
+                "source_region": row.get("source_region", ""),
+                "parent_area_code": row.get("parent_area_code", ""),
+                "sigungu_code": row.get("sigungu_code", ""),
+                "sigungu_name": row.get("sigungu_name", ""),
+                "sector_code": sector,
+                "sector_name": row.get("sector_name", ""),
+                "year": row.get("year", ""),
+                "quarter": row.get("quarter", ""),
+                "period": row.get("period", ""),
+                "parent_value": value,
+                "parent_status": row.get("benchmark_status", "out_of_sample_forecast"),
+                "parent_method": row.get("method", ""),
+            }
+        )
+    return rows
 
 
 def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -75,13 +152,19 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
     diagnostics: dict[tuple[str, str, str, str], dict[str, Any]] = {}
     skipped: list[dict[str, Any]] = []
 
-    for row in read_csv(PROCESSED_DIR / "sigungu_quarterly_gva_estimates.csv"):
+    for row in load_parent_rows():
         sector = row.get("sector_code", "")
-        if sector not in SERVICE_SECTORS:
-            continue
+        year = int(row.get("year", 0))
         period = row.get("period", "")
+        is_forecast = row.get("parent_status") != "benchmark_constrained_estimate"
         level_groups = {
-            level: indicators.get((sector, period, level), [])
+            level: (
+                indicators.get((sector, level), {}).get(
+                    latest_available_indicator_period(set(indicators.get((sector, level), {})), year), []
+                )
+                if is_forecast
+                else indicators.get((sector, level), {}).get(period, [])
+            )
             for level in ("middle", "small", "class")
         }
         if not any(level_groups.values()):
@@ -92,12 +175,11 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                     "sector_code": sector,
                     "period": period,
                     "reason": "missing national service detail indicator",
+                    "parent_status": row.get("parent_status", ""),
                 }
             )
             continue
-        parent_value = parse_number(row.get("estimated_gva"))
-        if parent_value is None:
-            continue
+        parent_value = float(row["parent_value"])
         for level, detail_rows in level_groups.items():
             if not detail_rows:
                 continue
@@ -125,10 +207,16 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                         "period": period,
                         "estimated_gva": round(estimate, 6),
                         "parent_quarterly_gva": round(parent_value, 6),
+                        "parent_status": row.get("parent_status", ""),
+                        "parent_method": row.get("parent_method", ""),
                         "allocation_share": round(share, 12),
                         "indicator": round(float(item["indicator"]), 6),
+                        "indicator_period": item.get("indicator_period", ""),
+                        "forecast_as_of": f"{year:04d}-{FORECAST_ORIGIN_MONTH:02d}-{FORECAST_ORIGIN_DAY:02d}" if is_forecast else "",
+                        "indicator_publication_lag_months": QUARTERLY_INDICATOR_PUBLICATION_LAG_MONTHS if is_forecast else "",
+                        "release_filter": "indicator period must be released before forecast_as_of" if is_forecast else "",
                         "proxy_metric": "national_service_production_index",
-                        "method": "national service detail production index share within sigungu parent service quarterly GVA by detail level",
+                        "method": "release-aware national service detail production index share within sigungu parent service quarterly GVA by detail level" if is_forecast else "national service detail production index share within sigungu parent service quarterly GVA by detail level",
                     }
                 )
             diag_key = (row.get("sigungu_code", ""), sector, level, period, row.get("year", ""))
@@ -142,6 +230,7 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                 "year": row.get("year", ""),
                 "allocated_sum": round(allocated, 6),
                 "parent_quarterly_gva": round(parent_value, 6),
+                "parent_status": row.get("parent_status", ""),
                 "constraint_error": round(allocated - parent_value, 9),
                 "absolute_constraint_error": round(abs(allocated - parent_value), 9),
                 "percent_constraint_error": round((allocated - parent_value) / parent_value * 100.0, 12) if parent_value else "",
@@ -166,6 +255,8 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                 "estimated_annual_gva": 0.0,
                 "proxy_metric": row["proxy_metric"],
                 "method": row["method"],
+                "parent_status": row.get("parent_status", ""),
+                "parent_method": row.get("parent_method", ""),
             },
         )
         item["estimated_annual_gva"] += float(row["estimated_gva"])

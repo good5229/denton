@@ -73,7 +73,8 @@ def load_parent_quarterly() -> dict[tuple[str, str, str], dict[tuple[int, int], 
         if value is None:
             continue
         key = (row.get("parent_area_code", ""), row.get("sigungu_name", ""), row.get("source_region", ""))
-        out[key][(int(row["year"]), int(row["quarter"]))] = {
+        period_key = (int(row["year"]), int(row["quarter"]))
+        out[key][period_key] = {
             "value": value,
             "parent_sigungu_code": row.get("sigungu_code", ""),
             "benchmark_annual_gva": row.get("benchmark_annual_gva", ""),
@@ -90,7 +91,10 @@ def load_parent_quarterly() -> dict[tuple[str, str, str], dict[tuple[int, int], 
         if value is None:
             continue
         key = (row.get("parent_area_code", ""), row.get("sigungu_name", ""), row.get("source_region", ""))
-        out[key][(int(row["year"]), int(row["quarter"]))] = {
+        period_key = (int(row["year"]), int(row["quarter"]))
+        if period_key in out[key]:
+            continue
+        out[key][period_key] = {
             "value": value,
             "parent_sigungu_code": row.get("sigungu_code", ""),
             "benchmark_annual_gva": "",
