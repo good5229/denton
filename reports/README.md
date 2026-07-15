@@ -15,4 +15,4 @@ This directory contains generated research notes, validation reports, dashboard 
 
 ## Current Main Result
 
-The most recent ML work is summarized in [municipality_error_decomposition.md](municipality_error_decomposition.md) and [municipality_residual_learnability.md](municipality_residual_learnability.md). The current practical conclusion is that the 시군구 ML pilot fails mainly at the child-share layer, not just because of parent-total error, so 시군구 operation should keep the Denton/indicator baseline while ML remains a shadow diagnostic.
+The most recent ML work is summarized in [municipality_oracle_upper_bound.md](municipality_oracle_upper_bound.md) and [municipality_ml_stop_decision.md](municipality_ml_stop_decision.md). The current practical conclusion is that even fine-grained municipality oracle policies improve WMAPE by less than 1%, so 시군구 operation should keep the Denton/indicator baseline and pause direct ML share correction until stronger municipality-level features are available.

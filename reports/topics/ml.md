@@ -35,3 +35,10 @@
 | [municipality_partial_pooling.md](../municipality_partial_pooling.md) | Partial-pooling follow-up plan |
 | [municipality_gate_analysis.md](../municipality_gate_analysis.md) | Municipality gate follow-up plan |
 | [municipality_noninferiority.md](../municipality_noninferiority.md) | Municipality non-inferiority follow-up plan |
+| [municipality_oracle_upper_bound.md](../municipality_oracle_upper_bound.md) | Fine-grained municipality oracle upper-bound analysis |
+| [municipality_stability_regime.md](../municipality_stability_regime.md) | Share-stability regime policy test |
+| [municipality_dynamic_baseline.md](../municipality_dynamic_baseline.md) | Dynamic share baseline comparison |
+| [municipality_compositional_model.md](../municipality_compositional_model.md) | Compositional model go/no-go decision |
+| [municipality_small_cell_policy.md](../municipality_small_cell_policy.md) | Small-cell policy interpretation |
+| [municipality_feature_feasibility.md](../municipality_feature_feasibility.md) | Municipality direct-feature feasibility |
+| [municipality_ml_stop_decision.md](../municipality_ml_stop_decision.md) | Municipality ML correction stop decision |
