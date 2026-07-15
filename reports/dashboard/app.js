@@ -13,9 +13,10 @@ const DATA_PATHS = {
   emdQuarter: "../../data/processed/emd_quarterly_gva_estimates.csv",
   emdAnnual: "../../data/processed/emd_annual_gva_estimates.csv",
   emdInventory: "../../data/processed/eupmyeondong_source_inventory.csv",
+  confidenceScores: "../../data/processed/estimate_confidence_scores.csv",
 };
 
-const OPTIONAL_DATA_KEYS = new Set(["sigunguQuarterForecast", "sigunguAnnualForecast", "seoulDistrictAnnual", "detailQuarter", "detailAnnual", "emdQuarter", "emdAnnual"]);
+const OPTIONAL_DATA_KEYS = new Set(["sigunguQuarterForecast", "sigunguAnnualForecast", "seoulDistrictAnnual", "detailQuarter", "detailAnnual", "emdQuarter", "emdAnnual", "confidenceScores"]);
 const BASE_DATA_KEYS = ["sidoAnnual", "sidoQuarter", "sidoActual", "nationalQuarterActual", "sigunguQuarter", "sigunguAnnual", "seoulDistrictAnnual"];
 const ALL_SECTOR = "__ALL__";
 const REGION_SUM_PREFIX = "__REGION_SUM__|";
@@ -96,6 +97,7 @@ const state = {
     nationalQuarterBySector: {},
     nationalQuarterByCode: {},
     seoulDistrictAnnual: {},
+    confidenceByKey: {},
   },
 };
 
@@ -420,7 +422,12 @@ function buildLookups() {
       if (dashboardCode) seoulDistrictAnnual[`${dashboardCode}|${year}`] = value;
     }
   });
-  state.lookup = { areaNames, sectorNames, nationalQuarterBySector, nationalQuarterByCode, seoulDistrictAnnual };
+  const confidenceByKey = {};
+  (state.data.confidenceScores || []).forEach((row) => {
+    const key = [row.level, row.grain, row.area_code || "__ALL__", row.sector_code || "__ALL__"].join("|");
+    confidenceByKey[key] = row;
+  });
+  state.lookup = { areaNames, sectorNames, nationalQuarterBySector, nationalQuarterByCode, seoulDistrictAnnual, confidenceByKey };
 }
 
 function enrichSidoRows() {
@@ -611,6 +618,41 @@ function confidenceInfo(level, grain) {
   };
 }
 
+function gradeClass(grade) {
+  const normalized = String(grade || "").toLowerCase().slice(0, 1);
+  return ["a", "b", "c", "d"].includes(normalized) ? `grade-${normalized}` : "grade-muted";
+}
+
+function dynamicConfidenceInfo(level, grain) {
+  const base = confidenceInfo(level, grain);
+  const lookup = state.lookup.confidenceByKey || {};
+  if (grain === "month") return base;
+  const regions = state.filters.regions || [];
+  const sectors = state.filters.sectors || [];
+  const sector = sectors.includes(ALL_SECTOR) || sectors.length !== 1 ? "__ALL__" : sectors[0];
+  const area = regions.length === 1 && !regions[0].startsWith(REGION_SUM_PREFIX) ? regions[0] : "__ALL__";
+  const candidates = [
+    [level, grain, area, sector],
+    [level, grain, area, "__ALL__"],
+    [level, grain, "__ALL__", sector],
+    [level, grain, "__ALL__", "__ALL__"],
+  ];
+  const found = candidates.map((parts) => lookup[parts.join("|")]).find(Boolean);
+  if (!found) return base;
+  const metrics = [];
+  if (found.comparison_count) metrics.push(`비교 ${Number(found.comparison_count).toLocaleString("ko-KR")}건`);
+  if (found.mape) metrics.push(`MAPE ${pct(found.mape)}`);
+  if (found.wmape) metrics.push(`WMAPE ${pct(found.wmape)}`);
+  return {
+    ...base,
+    grade: found.confidence_grade || base.grade,
+    gradeClass: gradeClass(found.confidence_grade || base.grade),
+    status: `${found.value_role || base.status}${metrics.length ? ` · ${metrics.join(" · ")}` : ""}`,
+    method: found.confidence_reason || base.method,
+    caution: `${base.caution || ""} ${found.as_of_policy ? `적용 기준: ${found.as_of_policy}.` : ""}`.trim(),
+  };
+}
+
 function detailSectorGroups(rows) {
   const buckets = { middle: new Map(), small: new Map(), class: new Map(), other: new Map() };
   rows.forEach((row) => {
@@ -779,7 +821,7 @@ function aggregateIfNeeded(rows) {
 function updateMessage(level, grain, rows) {
   const box = $("message");
   const messages = [];
-  const info = confidenceInfo(level, grain);
+  const info = dynamicConfidenceInfo(level, grain);
   if (info.caution) messages.push(info.caution);
   if (level === "sigungu" && grain === "annual") {
     messages.push("2019-2023 시군구 연도값은 공식 연간 GRVA를 벤치마크로 사용한 제약 구간입니다. 2024-2025는 공식 시군구 GRVA가 아직 없어 부모 시도 rolling 예측과 2023년 시군구 비중으로 외삽한 예측값입니다.");
@@ -796,7 +838,7 @@ function updateMessage(level, grain, rows) {
 }
 
 function updateConfidence(level, grain) {
-  const info = confidenceInfo(level, grain);
+  const info = dynamicConfidenceInfo(level, grain);
   $("metricConfidence").textContent = info.grade;
   $("confidencePanel").innerHTML = `
     <div><span class="grade-badge ${info.gradeClass}">${escapeHtml(info.grade)}</span></div>
@@ -920,9 +962,10 @@ function renderTable(rows) {
       predicted: fmt(row[fields.predicted], 3),
       actual: fields.actual ? fmt(row[fields.actual], 3) : "-",
       error: fields.error ? pct(row[fields.error]) : "-",
+      confidence: dynamicConfidenceInfo(level, grain).grade,
       method: row.method || (level === "sigungu" && grain === "annual" ? "annual benchmark constraint check" : ""),
     }));
-  const cols = ["period", "region", "sector", "predicted", "actual", "error", "method"];
+  const cols = ["period", "region", "sector", "predicted", "actual", "error", "confidence", "method"];
   table.innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${mapped.map((row) => `<tr>${cols.map((c) => `<td>${row[c] || ""}</td>`).join("")}</tr>`).join("")}</tbody>`;
 }
 
@@ -944,6 +987,7 @@ function render() {
 async function init() {
   try {
     await Promise.all(BASE_DATA_KEYS.map((key) => loadDataKey(key)));
+    await loadDataKey("confidenceScores");
     buildLookups();
     enrichSidoRows();
     normalizeSigunguAnnualRows();
