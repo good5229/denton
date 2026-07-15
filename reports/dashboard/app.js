@@ -607,7 +607,7 @@ function confidenceInfo(level, grain) {
     gradeClass: "grade-b",
     status: "분기 경로 추정",
     method: "연간 GRVA와 산업별 분기 지표를 이용한 비례형 Denton 및 외삽",
-    caution: "전국은 분기 GDP actual과 비교 가능하나 시도별 분기 GRVA actual은 공개되지 않습니다.",
+    caution: "전국은 분기 GDP actual과 비교 가능하나 시도별 산업별 분기 GRDP/GVA 공식 actual은 현재 원천 CSV에 없습니다. 시도별 분기·월간 생산/서비스 지표는 추정 indicator로 사용합니다.",
   };
 }
 
@@ -789,7 +789,7 @@ function updateMessage(level, grain, rows) {
   if (level === "detail" && grain === "quarter") messages.push("세부산업 분기값은 시군구 제조업 분기 총량을 KSIC 연간 프록시 비중으로 배분한 추정값입니다.");
   if (level === "detail" && grain === "annual") messages.push("세부산업 연도 actual은 제조업조사 부가가치 프록시가 있는 경우에만 비교합니다.");
   if (level === "sigungu" && grain === "quarter") messages.push("시군구 분기 실제값은 공개되지 않아 예측값만 표시합니다. 연간 실제 벤치마크 비교는 시점 단위 '연도'에서 볼 수 있습니다.");
-  if (level === "sido" && grain === "quarter") messages.push("전국은 GDP 분기 실측치와 비교하고, 시도별 분기 GRVA는 공개 actual이 없어 예측값만 표시합니다.");
+  if (level === "sido" && grain === "quarter") messages.push("전국은 GDP 분기 실측치와 비교합니다. 강원특별자치도 같은 시도에는 분기·월간 산업활동 지표가 있지만, 이는 GRDP/GVA actual이 아니라 Denton 추정에 쓰는 indicator입니다.");
   if (!rows.length) messages.push("선택한 조건에 해당하는 행이 없습니다.");
   box.hidden = messages.length === 0;
   box.textContent = messages.join(" ");
