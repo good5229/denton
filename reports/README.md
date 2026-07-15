@@ -15,4 +15,4 @@ This directory contains generated research notes, validation reports, dashboard 
 
 ## Current Main Result
 
-The most recent ML work is summarized in [reconciled_model_next_experiments.md](reconciled_model_next_experiments.md). The current practical conclusion is that `xgboost_log_ratio_reconciled` improves overall WMAPE, but a rolling gated policy is needed before operational use because industry and region downside risk remains uneven.
+The most recent ML work is summarized in [reconciled_ml_next_round_integrated_report.md](reconciled_ml_next_round_integrated_report.md). The current practical conclusion is that parent-total ML correction is not yet better than the baseline, expected-regret gating is the best near-term operating policy, and a common-feature global XGBoost model should be the next full-grid tuning target.
