@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+<rect width="1280" height="720" fill="#f7f9fc"/>
+<text x="60.0" y="58.0" font-size="28" font-weight="800" fill="#17202a" text-anchor="start">전기·가스 외생변수 보정 결과</text>
+<text x="60.0" y="86.0" font-size="15" font-weight="600" fill="#627084" text-anchor="start">as-of 기준에서 공개된 최신 4개 분기만 사용</text>
+<rect x="110" y="269.7" width="105" height="255.3" rx="8" fill="#2f72c8"/>
+<text x="162.5" y="257.7" font-size="15" font-weight="800" fill="#263447" text-anchor="middle">16.10%</text>
+<text x="162.5" y="555.0" font-size="13" font-weight="700" fill="#263447" text-anchor="middle">Baseline</text>
+<text x="162.5" y="573.0" font-size="13" font-weight="700" fill="#263447" text-anchor="middle">MAPE</text>
+<rect x="265" y="221.0" width="105" height="304.0" rx="8" fill="#c8564a"/>
+<text x="317.5" y="209.0" font-size="15" font-weight="800" fill="#263447" text-anchor="middle">19.18%</text>
+<text x="317.5" y="555.0" font-size="13" font-weight="700" fill="#263447" text-anchor="middle">Adjusted</text>
+<text x="317.5" y="573.0" font-size="13" font-weight="700" fill="#263447" text-anchor="middle">MAPE</text>
+<rect x="420" y="369.4" width="105" height="155.6" rx="8" fill="#2f72c8"/>
+<text x="472.5" y="357.4" font-size="15" font-weight="800" fill="#263447" text-anchor="middle">9.81%</text>
+<text x="472.5" y="555.0" font-size="13" font-weight="700" fill="#263447" text-anchor="middle">Baseline</text>
+<text x="472.5" y="573.0" font-size="13" font-weight="700" fill="#263447" text-anchor="middle">WMAPE</text>
+<rect x="575" y="332.0" width="105" height="193.0" rx="8" fill="#c8564a"/>
+<text x="627.5" y="320.0" font-size="15" font-weight="800" fill="#263447" text-anchor="middle">12.17%</text>
+<text x="627.5" y="555.0" font-size="13" font-weight="700" fill="#263447" text-anchor="middle">Adjusted</text>
+<text x="627.5" y="573.0" font-size="13" font-weight="700" fill="#263447" text-anchor="middle">WMAPE</text>
+<rect x="780" y="145" width="400" height="290" rx="10" fill="#ffffff" stroke="#d9e0ea"/>
+<text x="810.0" y="188.0" font-size="22" font-weight="800" fill="#17202a" text-anchor="start">채택 판단</text>
+<text x="810.0" y="232.0" font-size="20" font-weight="800" fill="#c8564a" text-anchor="start">MAPE 변화: 3.07%p</text>
+<text x="810.0" y="272.0" font-size="18" font-weight="800" fill="#263447" text-anchor="start">채택 여부: no</text>
+<text x="810.0" y="312.0" font-size="16" font-weight="700" fill="#627084" text-anchor="start">비교 건수: 126</text>
+<text x="810.0" y="352.0" font-size="16" font-weight="800" fill="#263447" text-anchor="start">결론: 외생변수 자동 보정은 보류</text>
+<text x="810.0" y="402.0" font-size="16" font-weight="800" fill="#17202a" text-anchor="start">선택 feature 빈도</text>
+<text x="830.0" y="432.0" font-size="13" font-weight="700" fill="#627084" text-anchor="start">baseline: 54</text>
+<text x="830.0" y="456.0" font-size="13" font-weight="700" fill="#627084" text-anchor="start">ecos_import_price_oil_gas_latest4q: 54</text>
+<text x="830.0" y="480.0" font-size="13" font-weight="700" fill="#627084" text-anchor="start">ecos_import_price_bituminous_coal_: 18</text>
+</svg>

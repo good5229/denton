@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+<rect width="1280" height="720" fill="#f7f9fc"/>
+<text x="60.0" y="58.0" font-size="28" font-weight="800" fill="#17202a" text-anchor="start">산업별 MAPE 상위</text>
+<text x="60.0" y="86.0" font-size="15" font-weight="600" fill="#627084" text-anchor="start">산업별 연간 예측치와 실제 공표값 비교</text>
+<text x="292.0" y="133.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">광업</text>
+<rect x="310" y="110" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="110" width="773.9" height="34" rx="6" fill="#c8564a"/>
+<text x="1095.9" y="133.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">24.1%</text>
+<text x="292.0" y="185.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">전기 가스 증기 및 공기 조절 공급업</text>
+<rect x="310" y="162" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="162" width="518.1" height="34" rx="6" fill="#c8564a"/>
+<text x="840.1" y="185.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">16.1%</text>
+<text x="292.0" y="237.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">건설업</text>
+<rect x="310" y="214" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="214" width="355.0" height="34" rx="6" fill="#c8564a"/>
+<text x="677.0" y="237.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">11.0%</text>
+<text x="292.0" y="289.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">부동산업</text>
+<rect x="310" y="266" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="266" width="264.4" height="34" rx="6" fill="#c8564a"/>
+<text x="586.4" y="289.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">8.2%</text>
+<text x="292.0" y="341.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">농업 임업 및 어업</text>
+<rect x="310" y="318" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="318" width="235.5" height="34" rx="6" fill="#c8564a"/>
+<text x="557.5" y="341.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">7.3%</text>
+<text x="292.0" y="393.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">문화 및 기타서비스업</text>
+<rect x="310" y="370" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="370" width="183.6" height="34" rx="6" fill="#c8564a"/>
+<text x="505.6" y="393.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">5.7%</text>
+<text x="292.0" y="445.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">운수 및 창고업</text>
+<rect x="310" y="422" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="422" width="176.3" height="34" rx="6" fill="#c8564a"/>
+<text x="498.3" y="445.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">5.5%</text>
+<text x="292.0" y="497.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">숙박 및 음식점업</text>
+<rect x="310" y="474" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="474" width="148.1" height="34" rx="6" fill="#c8564a"/>
+<text x="470.1" y="497.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">4.6%</text>
+<text x="292.0" y="549.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">사업서비스업</text>
+<rect x="310" y="526" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="526" width="137.6" height="34" rx="6" fill="#c8564a"/>
+<text x="459.6" y="549.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">4.3%</text>
+<text x="292.0" y="601.0" font-size="14" font-weight="700" fill="#263447" text-anchor="end">정보통신업</text>
+<rect x="310" y="578" width="890" height="34" rx="6" fill="#edf2f8"/>
+<rect x="310" y="578" width="116.1" height="34" rx="6" fill="#c8564a"/>
+<text x="438.1" y="601.0" font-size="14" font-weight="800" fill="#263447" text-anchor="start">3.6%</text>
+<text x="1200.0" y="682.0" font-size="12" font-weight="600" fill="#728094" text-anchor="end">MAPE 기준 상위 10개 산업</text>
+</svg>
