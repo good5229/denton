@@ -5,6 +5,7 @@
 - `portfolio_implementation_editable.pptx`: one-slide portfolio implementation deck.
 - `portfolio_fill_blocks_editable.pptx`: copy-ready right-side and bottom supplemental blocks for the user's composed slide.
 - `ai_industry_monitoring_editable.pptx`: one-slide editable deck summarizing the BOK AI industry monitoring report process.
+- `ai_industry_monitoring_fill_blocks_editable.pptx`: two-slide copy-ready supplemental block deck for the AI monitoring slide.
 - `preview/portfolio_implementation_editable.pptx.png`: QuickLook-rendered preview used for visual verification.
 - `preview/portfolio_fill_blocks_editable.pptx.png`: QuickLook-rendered preview for the supplemental block deck.
 - `preview/ai_industry_monitoring_editable.pptx.png`: QuickLook-rendered preview for the AI monitoring deck.
@@ -14,6 +15,7 @@
 - Generator: `../../scripts/make_portfolio_ppt.py`
 - Supplemental block generator: `../../scripts/make_portfolio_fill_blocks_ppt.py`
 - AI monitoring generator: `../../scripts/make_ai_monitoring_ppt.py`
+- AI monitoring supplemental block generator: `../../scripts/make_ai_monitoring_fill_blocks_ppt.py`
 
 ## Editability
 
@@ -37,6 +39,12 @@ AI monitoring deck structure:
 - 72 selectable elements
 - 48 text-bearing elements
 
+AI monitoring supplemental block deck structure:
+
+- 2 slides
+- Slide 1: 63 selectable elements, 47 text-bearing elements
+- Slide 2: 35 selectable elements, 29 text-bearing elements
+
 ## Verification Notes
 
 - Initial PPT generation produced separate elements, but a connector arrow setting caused readback errors in `python-pptx`; replaced arrowheads with separate triangle shapes.
@@ -44,3 +52,4 @@ AI monitoring deck structure:
 - Final preview was checked for text overlap, clipped text, excessive wrapping, and readability at 16:9 slide size.
 - Supplemental block preview initially had overflow in long descriptions and the `2019-2023` label; shortened the copy and changed the data label to `5년` with `2019~2023` as the note.
 - AI monitoring preview initially had wrapped date text and overlaps in the process blocks; shortened labels and widened the date/title blocks before regenerating the final preview.
+- AI monitoring supplemental preview initially had clipped section headings, a long validation line, and a wrapped `Implementation` label; shortened the headings and labels before regenerating the final deck.
