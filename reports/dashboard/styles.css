@@ -356,6 +356,26 @@ h2 {
   fill: #7b5bbd;
 }
 
+.series-line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.predicted-line {
+  stroke-dasharray: 8 6;
+}
+
+.series-dot {
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.predicted-dot {
+  stroke-dasharray: 2 2;
+}
+
 .legend {
   font-size: 13px;
   fill: var(--muted);

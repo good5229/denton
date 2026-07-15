@@ -847,6 +847,74 @@ function updateConfidence(level, grain) {
   `;
 }
 
+const CHART_COLORS = ["#2f72c8", "#c8564a", "#3e8f50", "#7b5bbd", "#b87a18", "#238b8b", "#d05d9f", "#596579", "#8a6f35", "#2d8fc7", "#b14f3b", "#4f8f45"];
+
+function selectedSectorIsAll() {
+  return state.filters.sectors.includes(ALL_SECTOR);
+}
+
+function chartGroupInfo(row, level) {
+  const region = regionName(row, level);
+  const sector = selectedSectorIsAll() ? "전체" : sectorName(row, level);
+  const key = `${regionKey(row, level)}|${selectedSectorIsAll() ? ALL_SECTOR : sectorKey(row, level)}`;
+  const label = selectedSectorIsAll() ? region : `${region} · ${sector}`;
+  return { key, label, region, sector };
+}
+
+function buildChartSeries(rows, level, grain, fields) {
+  const groups = new Map();
+  rows.forEach((row) => {
+    const predicted = number(row[fields.predicted]);
+    const actual = fields.actual ? number(row[fields.actual]) : NaN;
+    if (!Number.isFinite(predicted) && !Number.isFinite(actual)) return;
+    const period = periodKey(row, grain);
+    if (!period) return;
+    const info = chartGroupInfo(row, level);
+    if (!groups.has(info.key)) {
+      groups.set(info.key, { ...info, periods: new Map() });
+    }
+    const series = groups.get(info.key);
+    if (!series.periods.has(period)) {
+      series.periods.set(period, { period, predicted: 0, actual: 0, predictedCount: 0, actualCount: 0 });
+    }
+    const point = series.periods.get(period);
+    if (Number.isFinite(predicted)) {
+      point.predicted += predicted;
+      point.predictedCount += 1;
+    }
+    if (Number.isFinite(actual)) {
+      point.actual += actual;
+      point.actualCount += 1;
+    }
+  });
+  return [...groups.values()]
+    .map((series, idx) => ({
+      ...series,
+      color: CHART_COLORS[idx % CHART_COLORS.length],
+      points: [...series.periods.values()]
+        .map((point) => ({
+          ...point,
+          predicted: point.predictedCount ? point.predicted : NaN,
+          actual: point.actualCount ? point.actual : NaN,
+        }))
+        .sort((a, b) => periodNumber(a.period) - periodNumber(b.period)),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, "ko"));
+}
+
+function svgPointTitle(series, point, kind, value) {
+  return `${series.label}
+${point.period}
+${kind}: ${fmt(value, 3)}`;
+}
+
+function seriesPath(points, field, xForPeriod, y) {
+  return points
+    .filter((point) => Number.isFinite(point[field]))
+    .map((point, idx) => `${idx ? "L" : "M"}${xForPeriod(point.period).toFixed(1)},${y(point[field]).toFixed(1)}`)
+    .join(" ");
+}
+
 function drawChart(rows) {
   const svg = $("chart");
   svg.innerHTML = "";
@@ -857,34 +925,24 @@ function drawChart(rows) {
     return;
   }
   const fields = valueFields(level, grain);
-  const points = rows
-    .map((row) => ({
-      period: periodKey(row, grain),
-      predicted: number(row[fields.predicted]),
-      actual: fields.actual ? number(row[fields.actual]) : NaN,
-    }))
-    .filter((row) => Number.isFinite(row.predicted))
-    .sort((a, b) => periodNumber(a.period) - periodNumber(b.period));
-  if (!points.length) return;
+  const series = buildChartSeries(rows, level, grain, fields);
+  const periods = [...new Set(series.flatMap((item) => item.points.map((point) => point.period)))].sort((a, b) => periodNumber(a) - periodNumber(b));
+  const values = series.flatMap((item) => item.points.flatMap((point) => [point.predicted, point.actual])).filter(Number.isFinite);
+  if (!series.length || !periods.length || !values.length) return;
 
   const width = 1120;
   const height = 420;
-  const margin = { left: 78, right: 26, top: 28, bottom: 58 };
-  const xs = points.map((_, idx) => margin.left + (idx * (width - margin.left - margin.right)) / Math.max(1, points.length - 1));
-  const values = points.flatMap((p) => [p.predicted, p.actual]).filter(Number.isFinite);
+  const margin = { left: 78, right: 28, top: 34, bottom: 58 };
+  const xByPeriod = new Map(
+    periods.map((period, idx) => [period, margin.left + (idx * (width - margin.left - margin.right)) / Math.max(1, periods.length - 1)])
+  );
+  const xForPeriod = (period) => xByPeriod.get(period) || margin.left;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const pad = (max - min || max || 1) * 0.08;
   const lo = min - pad;
   const hi = max + pad;
   const y = (v) => margin.top + ((hi - v) / (hi - lo)) * (height - margin.top - margin.bottom);
-  const x = (idx) => xs[idx];
-  const path = (field) => points.map((p, idx) => `${idx ? "L" : "M"}${x(idx).toFixed(1)},${y(p[field]).toFixed(1)}`).join(" ");
-  const actualPoints = points.filter((p) => Number.isFinite(p.actual));
-  const allComparableOverlap =
-    actualPoints.length > 0 &&
-    actualPoints.length === points.length &&
-    actualPoints.every((p) => Math.abs(p.predicted - p.actual) <= Math.max(1, Math.abs(p.actual)) * 1e-9);
 
   for (let i = 0; i <= 4; i += 1) {
     const gy = margin.top + (i * (height - margin.top - margin.bottom)) / 4;
@@ -894,28 +952,51 @@ function drawChart(rows) {
   }
   svg.insertAdjacentHTML("beforeend", `<line x1="${margin.left}" x2="${margin.left}" y1="${margin.top}" y2="${height - margin.bottom}" class="axis"/>`);
   svg.insertAdjacentHTML("beforeend", `<line x1="${margin.left}" x2="${width - margin.right}" y1="${height - margin.bottom}" y2="${height - margin.bottom}" class="axis"/>`);
-  if (allComparableOverlap) {
-    svg.insertAdjacentHTML("beforeend", `<path d="${path("predicted")}" class="combined"/>`);
-  } else {
-    if (actualPoints.length) svg.insertAdjacentHTML("beforeend", `<path d="${path("actual")}" class="actual"/>`);
-    svg.insertAdjacentHTML("beforeend", `<path d="${path("predicted")}" class="pred"/>`);
-  }
-  points.forEach((p, idx) => {
-    if (allComparableOverlap) {
-      svg.insertAdjacentHTML("beforeend", `<circle cx="${x(idx)}" cy="${y(p.predicted)}" r="5" class="dot-combined"/>`);
-    } else {
-      if (Number.isFinite(p.actual)) svg.insertAdjacentHTML("beforeend", `<circle cx="${x(idx)}" cy="${y(p.actual)}" r="4" class="dot-actual"/>`);
-      svg.insertAdjacentHTML("beforeend", `<circle cx="${x(idx)}" cy="${y(p.predicted)}" r="4" class="dot-pred"/>`);
+
+  series.forEach((item) => {
+    const predictedPath = seriesPath(item.points, "predicted", xForPeriod, y);
+    const actualPath = seriesPath(item.points, "actual", xForPeriod, y);
+    if (actualPath) {
+      svg.insertAdjacentHTML("beforeend", `<path d="${actualPath}" class="series-line" style="stroke:${item.color}"/>`);
     }
-    if (idx % Math.ceil(points.length / 10) === 0 || idx === points.length - 1) {
-      svg.insertAdjacentHTML("beforeend", `<text x="${x(idx)}" y="${height - margin.bottom + 24}" text-anchor="middle" class="tick">${p.period}</text>`);
+    if (predictedPath) {
+      svg.insertAdjacentHTML("beforeend", `<path d="${predictedPath}" class="series-line predicted-line" style="stroke:${item.color}"/>`);
     }
   });
-  if (allComparableOverlap) {
-    svg.insertAdjacentHTML("beforeend", `<circle cx="840" cy="24" r="5" class="dot-combined"/><text x="852" y="29" class="legend">예측값=실제값</text>`);
-  } else {
-    svg.insertAdjacentHTML("beforeend", `<circle cx="860" cy="24" r="5" class="dot-pred"/><text x="872" y="29" class="legend">예측값</text>`);
-    svg.insertAdjacentHTML("beforeend", `<circle cx="940" cy="24" r="5" class="dot-actual"/><text x="952" y="29" class="legend">실제값</text>`);
+
+  series.forEach((item) => {
+    item.points.forEach((point) => {
+      if (Number.isFinite(point.actual)) {
+        svg.insertAdjacentHTML(
+          "beforeend",
+          `<circle cx="${xForPeriod(point.period)}" cy="${y(point.actual)}" r="4" class="series-dot actual-dot" style="fill:${item.color}"><title>${escapeHtml(svgPointTitle(item, point, "실제값", point.actual))}</title></circle>`
+        );
+      }
+      if (Number.isFinite(point.predicted)) {
+        svg.insertAdjacentHTML(
+          "beforeend",
+          `<circle cx="${xForPeriod(point.period)}" cy="${y(point.predicted)}" r="4" class="series-dot predicted-dot" style="fill:${item.color}"><title>${escapeHtml(svgPointTitle(item, point, "예측값", point.predicted))}</title></circle>`
+        );
+      }
+    });
+  });
+
+  periods.forEach((period, idx) => {
+    if (idx % Math.ceil(periods.length / 10) === 0 || idx === periods.length - 1) {
+      svg.insertAdjacentHTML("beforeend", `<text x="${xForPeriod(period)}" y="${height - margin.bottom + 24}" text-anchor="middle" class="tick">${period}</text>`);
+    }
+  });
+
+  svg.insertAdjacentHTML("beforeend", `<line x1="804" x2="850" y1="24" y2="24" class="series-line" style="stroke:#596579"/><text x="858" y="29" class="legend">실제값</text>`);
+  svg.insertAdjacentHTML("beforeend", `<line x1="920" x2="966" y1="24" y2="24" class="series-line predicted-line" style="stroke:#596579"/><text x="974" y="29" class="legend">예측값</text>`);
+
+  const legendItems = series.slice(0, 6);
+  legendItems.forEach((item, idx) => {
+    const yPos = 48 + idx * 18;
+    svg.insertAdjacentHTML("beforeend", `<circle cx="806" cy="${yPos - 4}" r="4" style="fill:${item.color}"/><text x="818" y="${yPos}" class="legend">${escapeHtml(item.label)}</text>`);
+  });
+  if (series.length > legendItems.length) {
+    svg.insertAdjacentHTML("beforeend", `<text x="818" y="${48 + legendItems.length * 18}" class="legend">외 ${series.length - legendItems.length}개</text>`);
   }
 }
 
@@ -980,7 +1061,7 @@ function render() {
   updateMetrics(rows);
   $("chartTitle").textContent = level === "emd" ? "읍면동 예측값" : "예측값과 실제값";
   $("chartSubtitle").textContent = `${selectionSummary("region")} · ${selectionSummary("sector")}`;
-  drawChart(rows);
+  drawChart(baseRows);
   renderTable(rows);
 }
 
