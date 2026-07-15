@@ -240,12 +240,23 @@ h2 {
   stroke-width: 3;
 }
 
+.combined {
+  fill: none;
+  stroke: #7b5bbd;
+  stroke-width: 4;
+  stroke-dasharray: 8 5;
+}
+
 .dot-pred {
   fill: var(--blue);
 }
 
 .dot-actual {
   fill: var(--red);
+}
+
+.dot-combined {
+  fill: #7b5bbd;
 }
 
 .legend {

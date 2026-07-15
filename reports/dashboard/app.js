@@ -5,6 +5,8 @@ const DATA_PATHS = {
   nationalQuarterActual: "../../data/processed/rolling_national_quarterly_gdp_real.csv",
   sigunguQuarter: "../../data/processed/sigungu_quarterly_gva_estimates.csv",
   sigunguAnnual: "../../data/processed/sigungu_denton_constraint_diagnostics.csv",
+  sigunguQuarterForecast: "../../data/processed/sigungu_quarterly_gva_forecasts.csv",
+  sigunguAnnualForecast: "../../data/processed/sigungu_annual_gva_forecasts.csv",
   seoulDistrictAnnual: "../../data/processed/seoul_district_grdp_annual.csv",
   detailQuarter: "../../data/processed/detailed_industry_quarterly_estimates.csv",
   detailAnnual: "../../data/processed/detailed_industry_annual_estimates.csv",
@@ -13,7 +15,7 @@ const DATA_PATHS = {
   emdInventory: "../../data/processed/eupmyeondong_source_inventory.csv",
 };
 
-const OPTIONAL_DATA_KEYS = new Set(["seoulDistrictAnnual", "detailQuarter", "detailAnnual", "emdQuarter", "emdAnnual"]);
+const OPTIONAL_DATA_KEYS = new Set(["sigunguQuarterForecast", "sigunguAnnualForecast", "seoulDistrictAnnual", "detailQuarter", "detailAnnual", "emdQuarter", "emdAnnual"]);
 const BASE_DATA_KEYS = ["sidoAnnual", "sidoQuarter", "sidoActual", "nationalQuarterActual", "sigunguQuarter", "sigunguAnnual", "seoulDistrictAnnual"];
 const ALL_SECTOR = "__ALL__";
 const TABLE_LIMIT = 500;
@@ -168,6 +170,11 @@ function dataKeyFor(level, grain) {
 
 async function ensureLevelData(level, grain) {
   await loadDataKey(dataKeyFor(level, grain));
+  if (level === "sigungu") {
+    await loadDataKey(grain === "annual" ? "sigunguAnnualForecast" : "sigunguQuarterForecast");
+    normalizeSigunguAnnualRows();
+    normalizeSigunguQuarterRows();
+  }
 }
 
 function number(value) {
@@ -287,12 +294,24 @@ function enrichSidoRows() {
 }
 
 function normalizeSigunguAnnualRows() {
-  state.data.sigunguAnnual = (state.data.sigunguAnnual || []).map((row) => ({
-    ...row,
-    predicted_annual_gva: row.predicted_annual_gva || row.estimated_annual_sum || row.estimated_annual_gva || "",
-    actual_annual_gva: row.actual_annual_gva || row.benchmark_annual_gva || "",
-    percent_error: row.percent_error || row.percent_constraint_error || "",
-  }));
+  ["sigunguAnnual", "sigunguAnnualForecast"].forEach((key) => {
+    state.data[key] = (state.data[key] || []).map((row) => ({
+      ...row,
+      predicted_annual_gva: row.predicted_annual_gva || row.estimated_annual_sum || row.estimated_annual_gva || "",
+      actual_annual_gva: row.actual_annual_gva || row.benchmark_annual_gva || "",
+      percent_error: row.percent_error || row.percent_constraint_error || "",
+    }));
+  });
+}
+
+function normalizeSigunguQuarterRows() {
+  ["sigunguQuarter", "sigunguQuarterForecast"].forEach((key) => {
+    state.data[key] = (state.data[key] || []).map((row) => ({
+      ...row,
+      predicted_gva: row.predicted_gva || row.estimated_gva || "",
+      actual_quarterly_gva: row.actual_quarterly_gva || "",
+    }));
+  });
 }
 
 function quarterPeriod(prdDe) {
@@ -344,7 +363,11 @@ function periodNumber(period) {
 function datasetFor(level, grain) {
   if (level === "emd") return grain === "annual" ? state.data.emdAnnual : state.data.emdQuarter;
   if (level === "detail") return grain === "annual" ? state.data.detailAnnual : state.data.detailQuarter;
-  if (level === "sigungu") return grain === "annual" ? state.data.sigunguAnnual : state.data.sigunguQuarter;
+  if (level === "sigungu") {
+    return grain === "annual"
+      ? [...(state.data.sigunguAnnual || []), ...(state.data.sigunguAnnualForecast || [])]
+      : [...(state.data.sigunguQuarter || []), ...(state.data.sigunguQuarterForecast || [])];
+  }
   return grain === "annual" ? state.data.sidoAnnual : state.data.sidoQuarter;
 }
 
@@ -365,7 +388,7 @@ function valueFields(level, grain) {
     return { predicted: "predicted_annual_gva", actual: "actual_annual_gva", error: "percent_error" };
   }
   if (level === "sigungu") {
-    return { predicted: "estimated_gva", actual: "", error: "" };
+    return { predicted: "predicted_gva", actual: "actual_quarterly_gva", error: "" };
   }
   if (grain === "annual") {
     return { predicted: "predicted_annual_gva", actual: "actual_annual_gva", error: "percent_error" };
@@ -403,11 +426,11 @@ function confidenceInfo(level, grain) {
   }
   if (level === "sigungu" && grain === "annual") {
     return {
-      grade: "A",
-      gradeClass: "grade-a",
-      status: "공식 연간 벤치마크 정합",
-      method: "시군구 연간 GRVA 벤치마크와 비교 가능한 연간 합산값",
-      caution: "연간 합계 검증용이며 분기 내 배분 경로의 직접 관측값은 아닙니다.",
+      grade: "A/B",
+      gradeClass: "grade-b",
+      status: "벤치마크 구간 + 예측 구간",
+      method: "2019-2023은 공식 연간 GRVA 제약, 2024-2025는 부모 시도 rolling 예측과 2023년 시군구 비중으로 외삽",
+      caution: "actual이 있는 연도는 공식 벤치마크 제약 구간이고, actual이 비어 있는 연도만 out-of-sample 예측입니다.",
     };
   }
   if (level === "sigungu") {
@@ -565,6 +588,9 @@ function updateMessage(level, grain, rows) {
   const messages = [];
   const info = confidenceInfo(level, grain);
   if (info.caution) messages.push(info.caution);
+  if (level === "sigungu" && grain === "annual") {
+    messages.push("2019-2023 시군구 연도값은 공식 연간 GRVA를 벤치마크로 사용한 제약 구간입니다. 2024-2025는 공식 시군구 GRVA가 아직 없어 부모 시도 rolling 예측과 2023년 시군구 비중으로 외삽한 예측값입니다.");
+  }
   if (grain === "month") messages.push("현재 원천 데이터는 월간 예측값을 포함하지 않습니다. 연도 또는 분기를 선택해 주세요.");
   if (level === "emd") messages.push("읍면동은 2015 경제총조사 프록시로 시군구 분기 GVA를 하향 배분한 추정값입니다.");
   if (level === "detail" && grain === "quarter") messages.push("세부산업 분기값은 시군구 제조업 분기 총량을 KSIC 연간 프록시 비중으로 배분한 추정값입니다.");
@@ -620,6 +646,10 @@ function drawChart(rows) {
   const x = (idx) => xs[idx];
   const path = (field) => points.map((p, idx) => `${idx ? "L" : "M"}${x(idx).toFixed(1)},${y(p[field]).toFixed(1)}`).join(" ");
   const actualPoints = points.filter((p) => Number.isFinite(p.actual));
+  const allComparableOverlap =
+    actualPoints.length > 0 &&
+    actualPoints.length === points.length &&
+    actualPoints.every((p) => Math.abs(p.predicted - p.actual) <= Math.max(1, Math.abs(p.actual)) * 1e-9);
 
   for (let i = 0; i <= 4; i += 1) {
     const gy = margin.top + (i * (height - margin.top - margin.bottom)) / 4;
@@ -629,17 +659,29 @@ function drawChart(rows) {
   }
   svg.insertAdjacentHTML("beforeend", `<line x1="${margin.left}" x2="${margin.left}" y1="${margin.top}" y2="${height - margin.bottom}" class="axis"/>`);
   svg.insertAdjacentHTML("beforeend", `<line x1="${margin.left}" x2="${width - margin.right}" y1="${height - margin.bottom}" y2="${height - margin.bottom}" class="axis"/>`);
-  svg.insertAdjacentHTML("beforeend", `<path d="${path("predicted")}" class="pred"/>`);
-  if (actualPoints.length) svg.insertAdjacentHTML("beforeend", `<path d="${path("actual")}" class="actual"/>`);
+  if (allComparableOverlap) {
+    svg.insertAdjacentHTML("beforeend", `<path d="${path("predicted")}" class="combined"/>`);
+  } else {
+    if (actualPoints.length) svg.insertAdjacentHTML("beforeend", `<path d="${path("actual")}" class="actual"/>`);
+    svg.insertAdjacentHTML("beforeend", `<path d="${path("predicted")}" class="pred"/>`);
+  }
   points.forEach((p, idx) => {
-    svg.insertAdjacentHTML("beforeend", `<circle cx="${x(idx)}" cy="${y(p.predicted)}" r="4" class="dot-pred"/>`);
-    if (Number.isFinite(p.actual)) svg.insertAdjacentHTML("beforeend", `<circle cx="${x(idx)}" cy="${y(p.actual)}" r="4" class="dot-actual"/>`);
+    if (allComparableOverlap) {
+      svg.insertAdjacentHTML("beforeend", `<circle cx="${x(idx)}" cy="${y(p.predicted)}" r="5" class="dot-combined"/>`);
+    } else {
+      if (Number.isFinite(p.actual)) svg.insertAdjacentHTML("beforeend", `<circle cx="${x(idx)}" cy="${y(p.actual)}" r="4" class="dot-actual"/>`);
+      svg.insertAdjacentHTML("beforeend", `<circle cx="${x(idx)}" cy="${y(p.predicted)}" r="4" class="dot-pred"/>`);
+    }
     if (idx % Math.ceil(points.length / 10) === 0 || idx === points.length - 1) {
       svg.insertAdjacentHTML("beforeend", `<text x="${x(idx)}" y="${height - margin.bottom + 24}" text-anchor="middle" class="tick">${p.period}</text>`);
     }
   });
-  svg.insertAdjacentHTML("beforeend", `<circle cx="860" cy="24" r="5" class="dot-pred"/><text x="872" y="29" class="legend">예측값</text>`);
-  svg.insertAdjacentHTML("beforeend", `<circle cx="940" cy="24" r="5" class="dot-actual"/><text x="952" y="29" class="legend">실제값</text>`);
+  if (allComparableOverlap) {
+    svg.insertAdjacentHTML("beforeend", `<circle cx="840" cy="24" r="5" class="dot-combined"/><text x="852" y="29" class="legend">예측값=실제값</text>`);
+  } else {
+    svg.insertAdjacentHTML("beforeend", `<circle cx="860" cy="24" r="5" class="dot-pred"/><text x="872" y="29" class="legend">예측값</text>`);
+    svg.insertAdjacentHTML("beforeend", `<circle cx="940" cy="24" r="5" class="dot-actual"/><text x="952" y="29" class="legend">실제값</text>`);
+  }
 }
 
 function updateMetrics(rows) {
@@ -685,7 +727,7 @@ function renderTable(rows) {
       predicted: fmt(row[fields.predicted], 3),
       actual: fields.actual ? fmt(row[fields.actual], 3) : "-",
       error: fields.error ? pct(row[fields.error]) : "-",
-      method: row.method || "",
+      method: row.method || (level === "sigungu" && grain === "annual" ? "annual benchmark constraint check" : ""),
     }));
   const cols = ["period", "region", "sector", "predicted", "actual", "error", "method"];
   table.innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${mapped.map((row) => `<tr>${cols.map((c) => `<td>${row[c] || ""}</td>`).join("")}</tr>`).join("")}</tbody>`;
@@ -714,6 +756,7 @@ async function init() {
     buildLookups();
     enrichSidoRows();
     normalizeSigunguAnnualRows();
+    normalizeSigunguQuarterRows();
     $("loadStatus").textContent = "CSV 로딩 완료";
   } catch (error) {
     $("loadStatus").textContent = "CSV 로딩 실패";
