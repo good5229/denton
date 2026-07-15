@@ -18,6 +18,7 @@ const DATA_PATHS = {
 const OPTIONAL_DATA_KEYS = new Set(["sigunguQuarterForecast", "sigunguAnnualForecast", "seoulDistrictAnnual", "detailQuarter", "detailAnnual", "emdQuarter", "emdAnnual"]);
 const BASE_DATA_KEYS = ["sidoAnnual", "sidoQuarter", "sidoActual", "nationalQuarterActual", "sigunguQuarter", "sigunguAnnual", "seoulDistrictAnnual"];
 const ALL_SECTOR = "__ALL__";
+const REGION_SUM_PREFIX = "__REGION_SUM__|";
 const TABLE_LIMIT = 500;
 
 const DETAIL_LEVEL_LABELS = {
@@ -231,6 +232,17 @@ function uniqueOptions(rows, keyGetter, labelGetter) {
     seen.set(key, labelGetter(row));
   });
   return [...seen.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "ko"));
+}
+
+function compactName(value) {
+  return String(value || "").replaceAll(" ", "").replaceAll(",", "").replaceAll("·", "").replaceAll("ㆍ", "");
+}
+
+function isSigunguTotalRow(row) {
+  const source = compactName(row.source_region);
+  const name = compactName(row.sigungu_name);
+  if (!source || !name) return false;
+  return name === source || name === source.replace("특별", "") || name === source.replace("광역", "");
 }
 
 function buildLookups() {
@@ -486,6 +498,14 @@ async function refreshFilters(keep = {}) {
   await ensureLevelData(level, grain);
   const rows = datasetFor(level, grain) || [];
   const regions = uniqueOptions(rows, (row) => regionKey(row, level), (row) => regionName(row, level));
+  if (level === "sigungu") {
+    const sources = uniqueOptions(
+      rows.filter((row) => row.source_region),
+      (row) => `${REGION_SUM_PREFIX}${row.source_region}`,
+      (row) => `${row.source_region} 전체 시군구 합계`
+    );
+    regions.unshift(...sources);
+  }
   const sectors = uniqueOptions(rows, (row) => sectorKey(row, level), (row) => sectorName(row, level));
   sectors.unshift([ALL_SECTOR, "전체"]);
   setOptions($("regionSelect"), regions, keep.region);
@@ -516,7 +536,12 @@ function filteredBaseRows(applyPeriod = true) {
   const start = $("startSelect").value;
   const end = $("endSelect").value;
   let rows = [...(datasetFor(level, grain) || [])];
-  if (region) rows = rows.filter((row) => regionKey(row, level) === region);
+  if (region && level === "sigungu" && region.startsWith(REGION_SUM_PREFIX)) {
+    const sourceRegion = region.slice(REGION_SUM_PREFIX.length);
+    rows = rows.filter((row) => row.source_region === sourceRegion && !isSigunguTotalRow(row));
+  } else if (region) {
+    rows = rows.filter((row) => regionKey(row, level) === region);
+  }
   if (sector && sector !== ALL_SECTOR) rows = rows.filter((row) => sectorKey(row, level) === sector);
   if (applyPeriod && start && end) {
     const lo = Math.min(periodNumber(start), periodNumber(end));
@@ -533,16 +558,22 @@ function aggregateIfNeeded(rows) {
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
   const sector = $("sectorSelect").value;
-  if (sector !== ALL_SECTOR) return rows;
+  const region = $("regionSelect").value;
+  const aggregateRegion = level === "sigungu" && region.startsWith(REGION_SUM_PREFIX);
+  if (sector !== ALL_SECTOR && !aggregateRegion) return rows;
   const fields = valueFields(level, grain);
   const groups = new Map();
   rows.forEach((row) => {
-    const key = `${regionKey(row, level)}|${periodKey(row, grain)}`;
+    const keyRegion = aggregateRegion ? region : regionKey(row, level);
+    const keySector = sector === ALL_SECTOR ? ALL_SECTOR : sectorKey(row, level);
+    const key = `${keyRegion}|${keySector}|${periodKey(row, grain)}`;
     if (!groups.has(key)) {
       groups.set(key, {
         ...row,
-        sector_code: ALL_SECTOR,
-        sector_name: "전체",
+        sigungu_code: aggregateRegion ? region : row.sigungu_code,
+        sigungu_name: aggregateRegion ? `${row.source_region} 전체 시군구 합계` : row.sigungu_name,
+        sector_code: sector === ALL_SECTOR ? ALL_SECTOR : row.sector_code,
+        sector_name: sector === ALL_SECTOR ? "전체" : row.sector_name,
         [fields.predicted]: 0,
         [fields.actual]: "",
         [fields.error]: "",
@@ -577,6 +608,9 @@ function aggregateIfNeeded(rows) {
       const predicted = number(row[fields.predicted]);
       const actual = number(row[fields.actual]);
       row[fields.error] = Number.isFinite(predicted) && Number.isFinite(actual) && actual !== 0 ? String(((predicted - actual) / actual) * 100) : "";
+      if (aggregateRegion) {
+        row.method = sector === ALL_SECTOR ? "sum of selected source-region sigungu rows across all sectors" : "sum of selected source-region sigungu rows for selected sector";
+      }
       delete row.actualCount;
       return row;
     })
