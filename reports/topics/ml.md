@@ -27,3 +27,11 @@
 | [locked_global_policy_analysis.md](../locked_global_policy_analysis.md) | Locked performance/conservative policy definitions and next-step audit |
 | [global_model_confirmatory_test.md](../global_model_confirmatory_test.md) | Confirmatory unused-year test status |
 | [sigungu_global_model_pilot.md](../sigungu_global_model_pilot.md) | First municipality-level global pooled model pilot |
+| [municipality_error_decomposition.md](../municipality_error_decomposition.md) | Municipality parent-total versus child-share error decomposition |
+| [municipality_residual_learnability.md](../municipality_residual_learnability.md) | Municipality residual persistence, benchmarks, and oracle alpha |
+| [municipality_share_stability.md](../municipality_share_stability.md) | Municipality share stability inside province-sector parents |
+| [municipality_small_cell_analysis.md](../municipality_small_cell_analysis.md) | Small-cell and near-zero actual diagnostics |
+| [municipality_feature_analysis.md](../municipality_feature_analysis.md) | Municipality-specific feature plan |
+| [municipality_partial_pooling.md](../municipality_partial_pooling.md) | Partial-pooling follow-up plan |
+| [municipality_gate_analysis.md](../municipality_gate_analysis.md) | Municipality gate follow-up plan |
+| [municipality_noninferiority.md](../municipality_noninferiority.md) | Municipality non-inferiority follow-up plan |

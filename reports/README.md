@@ -15,4 +15,4 @@ This directory contains generated research notes, validation reports, dashboard 
 
 ## Current Main Result
 
-The most recent ML work is summarized in [locked_global_policy_analysis.md](locked_global_policy_analysis.md) and [sigungu_global_model_pilot.md](sigungu_global_model_pilot.md). The current practical conclusion is that `global_regret_adaptive` remains the locked conservative policy at the 시도 level, but the first 시군구 pilot does not yet beat the baseline and needs separate weighting/time-decay experiments before operational expansion.
+The most recent ML work is summarized in [municipality_error_decomposition.md](municipality_error_decomposition.md) and [municipality_residual_learnability.md](municipality_residual_learnability.md). The current practical conclusion is that the 시군구 ML pilot fails mainly at the child-share layer, not just because of parent-total error, so 시군구 operation should keep the Denton/indicator baseline while ML remains a shadow diagnostic.
