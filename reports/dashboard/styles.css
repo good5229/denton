@@ -490,6 +490,12 @@ th:nth-child(2) {
   font-size: 13px;
 }
 
+#pickerDetailMode {
+  border-color: #9fb1c6;
+  background: #eef4fb;
+  color: #27415f;
+}
+
 #pickerCount {
   color: var(--muted);
   font-size: 13px;

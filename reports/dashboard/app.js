@@ -340,6 +340,9 @@ function pickerScopeText(kind) {
   if (kind === "region") {
     return `현재 지역 수준: ${levelText}. 검색어와 일치하는 지역을 복수로 선택할 수 있습니다.`;
   }
+  if ($("levelSelect").value !== "detail") {
+    return `현재 지역 수준: ${levelText}, 시점 단위: ${grainText}. 이 화면은 대분류 산업군만 제공합니다. 중분류·소분류·세분류는 세부산업 검색으로 전환해야 합니다.`;
+  }
   return `현재 지역 수준: ${levelText}, 시점 단위: ${grainText}. 대분류·중분류·소분류·세분류 라벨과 업종명을 검색할 수 있습니다.`;
 }
 
@@ -374,6 +377,7 @@ function renderPickerOptions() {
   const selectedVisibleCount = visibleValues.filter((value) => draft.has(value)).length;
   $("pickerCount").textContent = `${draft.size.toLocaleString("ko-KR")}개 선택 · ${options.length.toLocaleString("ko-KR")}개 표시`;
   $("pickerToggleVisible").hidden = options.length === 0;
+  $("pickerDetailMode").hidden = state.picker.kind !== "sector" || $("levelSelect").value === "detail";
   $("pickerToggleVisible").textContent =
     options.length > 0 && selectedVisibleCount === options.length ? "검색 결과 전체 선택 해제" : "검색 결과 전체 선택";
   $("pickerOptions").innerHTML = options
@@ -398,6 +402,20 @@ async function applyPicker() {
   renderSelectedChips();
   closePicker();
   refreshPeriods();
+  render();
+}
+
+async function switchToDetailSectorPicker() {
+  const currentStart = $("startSelect").value;
+  const currentEnd = $("endSelect").value;
+  $("levelSelect").value = "detail";
+  await refreshFilters({ start: currentStart, end: currentEnd });
+  state.picker.kind = "sector";
+  const selected = state.filters.sectors;
+  state.picker.draft = selected.includes(ALL_SECTOR) ? pickerOptionsFor("sector").map(([value]) => value) : [...selected];
+  $("pickerTitle").textContent = "산업군 검색 및 선택";
+  $("pickerScope").textContent = pickerScopeText("sector");
+  renderPickerOptions();
   render();
 }
 
@@ -702,7 +720,8 @@ function detailSectorGroups(rows) {
     const bucket = buckets[level] || buckets.other;
     if (!bucket.has(key)) {
       const prefix = DETAIL_LEVEL_LABELS[level] || "기타";
-      bucket.set(key, `[${prefix}] ${row.detail_name || key} (${key})`);
+      const parent = row.parent_sector_name ? `${row.parent_sector_name} · ` : "";
+      bucket.set(key, `${parent}[${prefix}] ${row.detail_name || key} (${key})`);
     }
   });
   return ["middle", "small", "class", "other"]
@@ -1133,6 +1152,7 @@ async function init() {
   $("sectorPickerButton").addEventListener("click", () => openPicker("sector"));
   $("pickerClose").addEventListener("click", closePicker);
   $("pickerApply").addEventListener("click", applyPicker);
+  $("pickerDetailMode").addEventListener("click", switchToDetailSectorPicker);
   $("pickerClear").addEventListener("click", () => {
     state.picker.draft = [];
     renderPickerOptions();
