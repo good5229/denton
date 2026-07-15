@@ -77,6 +77,27 @@ Outputs are separated by role:
 .venv/bin/pip install numpy python-pptx
 ```
 
+Optional sector-specific ML experiments can evaluate XGBoost when the native
+runtime is available:
+
+```bash
+.venv/bin/pip install xgboost
+brew install libomp
+```
+
+On macOS, the Python/XGBoost architecture and the `libomp` architecture must
+match. If they do not, `scripts/run_sector_specific_models.py` skips XGBoost
+and records the unavailable status in the report.
+
+On a machine with x86_64 Homebrew under `/usr/local`, use a matching x86_64
+experiment environment:
+
+```bash
+arch -x86_64 python3 -m venv .venv_x86
+arch -x86_64 .venv_x86/bin/pip install numpy xgboost
+PYTHONPATH=scripts arch -x86_64 .venv_x86/bin/python scripts/run_sector_specific_models.py
+```
+
 3. Collect baseline data:
 
 ```bash

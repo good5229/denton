@@ -11,6 +11,13 @@ from data_availability import annual_forecast_origin, is_available_as_of
 from kosis_common import PROCESSED_DIR, ROOT, parse_number, read_csv, write_csv
 from run_ml_baseline_experiment import GradientBoostedTrees, RegressionTree, ridge_fit
 
+try:
+    import xgboost as xgb
+    XGBOOST_UNAVAILABLE_REASON = ""
+except Exception:  # Optional dependency; the experiment still runs without its native runtime.
+    xgb = None
+    XGBOOST_UNAVAILABLE_REASON = "xgboost package or native OpenMP runtime is unavailable"
+
 
 TARGET_SECTORS = {"A00", "B00", "D00"}
 STRUCTURAL_LAG_MONTHS = 12
@@ -217,6 +224,28 @@ def fit_predict_model(model_name: str, x_train: np.ndarray, y_train: np.ndarray,
         return RegressionTree(max_depth=int(params["max_depth"]), min_leaf=int(params["min_leaf"])).fit(x_train, y_train).predict(x_test)
     if model_name == "boosted_tree":
         return GradientBoostedTrees(rounds=int(params["rounds"]), learning_rate=float(params["learning_rate"])).fit(x_train, y_train).predict(x_test)
+    if model_name == "xgboost":
+        if xgb is None:
+            raise RuntimeError("xgboost is not installed")
+        train_matrix = xgb.DMatrix(x_train, label=y_train)
+        test_matrix = xgb.DMatrix(x_test)
+        booster = xgb.train(
+            {
+                "objective": "reg:squarederror",
+                "max_depth": int(params["max_depth"]),
+                "eta": float(params["learning_rate"]),
+                "subsample": float(params["subsample"]),
+                "colsample_bytree": float(params["colsample_bytree"]),
+                "lambda": float(params["reg_lambda"]),
+                "min_child_weight": float(params["min_child_weight"]),
+                "seed": 42,
+                "nthread": 1,
+                "verbosity": 0,
+            },
+            train_matrix,
+            num_boost_round=int(params["n_estimators"]),
+        )
+        return np.asarray(booster.predict(test_matrix), dtype=float)
     raise ValueError(model_name)
 
 
@@ -227,13 +256,37 @@ def param_grid(model_name: str) -> list[dict[str, Any]]:
         return [{"max_depth": d, "min_leaf": l} for d in [2, 3, 4] for l in [8, 15, 25]]
     if model_name == "boosted_tree":
         return [{"rounds": r, "learning_rate": lr} for r in [10, 25, 50] for lr in [0.04, 0.08, 0.15]]
+    if model_name == "xgboost":
+        if xgb is None:
+            return []
+        return [
+            {
+                "n_estimators": n,
+                "max_depth": d,
+                "learning_rate": lr,
+                "subsample": ss,
+                "colsample_bytree": cs,
+                "reg_lambda": lam,
+                "min_child_weight": mcw,
+            }
+            for n in [30, 80, 150]
+            for d in [2, 3]
+            for lr in [0.03, 0.08]
+            for ss in [0.8, 1.0]
+            for cs in [0.8, 1.0]
+            for lam in [1.0, 5.0]
+            for mcw in [1.0, 5.0]
+        ]
     return [{}]
 
 
 def tune_params(model_name: str, train_rows: list[dict[str, Any]], ctx: dict[str, Any]) -> dict[str, Any]:
+    candidates = param_grid(model_name)
+    if not candidates:
+        return {}
     train_years = sorted({int(row["target_year"]) for row in train_rows})
     if len(train_years) < 3:
-        return param_grid(model_name)[0]
+        return candidates[0]
     val_year = train_years[-1]
     fit_rows = [row for row in train_rows if int(row["target_year"]) < val_year]
     val_rows = [row for row in train_rows if int(row["target_year"]) == val_year]
@@ -242,9 +295,9 @@ def tune_params(model_name: str, train_rows: list[dict[str, Any]], ctx: dict[str
     x_fit = build_features(fit_rows, ctx)
     x_val = build_features(val_rows, ctx)
     y_fit = np.array([log(float(row["actual"]) / float(row["baseline"])) for row in fit_rows])
-    best_params = param_grid(model_name)[0]
+    best_params = candidates[0]
     best_wmape = float("inf")
-    for params in param_grid(model_name):
+    for params in candidates:
         pred_ratio = fit_predict_model(model_name, x_fit, y_fit, x_val, params)
         scored = []
         for row, ratio in zip(val_rows, pred_ratio):
@@ -272,7 +325,10 @@ def run() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
             x_test = build_features(test, ctx)
             y_train = np.array([log(float(row["actual"]) / float(row["baseline"])) for row in train])
             model_outputs: dict[str, tuple[np.ndarray, dict[str, Any]]] = {}
-            for model_name in ["ridge", "tree", "boosted_tree"]:
+            model_names = ["ridge", "tree", "boosted_tree"]
+            if xgb is not None:
+                model_names.append("xgboost")
+            for model_name in model_names:
                 params = tune_params(model_name, train, ctx)
                 pred_ratio = fit_predict_model(model_name, x_train, y_train, x_test, params)
                 model_outputs[model_name] = (pred_ratio, params)
@@ -297,14 +353,20 @@ def run() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
             ("ridge_prediction", "ridge_residual"),
             ("tree_prediction", "tree_residual"),
             ("boosted_tree_prediction", "boosted_tree_residual"),
+            ("xgboost_prediction", "xgboost_residual"),
         ]:
+            if part and field not in part[0]:
+                continue
             summary.append({"sector_code": sector, "model": label, **metrics(part, field)})
     for field, label in [
         ("baseline_prediction", "baseline"),
         ("ridge_prediction", "ridge_residual"),
         ("tree_prediction", "tree_residual"),
         ("boosted_tree_prediction", "boosted_tree_residual"),
+        ("xgboost_prediction", "xgboost_residual"),
     ]:
+        if predictions and field not in predictions[0]:
+            continue
         summary.append({"sector_code": "__ALL__", "model": label, **metrics(predictions, field)})
     return predictions, summary + tuning_rows
 
@@ -343,6 +405,11 @@ def write_report(summary: list[dict[str, Any]]) -> None:
         "- 구조변수는 target-year 1월 1일 기준 공개 가능하다고 볼 수 있는 최신 연도만 사용한다.",
         "- `sector_structural_business_stats.csv`의 사업체수·종사자수·매출액은 보수적으로 `target_year-2` 이하만 feature로 사용한다.",
         "- 전기가스 외생변수는 공표 지연 2개월을 가정하고, 예측 기준일 이전에 공표 가능한 분기만 사용한다.",
+        "- XGBoost는 선택 의존성으로 두며, 로컬 런타임에서 로드 가능한 경우에만 `xgboost_residual` 후보를 평가한다.",
+        "",
+        "## XGBoost 실행 상태",
+        "",
+        "사용 가능" if xgb is not None else f"미실행: {XGBOOST_UNAVAILABLE_REASON}",
         "",
         "## 성능",
         "",

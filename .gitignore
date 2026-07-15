@@ -1,5 +1,6 @@
 .env
 .venv/
+.venv_x86/
 __pycache__/
 *.pyc
 .DS_Store
