@@ -99,6 +99,7 @@ const state = {
     seoulDistrictAnnual: {},
     confidenceByKey: {},
   },
+  availableProcessedFiles: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -152,10 +153,29 @@ async function loadCsv(path) {
   return parseCsv(text);
 }
 
+async function optionalDataExists(path) {
+  if (!path.startsWith("../../data/processed/")) return true;
+  if (!state.availableProcessedFiles) {
+    try {
+      const response = await fetch("../../data/processed/");
+      const html = response.ok ? await response.text() : "";
+      state.availableProcessedFiles = new Set([...html.matchAll(/href="([^"]+\.csv)"/g)].map((match) => decodeURIComponent(match[1])));
+    } catch (error) {
+      state.availableProcessedFiles = new Set();
+    }
+  }
+  return state.availableProcessedFiles.has(path.split("/").pop());
+}
+
 async function loadDataKey(key) {
   if (state.data[key]) return state.data[key];
   if (state.loading[key]) return state.loading[key];
   $("loadStatus").textContent = `${key} CSV 로딩 중`;
+  if (OPTIONAL_DATA_KEYS.has(key) && !(await optionalDataExists(DATA_PATHS[key]))) {
+    state.data[key] = [];
+    $("loadStatus").textContent = "CSV 로딩 완료";
+    return [];
+  }
   state.loading[key] = loadCsv(DATA_PATHS[key])
     .then((rows) => {
       state.data[key] = rows;
@@ -902,102 +922,82 @@ function buildChartSeries(rows, level, grain, fields) {
     .sort((a, b) => a.label.localeCompare(b.label, "ko"));
 }
 
-function svgPointTitle(series, point, kind, value) {
-  return `${series.label}
-${point.period}
-${kind}: ${fmt(value, 3)}`;
-}
-
-function seriesPath(points, field, xForPeriod, y) {
-  return points
-    .filter((point) => Number.isFinite(point[field]))
-    .map((point, idx) => `${idx ? "L" : "M"}${xForPeriod(point.period).toFixed(1)},${y(point[field]).toFixed(1)}`)
-    .join(" ");
-}
-
 function drawChart(rows) {
-  const svg = $("chart");
-  svg.innerHTML = "";
+  const chart = $("chart");
+  chart.innerHTML = "";
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
   if (!rows.length || grain === "month") {
-    svg.innerHTML = `<text x="560" y="210" text-anchor="middle" class="tick">표시할 시계열이 없습니다.</text>`;
+    chart.innerHTML = `<div class="empty-chart">표시할 시계열이 없습니다.</div>`;
+    return;
+  }
+  if (!window.Plotly) {
+    chart.innerHTML = `<div class="empty-chart">Plotly를 불러오지 못했습니다. 인터넷 연결 또는 CDN 접근을 확인해 주세요.</div>`;
     return;
   }
   const fields = valueFields(level, grain);
   const series = buildChartSeries(rows, level, grain, fields);
-  const periods = [...new Set(series.flatMap((item) => item.points.map((point) => point.period)))].sort((a, b) => periodNumber(a) - periodNumber(b));
-  const values = series.flatMap((item) => item.points.flatMap((point) => [point.predicted, point.actual])).filter(Number.isFinite);
-  if (!series.length || !periods.length || !values.length) return;
-
-  const width = 1120;
-  const height = 420;
-  const margin = { left: 78, right: 28, top: 34, bottom: 58 };
-  const xByPeriod = new Map(
-    periods.map((period, idx) => [period, margin.left + (idx * (width - margin.left - margin.right)) / Math.max(1, periods.length - 1)])
-  );
-  const xForPeriod = (period) => xByPeriod.get(period) || margin.left;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const pad = (max - min || max || 1) * 0.08;
-  const lo = min - pad;
-  const hi = max + pad;
-  const y = (v) => margin.top + ((hi - v) / (hi - lo)) * (height - margin.top - margin.bottom);
-
-  for (let i = 0; i <= 4; i += 1) {
-    const gy = margin.top + (i * (height - margin.top - margin.bottom)) / 4;
-    const val = hi - (i * (hi - lo)) / 4;
-    svg.insertAdjacentHTML("beforeend", `<line x1="${margin.left}" x2="${width - margin.right}" y1="${gy}" y2="${gy}" class="grid"/>`);
-    svg.insertAdjacentHTML("beforeend", `<text x="${margin.left - 10}" y="${gy + 4}" text-anchor="end" class="tick">${fmt(val)}</text>`);
+  if (!series.length) {
+    chart.innerHTML = `<div class="empty-chart">표시할 시계열이 없습니다.</div>`;
+    return;
   }
-  svg.insertAdjacentHTML("beforeend", `<line x1="${margin.left}" x2="${margin.left}" y1="${margin.top}" y2="${height - margin.bottom}" class="axis"/>`);
-  svg.insertAdjacentHTML("beforeend", `<line x1="${margin.left}" x2="${width - margin.right}" y1="${height - margin.bottom}" y2="${height - margin.bottom}" class="axis"/>`);
-
+  const traces = [];
   series.forEach((item) => {
-    const predictedPath = seriesPath(item.points, "predicted", xForPeriod, y);
-    const actualPath = seriesPath(item.points, "actual", xForPeriod, y);
-    if (actualPath) {
-      svg.insertAdjacentHTML("beforeend", `<path d="${actualPath}" class="series-line" style="stroke:${item.color}"/>`);
+    const predictedPoints = item.points.filter((point) => Number.isFinite(point.predicted));
+    const actualPoints = item.points.filter((point) => Number.isFinite(point.actual));
+    const common = {
+      mode: "lines+markers",
+      legendgroup: item.key,
+      marker: { size: 7, color: item.color, line: { color: "#ffffff", width: 1.5 } },
+      hovertemplate: "%{customdata[0]}<br>%{x}<br>%{customdata[1]}: %{y:,.3f}<extra></extra>",
+    };
+    if (actualPoints.length) {
+      traces.push({
+        ...common,
+        name: `${item.label} 실제`,
+        x: actualPoints.map((point) => point.period),
+        y: actualPoints.map((point) => point.actual),
+        customdata: actualPoints.map(() => [item.label, "실제값"]),
+        line: { color: item.color, width: 3, dash: "solid" },
+      });
     }
-    if (predictedPath) {
-      svg.insertAdjacentHTML("beforeend", `<path d="${predictedPath}" class="series-line predicted-line" style="stroke:${item.color}"/>`);
-    }
-  });
-
-  series.forEach((item) => {
-    item.points.forEach((point) => {
-      if (Number.isFinite(point.actual)) {
-        svg.insertAdjacentHTML(
-          "beforeend",
-          `<circle cx="${xForPeriod(point.period)}" cy="${y(point.actual)}" r="4" class="series-dot actual-dot" style="fill:${item.color}"><title>${escapeHtml(svgPointTitle(item, point, "실제값", point.actual))}</title></circle>`
-        );
-      }
-      if (Number.isFinite(point.predicted)) {
-        svg.insertAdjacentHTML(
-          "beforeend",
-          `<circle cx="${xForPeriod(point.period)}" cy="${y(point.predicted)}" r="4" class="series-dot predicted-dot" style="fill:${item.color}"><title>${escapeHtml(svgPointTitle(item, point, "예측값", point.predicted))}</title></circle>`
-        );
-      }
-    });
-  });
-
-  periods.forEach((period, idx) => {
-    if (idx % Math.ceil(periods.length / 10) === 0 || idx === periods.length - 1) {
-      svg.insertAdjacentHTML("beforeend", `<text x="${xForPeriod(period)}" y="${height - margin.bottom + 24}" text-anchor="middle" class="tick">${period}</text>`);
+    if (predictedPoints.length) {
+      traces.push({
+        ...common,
+        name: `${item.label} 예측`,
+        x: predictedPoints.map((point) => point.period),
+        y: predictedPoints.map((point) => point.predicted),
+        customdata: predictedPoints.map(() => [item.label, "예측값"]),
+        line: { color: item.color, width: 3, dash: "dot" },
+      });
     }
   });
 
-  svg.insertAdjacentHTML("beforeend", `<line x1="804" x2="850" y1="24" y2="24" class="series-line" style="stroke:#596579"/><text x="858" y="29" class="legend">실제값</text>`);
-  svg.insertAdjacentHTML("beforeend", `<line x1="920" x2="966" y1="24" y2="24" class="series-line predicted-line" style="stroke:#596579"/><text x="974" y="29" class="legend">예측값</text>`);
-
-  const legendItems = series.slice(0, 6);
-  legendItems.forEach((item, idx) => {
-    const yPos = 48 + idx * 18;
-    svg.insertAdjacentHTML("beforeend", `<circle cx="806" cy="${yPos - 4}" r="4" style="fill:${item.color}"/><text x="818" y="${yPos}" class="legend">${escapeHtml(item.label)}</text>`);
-  });
-  if (series.length > legendItems.length) {
-    svg.insertAdjacentHTML("beforeend", `<text x="818" y="${48 + legendItems.length * 18}" class="legend">외 ${series.length - legendItems.length}개</text>`);
-  }
+  const layout = {
+    margin: { l: 76, r: 24, t: 12, b: 56 },
+    paper_bgcolor: "#ffffff",
+    plot_bgcolor: "#ffffff",
+    hovermode: "closest",
+    legend: { orientation: "h", y: -0.22, x: 0, font: { size: 12 } },
+    xaxis: {
+      type: "category",
+      tickfont: { size: 12, color: "#5e6b7a" },
+      gridcolor: "#eef2f7",
+      zeroline: false,
+    },
+    yaxis: {
+      tickfont: { size: 12, color: "#5e6b7a" },
+      gridcolor: "#e7ecf3",
+      zeroline: false,
+      separatethousands: true,
+    },
+    font: {
+      family: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+      color: "#17202a",
+    },
+  };
+  const config = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["lasso2d", "select2d"] };
+  window.Plotly.react(chart, traces, layout, config);
 }
 
 function updateMetrics(rows) {

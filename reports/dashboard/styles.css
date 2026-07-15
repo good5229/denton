@@ -315,6 +315,15 @@ h2 {
   display: block;
 }
 
+.empty-chart {
+  height: 420px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .axis {
   stroke: #9aa7b5;
   stroke-width: 1;
