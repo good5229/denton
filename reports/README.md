@@ -15,4 +15,4 @@ This directory contains generated research notes, validation reports, dashboard 
 
 ## Current Main Result
 
-The most recent ML work is summarized in [global_reconciled_ml_final_report.md](global_reconciled_ml_final_report.md). The current practical conclusion is that the common-feature global XGBoost model improves the shared 2019-2023 evaluation population, while `global_regret_adaptive` is the conservative operating candidate because it controls downside risk.
+The most recent ML work is summarized in [locked_global_policy_analysis.md](locked_global_policy_analysis.md) and [sigungu_global_model_pilot.md](sigungu_global_model_pilot.md). The current practical conclusion is that `global_regret_adaptive` remains the locked conservative policy at the 시도 level, but the first 시군구 pilot does not yet beat the baseline and needs separate weighting/time-decay experiments before operational expansion.

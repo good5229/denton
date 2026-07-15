@@ -1,0 +1,29 @@
+policy_name: global_regret_adaptive
+role: default_published_estimate
+source_model: global_tuned_full_rule_frozen
+regret_gate:
+  predicted_improvement: mean_pre_target_sector_year_improvement
+  alpha_regret: clip(predicted_improvement / 5.0, 0.0, 1.0)
+  minimum_history_years: 1
+adaptive_alpha:
+  formula: exp(-5.0 * abs(log(global_prediction / baseline_prediction))) * alpha_regret
+  fallback_rule: alpha_is_zero_when_no_positive_pre_target_improvement
+feature_set: current_global_common_features
+parent_model: parent_baseline
+reconciliation: parent_baseline_hard_reconciliation
+xgboost:
+  objective: reg:squarederror
+  n_estimators: 60
+  max_depth: 2
+  learning_rate: 0.05
+  subsample: 0.9
+  colsample_bytree: 0.9
+  reg_lambda: 5.0
+  min_child_weight: 3.0
+random_seed: 42
+preprocessing:
+  baseline_features: log_baseline, baseline_share, log_baseline_share
+  history_features: lagged_actual_share, rolling_share, lagged_log_ratio, rolling_log_ratio
+  structural_features: release_aware_business_stats
+  fixed_effects: region_onehot, sector_onehot, method_onehot
+unused_actual_lock: do_not_change_thresholds_after_confirmatory_actual

@@ -24,3 +24,6 @@
 | [global_model_pooling_analysis.md](../global_model_pooling_analysis.md) | Sector and region pooling diagnostics |
 | [global_model_safety_policy.md](../global_model_safety_policy.md) | Global regret and adaptive shrinkage policies |
 | [global_model_leakage_checks.md](../global_model_leakage_checks.md) | Global negative controls and leakage checks |
+| [locked_global_policy_analysis.md](../locked_global_policy_analysis.md) | Locked performance/conservative policy definitions and next-step audit |
+| [global_model_confirmatory_test.md](../global_model_confirmatory_test.md) | Confirmatory unused-year test status |
+| [sigungu_global_model_pilot.md](../sigungu_global_model_pilot.md) | First municipality-level global pooled model pilot |
