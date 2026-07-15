@@ -33,13 +33,14 @@ def load_last_shares(parent_history: dict[tuple[str, str, int, int], float]) -> 
     for row in read_csv(PROCESSED_DIR / "sigungu_quarterly_gva_estimates.csv"):
         year = int(row.get("year", 0))
         quarter = int(row.get("quarter", 0))
-        if year != 2023:
-            continue
         parent_total = parent_history.get(parent_key(row))
         value = parse_number(row.get("estimated_gva"))
         if not parent_total or value is None:
             continue
         key = (row.get("sigungu_code", ""), row.get("sector_code", ""), row.get("parent_area_code", ""), quarter)
+        current = shares.get(key)
+        if current and int(current["base_year"]) >= year:
+            continue
         shares[key] = {
             "source_region": row.get("source_region", ""),
             "parent_area_code": row.get("parent_area_code", ""),
@@ -49,7 +50,7 @@ def load_last_shares(parent_history: dict[tuple[str, str, int, int], float]) -> 
             "sector_name": row.get("sector_name", ""),
             "quarter": quarter,
             "share": value / parent_total,
-            "base_year": 2023,
+            "base_year": year,
             "base_sigungu_gva": value,
             "base_parent_gva": parent_total,
         }

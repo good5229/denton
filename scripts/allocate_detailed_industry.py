@@ -77,6 +77,25 @@ def load_parent_quarterly() -> dict[tuple[str, str, str], dict[tuple[int, int], 
             "value": value,
             "parent_sigungu_code": row.get("sigungu_code", ""),
             "benchmark_annual_gva": row.get("benchmark_annual_gva", ""),
+            "parent_status": "benchmark_constrained_estimate",
+            "parent_method": row.get("method", ""),
+        }
+    forecast_path = PROCESSED_DIR / "sigungu_quarterly_gva_forecasts.csv"
+    if not forecast_path.exists():
+        return out
+    for row in read_csv(forecast_path):
+        if row.get("sector_code") != MANUFACTURING_PARENT:
+            continue
+        value = parse_number(row.get("predicted_gva"))
+        if value is None:
+            continue
+        key = (row.get("parent_area_code", ""), row.get("sigungu_name", ""), row.get("source_region", ""))
+        out[key][(int(row["year"]), int(row["quarter"]))] = {
+            "value": value,
+            "parent_sigungu_code": row.get("sigungu_code", ""),
+            "benchmark_annual_gva": "",
+            "parent_status": row.get("benchmark_status", "out_of_sample_forecast"),
+            "parent_method": row.get("method", ""),
         }
     return out
 
@@ -247,6 +266,8 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                             "period": f"{year}Q{quarter}",
                             "estimated_gva": round(estimate, 6),
                             "parent_quarterly_gva": round(parent_value, 6),
+                            "parent_status": parent_row.get("parent_status", ""),
+                            "parent_method": parent_row.get("parent_method", ""),
                             "allocation_share": round(float(weight["share"]), 12),
                             "proxy_metric": weight["metric"],
                             "proxy_year": proxy_year,
@@ -279,6 +300,8 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                             "actual_proxy_value": weight["proxy_value"] if weight["metric"] == "value_added" and proxy_year == year else "",
                             "proxy_metric": weight["metric"],
                             "proxy_year": proxy_year,
+                            "parent_status": parent_row.get("parent_status", ""),
+                            "parent_method": parent_row.get("parent_method", ""),
                             "io_prior_code": weight.get("io_prior_code", ""),
                             "io_prior_name": weight.get("io_prior_name", ""),
                             "io_prior_year": weight.get("io_prior_year", ""),
@@ -301,6 +324,7 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                         "year": year,
                         "allocated_annual_sum": 0.0,
                         "parent_annual_sum": 0.0,
+                        "parent_status": parent_row.get("parent_status", ""),
                     },
                 )
                 diag["allocated_annual_sum"] += estimated_sum
