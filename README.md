@@ -7,6 +7,9 @@ This project reconstructs quarterly regional gross value added (GVA) estimates f
 - KOSIS OpenAPI collection scripts for regional GVA, production indices, GDP benchmarks, deflators, construction indicators, and subregional feasibility data.
 - Proportional Denton estimation scripts for converting annual regional GVA benchmarks into quarterly estimates.
 - Expanded data-discovery logic for checking whether the model can move from `시도 × 대분류` to `시군구`, `읍면동`, and detailed KSIC industry classes.
+- ECOS data augmentation for national account cross-checks, GDP deflators, input-output priors, and energy/price/fx exogenous variables.
+- Release-aware backtesting logic that uses only data available as of the forecast origin.
+- Confidence scoring outputs that label estimates by actual/benchmark/prior/exogenous role and A-D reliability grade.
 - Portfolio-oriented documentation and figure generation scripts that explain the methodology and implementation flow.
 
 The collected data files, local harness instructions, and PowerPoint files are intentionally excluded from git. Re-run the collection scripts with a valid KOSIS API key to reproduce local outputs.
@@ -25,6 +28,9 @@ scripts/
   allocate_detailed_industry.py # 시군구 제조업 KSIC 세부산업 allocation
   collect_emd_economic_census.py # 읍면동 economic census proxy collection
   allocate_emd_gva.py           # 읍면동 proxy GVA allocation
+  collect_ecos_augmented_data.py # ECOS national accounts, IO priors, and exogenous indicators
+  data_availability.py          # Forecast-origin and publication-lag filters
+  build_confidence_scores.py    # A-D confidence grading from backtest diagnostics
   build_reci.py                 # RECI index construction and validation
   make_figures.py               # Generate SVG/PNG documentation figures
   make_portfolio_ppt.py         # Generate editable portfolio PPT assets
@@ -33,6 +39,9 @@ reports/
   data_requirements.md          # Data requirements from the BOK note
   run_summary.md                # Baseline reconstruction summary
   expanded_data_feasibility.md  # 시군구/읍면동/KSIC feasibility findings
+  release_aware_modeling_policy.md # Publication-lag policy
+  release_aware_backtest_report.md # Forecast-vs-actual diagnostics under as-of rules
+  confidence_scoring.md         # Confidence score policy and outputs
 ```
 
 ## Method Summary
@@ -45,6 +54,19 @@ s.t. Σ_q X_{y,q} = A_y
 ```
 
 The baseline implementation uses regional production/service indices and national GDP profiles where direct regional quarterly indicators are unavailable. The 시군구 extension uses annual 시군구 GRVA as the benchmark and parent 시도 quarterly estimates as the quarterly movement indicator.
+
+For forecast-style validation, the project now applies a release-aware policy: an input is usable only if its estimated publication date is before the forecast origin. This prevents target-year annual proxies or full-year exogenous averages from leaking into historical backtests.
+
+Outputs are separated by role:
+
+| Role | Meaning |
+|---|---|
+| `actual` | Officially published government or local-government statistic |
+| `benchmark` | Official aggregate used as a Denton or allocation constraint |
+| `forecast` | Out-of-sample estimate made without the target actual |
+| `allocation` | Benchmark-constrained distribution to lower geography/time/detail |
+| `prior` | Structural information such as ECOS input-output coefficients |
+| `exogenous` | Price, fx, commodity, or other explanatory candidate variable |
 
 ## Reproducing Locally
 
@@ -105,19 +127,34 @@ PYTHONPATH=scripts .venv/bin/python scripts/collect_energy_exogenous.py
 PYTHONPATH=scripts .venv/bin/python scripts/build_reci.py
 ```
 
-11. Verify or rewrite local CSV outputs as CP949:
+11. Collect ECOS augmentation datasets:
+
+```bash
+PYTHONPATH=scripts .venv/bin/python scripts/probe_ecos_sources.py
+PYTHONPATH=scripts .venv/bin/python scripts/collect_ecos_augmented_data.py
+```
+
+12. Run release-aware exogenous backtests and confidence scoring:
+
+```bash
+PYTHONPATH=scripts .venv/bin/python scripts/test_energy_augmented_indicator.py
+PYTHONPATH=scripts .venv/bin/python scripts/build_confidence_scores.py
+PYTHONPATH=scripts .venv/bin/python scripts/make_release_aware_report.py
+```
+
+13. Verify or rewrite local CSV outputs as CP949:
 
 ```bash
 PYTHONPATH=scripts .venv/bin/python scripts/ensure_cp949_csv.py
 ```
 
-12. Stop any previous dashboard server before starting a refreshed one:
+14. Stop any previous dashboard server before starting a refreshed one:
 
 ```bash
 python3 scripts/stop_dashboard_server.py 8000
 ```
 
-13. Open the local dashboard:
+15. Open the local dashboard:
 
 ```bash
 python3 -m http.server 8000
@@ -132,3 +169,6 @@ Then visit `http://localhost:8000/reports/dashboard/`.
 - Mining/manufacturing supports stable `시군구 × KSIC 중분류` coverage for 2020-2024.
 - KSIC 소분류 and 세분류 rows are mostly limited to 시도 or national coverage in KOSIS.
 - 읍면동 economic GVA/production benchmarks were not found in KOSIS, but 2015 economic census proxy data can allocate 시군구 quarterly GVA down to 읍면동. These estimates should be treated as proxy allocations, not official GVA.
+- ECOS did not expose direct regional GRDP/GVA actuals in the 1st-pass scan, but it is useful for national account cross-checks, GDP deflators, input-output priors, and domestic price/fx exogenous variables.
+- Release-aware electric/gas exogenous correction worsened MAPE in the current backtest, so it is kept as a diagnostic candidate rather than adopted automatically.
+- Dynamic confidence grades are generated in `estimate_confidence_scores.csv` and displayed in the dashboard when the local processed data is available.
