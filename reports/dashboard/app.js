@@ -14,7 +14,15 @@ const DATA_PATHS = {
 };
 
 const OPTIONAL_DATA_KEYS = new Set(["seoulDistrictAnnual", "detailQuarter", "detailAnnual", "emdQuarter", "emdAnnual"]);
+const BASE_DATA_KEYS = ["sidoAnnual", "sidoQuarter", "sidoActual", "nationalQuarterActual", "sigunguQuarter", "sigunguAnnual", "seoulDistrictAnnual"];
 const ALL_SECTOR = "__ALL__";
+const TABLE_LIMIT = 500;
+
+const DETAIL_LEVEL_LABELS = {
+  middle: "중분류",
+  small: "소분류",
+  class: "세분류",
+};
 
 const REGION_CODE_NAMES = {
   "00": "전국",
@@ -65,6 +73,7 @@ const UNIQUE_GDP_CODES = [...new Set(Object.values(SECTOR_TO_GDP_CODE))];
 
 const state = {
   data: {},
+  loading: {},
   rows: [],
   lookup: {
     areaNames: {},
@@ -126,6 +135,41 @@ async function loadCsv(path) {
   return parseCsv(text);
 }
 
+async function loadDataKey(key) {
+  if (state.data[key]) return state.data[key];
+  if (state.loading[key]) return state.loading[key];
+  $("loadStatus").textContent = `${key} CSV 로딩 중`;
+  state.loading[key] = loadCsv(DATA_PATHS[key])
+    .then((rows) => {
+      state.data[key] = rows;
+      $("loadStatus").textContent = "CSV 로딩 완료";
+      return rows;
+    })
+    .catch((error) => {
+      if (OPTIONAL_DATA_KEYS.has(key)) {
+        state.data[key] = [];
+        $("loadStatus").textContent = "CSV 로딩 완료";
+        return [];
+      }
+      throw error;
+    })
+    .finally(() => {
+      delete state.loading[key];
+    });
+  return state.loading[key];
+}
+
+function dataKeyFor(level, grain) {
+  if (level === "emd") return grain === "annual" ? "emdAnnual" : "emdQuarter";
+  if (level === "detail") return grain === "annual" ? "detailAnnual" : "detailQuarter";
+  if (level === "sigungu") return grain === "annual" ? "sigunguAnnual" : "sigunguQuarter";
+  return grain === "annual" ? "sidoAnnual" : "sidoQuarter";
+}
+
+async function ensureLevelData(level, grain) {
+  await loadDataKey(dataKeyFor(level, grain));
+}
+
 function number(value) {
   if (value === undefined || value === null || value === "") return NaN;
   return Number(String(value).replaceAll(",", ""));
@@ -147,13 +191,39 @@ function unique(rows, getter) {
   return [...new Set(rows.map(getter).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
 }
 
+function escapeHtml(value) {
+  return String(value === undefined || value === null ? "" : value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function optionText(value, label) {
-  return `<option value="${String(value).replaceAll('"', "&quot;")}">${label === undefined ? value : label}</option>`;
+  return `<option value="${escapeHtml(value)}">${escapeHtml(label === undefined ? value : label)}</option>`;
 }
 
 function setOptions(select, options, selected) {
   select.innerHTML = options.map(([value, label]) => optionText(value, label)).join("");
   if (selected && options.some(([value]) => value === selected)) select.value = selected;
+}
+
+function setGroupedOptions(select, groups, selected) {
+  select.innerHTML = groups
+    .map(({ label, options }) => `<optgroup label="${escapeHtml(label)}">${options.map(([value, text]) => optionText(value, text)).join("")}</optgroup>`)
+    .join("");
+  const flat = groups.flatMap((group) => group.options);
+  if (selected && flat.some(([value]) => value === selected)) select.value = selected;
+}
+
+function uniqueOptions(rows, keyGetter, labelGetter) {
+  const seen = new Map();
+  rows.forEach((row) => {
+    const key = keyGetter(row);
+    if (!key || seen.has(key)) return;
+    seen.set(key, labelGetter(row));
+  });
+  return [...seen.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "ko"));
 }
 
 function buildLookups() {
@@ -175,6 +245,12 @@ function buildLookups() {
       nationalQuarterBySector[`${sector}|${period}`] = scaled;
     });
   });
+  const seoulDashboardCodesByName = {};
+  [...(state.data.sigunguAnnual || []), ...(state.data.sigunguQuarter || [])].forEach((row) => {
+    if (row.source_region === "서울특별시" && row.sigungu_name && row.sigungu_code) {
+      seoulDashboardCodesByName[row.sigungu_name] = row.sigungu_code;
+    }
+  });
   const seoulDistrictAnnual = {};
   (state.data.seoulDistrictAnnual || []).forEach((row) => {
     const year = String(row.year || row.prd_de || "");
@@ -182,6 +258,8 @@ function buildLookups() {
     const value = number(row.value || row.actual_annual_gva || row.grdp);
     if (year && code && Number.isFinite(value)) {
       seoulDistrictAnnual[`${code}|${year}`] = value;
+      const dashboardCode = seoulDashboardCodesByName[row.sigungu_name || row.c1_nm || row.region_name || ""];
+      if (dashboardCode) seoulDistrictAnnual[`${dashboardCode}|${year}`] = value;
     }
   });
   state.lookup = { areaNames, sectorNames, nationalQuarterBySector, nationalQuarterByCode, seoulDistrictAnnual };
@@ -206,6 +284,15 @@ function enrichSidoRows() {
       return out;
     });
   });
+}
+
+function normalizeSigunguAnnualRows() {
+  state.data.sigunguAnnual = (state.data.sigunguAnnual || []).map((row) => ({
+    ...row,
+    predicted_annual_gva: row.predicted_annual_gva || row.estimated_annual_sum || row.estimated_annual_gva || "",
+    actual_annual_gva: row.actual_annual_gva || row.benchmark_annual_gva || "",
+    percent_error: row.percent_error || row.percent_constraint_error || "",
+  }));
 }
 
 function quarterPeriod(prdDe) {
@@ -275,7 +362,7 @@ function valueFields(level, grain) {
     return { predicted: "estimated_gva", actual: "", error: "" };
   }
   if (level === "sigungu" && grain === "annual") {
-    return { predicted: "estimated_annual_sum", actual: "benchmark_annual_gva", error: "percent_constraint_error" };
+    return { predicted: "predicted_annual_gva", actual: "actual_annual_gva", error: "percent_error" };
   }
   if (level === "sigungu") {
     return { predicted: "estimated_gva", actual: "", error: "" };
@@ -286,21 +373,41 @@ function valueFields(level, grain) {
   return { predicted: "predicted_gva", actual: "actual_quarterly_gva", error: "quarter_percent_error" };
 }
 
-function refreshFilters(keep = {}) {
+function detailSectorGroups(rows) {
+  const buckets = { middle: new Map(), small: new Map(), class: new Map(), other: new Map() };
+  rows.forEach((row) => {
+    const key = sectorKey(row, "detail");
+    if (!key) return;
+    const level = row.detail_level || "other";
+    const bucket = buckets[level] || buckets.other;
+    if (!bucket.has(key)) {
+      const prefix = DETAIL_LEVEL_LABELS[level] || "기타";
+      bucket.set(key, `[${prefix}] ${row.detail_name || key} (${key})`);
+    }
+  });
+  return ["middle", "small", "class", "other"]
+    .filter((level) => buckets[level].size)
+    .map((level) => ({
+      label: DETAIL_LEVEL_LABELS[level] || "기타",
+      options: [...buckets[level].entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "ko")),
+    }));
+}
+
+async function refreshFilters(keep = {}) {
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
+  await ensureLevelData(level, grain);
   const rows = datasetFor(level, grain) || [];
-  const regions = unique(rows, (row) => regionKey(row, level)).map((key) => {
-    const found = rows.find((row) => regionKey(row, level) === key);
-    return [key, regionName(found, level)];
-  });
-  const sectors = unique(rows, (row) => sectorKey(row, level)).map((key) => {
-    const found = rows.find((row) => sectorKey(row, level) === key);
-    return [key, sectorName(found, level)];
-  });
-  if (level !== "emd") sectors.unshift([ALL_SECTOR, "전체"]);
+  const regions = uniqueOptions(rows, (row) => regionKey(row, level), (row) => regionName(row, level));
+  const sectors = uniqueOptions(rows, (row) => sectorKey(row, level), (row) => sectorName(row, level));
+  sectors.unshift([ALL_SECTOR, "전체"]);
   setOptions($("regionSelect"), regions, keep.region);
-  setOptions($("sectorSelect"), sectors, keep.sector);
+  if (level === "detail") {
+    const groups = [{ label: "집계", options: [[ALL_SECTOR, "전체 제조업 세부산업"]] }, ...detailSectorGroups(rows)];
+    setGroupedOptions($("sectorSelect"), groups, keep.sector);
+  } else {
+    setOptions($("sectorSelect"), sectors, keep.sector);
+  }
   refreshPeriods(keep);
 }
 
@@ -324,7 +431,7 @@ function filteredBaseRows(applyPeriod = true) {
   let rows = [...(datasetFor(level, grain) || [])];
   if (region) rows = rows.filter((row) => regionKey(row, level) === region);
   if (sector && sector !== ALL_SECTOR) rows = rows.filter((row) => sectorKey(row, level) === sector);
-  if (applyPeriod && start && end && level !== "emd") {
+  if (applyPeriod && start && end) {
     const lo = Math.min(periodNumber(start), periodNumber(end));
     const hi = Math.max(periodNumber(start), periodNumber(end));
     rows = rows.filter((row) => {
@@ -488,7 +595,12 @@ function renderTable(rows) {
     table.innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${cols.map((c) => `<td>${row[c] || ""}</td>`).join("")}</tr>`).join("")}</tbody>`;
     return;
   }
-  const mapped = rows
+  const limitedRows = rows.slice(0, TABLE_LIMIT);
+  $("tableNote").textContent =
+    rows.length > TABLE_LIMIT
+      ? `원천 CSV: data/processed/*.csv (CP949) · ${rows.length.toLocaleString("ko-KR")}행 중 ${TABLE_LIMIT.toLocaleString("ko-KR")}행 표시`
+      : "원천 CSV: data/processed/*.csv (CP949)";
+  const mapped = limitedRows
     .sort((a, b) => periodNumber(periodKey(a, grain)) - periodNumber(periodKey(b, grain)))
     .map((row) => ({
       period: periodKey(row, grain),
@@ -511,7 +623,7 @@ function render() {
   const grain = $("grainSelect").value;
   updateMessage(level, grain, rows);
   updateMetrics(rows);
-  $("chartTitle").textContent = level === "emd" ? "읍면동 자료 후보" : "예측값과 실제값";
+  $("chartTitle").textContent = level === "emd" ? "읍면동 예측값" : "예측값과 실제값";
   const regionOption = $("regionSelect").selectedOptions[0];
   const sectorOption = $("sectorSelect").selectedOptions[0];
   $("chartSubtitle").textContent = `${regionOption ? regionOption.textContent : ""} · ${sectorOption ? sectorOption.textContent : ""}`;
@@ -521,17 +633,10 @@ function render() {
 
 async function init() {
   try {
-    const entries = await Promise.all(Object.entries(DATA_PATHS).map(async ([key, path]) => {
-      try {
-        return [key, await loadCsv(path)];
-      } catch (error) {
-        if (OPTIONAL_DATA_KEYS.has(key)) return [key, []];
-        throw error;
-      }
-    }));
-    state.data = Object.fromEntries(entries);
+    await Promise.all(BASE_DATA_KEYS.map((key) => loadDataKey(key)));
     buildLookups();
     enrichSidoRows();
+    normalizeSigunguAnnualRows();
     $("loadStatus").textContent = "CSV 로딩 완료";
   } catch (error) {
     $("loadStatus").textContent = "CSV 로딩 실패";
@@ -540,7 +645,10 @@ async function init() {
     return;
   }
   ["levelSelect", "grainSelect"].forEach((id) => {
-    $(id).addEventListener("change", () => refreshFilters());
+    $(id).addEventListener("change", async () => {
+      await refreshFilters();
+      render();
+    });
   });
   ["regionSelect", "sectorSelect"].forEach((id) => {
     $(id).addEventListener("change", () => {
@@ -549,7 +657,7 @@ async function init() {
     });
   });
   ["startSelect", "endSelect"].forEach((id) => $(id).addEventListener("change", render));
-  refreshFilters();
+  await refreshFilters();
   render();
 }
 
