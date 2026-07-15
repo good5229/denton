@@ -28,11 +28,13 @@
       </label>
       <label>
         지역
-        <select id="regionSelect"></select>
+        <button type="button" id="regionPickerButton" class="picker-button">지역 선택</button>
+        <select id="regionSelect" hidden></select>
       </label>
       <label>
         산업군
-        <select id="sectorSelect"></select>
+        <button type="button" id="sectorPickerButton" class="picker-button">산업군 선택</button>
+        <select id="sectorSelect" hidden></select>
       </label>
       <label>
         시점 단위
@@ -50,6 +52,17 @@
         종료
         <select id="endSelect"></select>
       </label>
+    </section>
+
+    <section class="selected-strip" aria-label="selected filters">
+      <div>
+        <span>선택 지역</span>
+        <div id="selectedRegions" class="chip-row"></div>
+      </div>
+      <div>
+        <span>선택 산업군</span>
+        <div id="selectedSectors" class="chip-row"></div>
+      </div>
     </section>
 
     <section class="summary" aria-label="summary metrics">
@@ -97,6 +110,24 @@
       </div>
     </section>
   </main>
+
+  <div id="pickerModal" class="modal-backdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+      <div class="modal-head">
+        <h2 id="pickerTitle">선택</h2>
+        <button type="button" id="pickerClose" class="icon-button" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-tools">
+        <input id="pickerSearch" type="search" placeholder="검색어를 입력하세요">
+        <span id="pickerCount"></span>
+      </div>
+      <div id="pickerOptions" class="picker-options"></div>
+      <div class="modal-actions">
+        <button type="button" id="pickerClear">선택 해제</button>
+        <button type="button" id="pickerApply" class="primary-button">적용</button>
+      </div>
+    </section>
+  </div>
 
   <script src="./app.js"></script>
 </body>

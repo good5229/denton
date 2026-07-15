@@ -78,6 +78,18 @@ const state = {
   data: {},
   loading: {},
   rows: [],
+  filterOptions: {
+    regions: [],
+    sectors: [],
+  },
+  filters: {
+    regions: [],
+    sectors: [],
+  },
+  picker: {
+    kind: "",
+    draft: [],
+  },
   lookup: {
     areaNames: {},
     sectorNames: {},
@@ -222,6 +234,99 @@ function setGroupedOptions(select, groups, selected) {
     .join("");
   const flat = groups.flatMap((group) => group.options);
   if (selected && flat.some(([value]) => value === selected)) select.value = selected;
+}
+
+function syncHiddenSelect(id, options, selectedValues) {
+  const select = $(id);
+  setOptions(select, options, selectedValues[0]);
+  select.value = selectedValues[0] || "";
+}
+
+function selectedLabels(kind) {
+  const key = kind === "region" ? "regions" : "sectors";
+  const lookup = new Map(state.filterOptions[key]);
+  return state.filters[key].map((value) => [value, lookup.get(value) || value]);
+}
+
+function selectionSummary(kind) {
+  const labels = selectedLabels(kind).map(([, label]) => label);
+  if (!labels.length) return kind === "region" ? "지역 선택" : "산업군 선택";
+  if (labels.length === 1) return labels[0];
+  return `${labels[0]} 외 ${labels.length - 1}개`;
+}
+
+function renderSelectedChips() {
+  const render = (kind, targetId) => {
+    const rows = selectedLabels(kind);
+    $(targetId).innerHTML = rows.length
+      ? rows
+          .map(
+            ([value, label]) =>
+              `<span class="chip">${escapeHtml(label)}<button type="button" data-kind="${kind}" data-value="${escapeHtml(value)}" aria-label="삭제">×</button></span>`
+          )
+          .join("")
+      : `<span class="chip">선택 없음</span>`;
+  };
+  render("region", "selectedRegions");
+  render("sector", "selectedSectors");
+  $("regionPickerButton").textContent = selectionSummary("region");
+  $("sectorPickerButton").textContent = selectionSummary("sector");
+}
+
+function ensureSelection(currentValues, options, fallbackIndex = 0) {
+  const valid = new Set(options.map(([value]) => value));
+  const kept = currentValues.filter((value) => valid.has(value));
+  if (kept.length) return kept;
+  return options[fallbackIndex] ? [options[fallbackIndex][0]] : [];
+}
+
+function pickerOptionsFor(kind) {
+  return kind === "region" ? state.filterOptions.regions : state.filterOptions.sectors;
+}
+
+function openPicker(kind) {
+  state.picker.kind = kind;
+  state.picker.draft = [...state.filters[kind === "region" ? "regions" : "sectors"]];
+  $("pickerTitle").textContent = kind === "region" ? "지역 선택" : "산업군 선택";
+  $("pickerSearch").value = "";
+  $("pickerModal").hidden = false;
+  renderPickerOptions();
+  $("pickerSearch").focus();
+}
+
+function closePicker() {
+  $("pickerModal").hidden = true;
+  state.picker.kind = "";
+  state.picker.draft = [];
+}
+
+function renderPickerOptions() {
+  const kind = state.picker.kind;
+  const query = compactName($("pickerSearch").value).toLowerCase();
+  const draft = new Set(state.picker.draft);
+  const options = pickerOptionsFor(kind).filter(([, label]) => !query || compactName(label).toLowerCase().includes(query));
+  $("pickerCount").textContent = `${draft.size.toLocaleString("ko-KR")}개 선택 · ${options.length.toLocaleString("ko-KR")}개 표시`;
+  $("pickerOptions").innerHTML = options
+    .map(([value, label]) => {
+      const selected = draft.has(value);
+      return `<button type="button" class="picker-option${selected ? " selected" : ""}" data-value="${escapeHtml(value)}">
+        <span class="picker-check">${selected ? "✓" : ""}</span>
+        <span>${escapeHtml(label)}</span>
+      </button>`;
+    })
+    .join("");
+}
+
+async function applyPicker() {
+  const kind = state.picker.kind;
+  const key = kind === "region" ? "regions" : "sectors";
+  const options = pickerOptionsFor(kind);
+  state.filters[key] = ensureSelection(state.picker.draft, options, kind === "sector" ? 0 : 0);
+  syncHiddenSelect(kind === "region" ? "regionSelect" : "sectorSelect", options, state.filters[key]);
+  renderSelectedChips();
+  closePicker();
+  refreshPeriods();
+  render();
 }
 
 function uniqueOptions(rows, keyGetter, labelGetter) {
@@ -508,13 +613,20 @@ async function refreshFilters(keep = {}) {
   }
   const sectors = uniqueOptions(rows, (row) => sectorKey(row, level), (row) => sectorName(row, level));
   sectors.unshift([ALL_SECTOR, "전체"]);
-  setOptions($("regionSelect"), regions, keep.region);
+  state.filterOptions.regions = regions;
   if (level === "detail") {
     const groups = [{ label: "집계", options: [[ALL_SECTOR, "전체 제조업 세부산업"]] }, ...detailSectorGroups(rows)];
-    setGroupedOptions($("sectorSelect"), groups, keep.sector);
+    state.filterOptions.sectors = groups.flatMap((group) => group.options.map(([value, label]) => [value, `${group.label} · ${label}`]));
   } else {
-    setOptions($("sectorSelect"), sectors, keep.sector);
+    state.filterOptions.sectors = sectors;
   }
+  const keepRegions = Array.isArray(keep.regions) ? keep.regions : keep.region ? [keep.region] : state.filters.regions;
+  const keepSectors = Array.isArray(keep.sectors) ? keep.sectors : keep.sector ? [keep.sector] : state.filters.sectors;
+  state.filters.regions = ensureSelection(keepRegions, state.filterOptions.regions);
+  state.filters.sectors = ensureSelection(keepSectors, state.filterOptions.sectors);
+  syncHiddenSelect("regionSelect", state.filterOptions.regions, state.filters.regions);
+  syncHiddenSelect("sectorSelect", state.filterOptions.sectors, state.filters.sectors);
+  renderSelectedChips();
   refreshPeriods(keep);
 }
 
@@ -531,18 +643,25 @@ function refreshPeriods(keep = {}) {
 function filteredBaseRows(applyPeriod = true) {
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
-  const region = $("regionSelect").value;
-  const sector = $("sectorSelect").value;
+  const regions = state.filters.regions;
+  const sectors = state.filters.sectors;
   const start = $("startSelect").value;
   const end = $("endSelect").value;
   let rows = [...(datasetFor(level, grain) || [])];
-  if (region && level === "sigungu" && region.startsWith(REGION_SUM_PREFIX)) {
-    const sourceRegion = region.slice(REGION_SUM_PREFIX.length);
-    rows = rows.filter((row) => row.source_region === sourceRegion && !isSigunguTotalRow(row));
-  } else if (region) {
-    rows = rows.filter((row) => regionKey(row, level) === region);
+  if (regions.length) {
+    rows = rows.filter((row) =>
+      regions.some((region) => {
+        if (level === "sigungu" && region.startsWith(REGION_SUM_PREFIX)) {
+          const sourceRegion = region.slice(REGION_SUM_PREFIX.length);
+          return row.source_region === sourceRegion && !isSigunguTotalRow(row);
+        }
+        return regionKey(row, level) === region;
+      })
+    );
   }
-  if (sector && sector !== ALL_SECTOR) rows = rows.filter((row) => sectorKey(row, level) === sector);
+  if (sectors.length && !sectors.includes(ALL_SECTOR)) {
+    rows = rows.filter((row) => sectors.includes(sectorKey(row, level)));
+  }
   if (applyPeriod && start && end) {
     const lo = Math.min(periodNumber(start), periodNumber(end));
     const hi = Math.max(periodNumber(start), periodNumber(end));
@@ -557,23 +676,29 @@ function filteredBaseRows(applyPeriod = true) {
 function aggregateIfNeeded(rows) {
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
-  const sector = $("sectorSelect").value;
-  const region = $("regionSelect").value;
-  const aggregateRegion = level === "sigungu" && region.startsWith(REGION_SUM_PREFIX);
-  if (sector !== ALL_SECTOR && !aggregateRegion) return rows;
+  const sectors = state.filters.sectors;
+  const regions = state.filters.regions;
+  const hasAllSector = sectors.includes(ALL_SECTOR);
+  const aggregateRegion = level === "sigungu" && regions.some((region) => region.startsWith(REGION_SUM_PREFIX));
+  const aggregateSelection = aggregateRegion || hasAllSector || regions.length !== 1 || sectors.length !== 1;
+  if (!aggregateSelection) return rows;
   const fields = valueFields(level, grain);
   const groups = new Map();
+  const regionLabel = selectedLabels("region").map(([, label]) => label).join(", ");
+  const sectorLabel = hasAllSector ? "전체" : selectedLabels("sector").map(([, label]) => label).join(", ");
   rows.forEach((row) => {
-    const keyRegion = aggregateRegion ? region : regionKey(row, level);
-    const keySector = sector === ALL_SECTOR ? ALL_SECTOR : sectorKey(row, level);
-    const key = `${keyRegion}|${keySector}|${periodKey(row, grain)}`;
+    const key = periodKey(row, grain);
     if (!groups.has(key)) {
       groups.set(key, {
         ...row,
-        sigungu_code: aggregateRegion ? region : row.sigungu_code,
-        sigungu_name: aggregateRegion ? `${row.source_region} 전체 시군구 합계` : row.sigungu_name,
-        sector_code: sector === ALL_SECTOR ? ALL_SECTOR : row.sector_code,
-        sector_name: sector === ALL_SECTOR ? "전체" : row.sector_name,
+        sigungu_code: aggregateSelection ? "__SELECTED_REGIONS__" : row.sigungu_code,
+        sigungu_name: aggregateSelection ? regionLabel : row.sigungu_name,
+        area_code: aggregateSelection ? "__SELECTED_REGIONS__" : row.area_code,
+        area_name: aggregateSelection ? regionLabel : row.area_name,
+        emd_name: aggregateSelection ? regionLabel : row.emd_name,
+        sector_code: aggregateSelection ? "__SELECTED_SECTORS__" : row.sector_code,
+        sector_name: aggregateSelection ? sectorLabel : row.sector_name,
+        detail_name: aggregateSelection ? sectorLabel : row.detail_name,
         [fields.predicted]: 0,
         [fields.actual]: "",
         [fields.error]: "",
@@ -608,8 +733,8 @@ function aggregateIfNeeded(rows) {
       const predicted = number(row[fields.predicted]);
       const actual = number(row[fields.actual]);
       row[fields.error] = Number.isFinite(predicted) && Number.isFinite(actual) && actual !== 0 ? String(((predicted - actual) / actual) * 100) : "";
-      if (aggregateRegion) {
-        row.method = sector === ALL_SECTOR ? "sum of selected source-region sigungu rows across all sectors" : "sum of selected source-region sigungu rows for selected sector";
+      if (aggregateSelection) {
+        row.method = "sum of selected region and sector rows";
       }
       delete row.actualCount;
       return row;
@@ -777,9 +902,7 @@ function render() {
   updateMessage(level, grain, rows);
   updateMetrics(rows);
   $("chartTitle").textContent = level === "emd" ? "읍면동 예측값" : "예측값과 실제값";
-  const regionOption = $("regionSelect").selectedOptions[0];
-  const sectorOption = $("sectorSelect").selectedOptions[0];
-  $("chartSubtitle").textContent = `${regionOption ? regionOption.textContent : ""} · ${sectorOption ? sectorOption.textContent : ""}`;
+  $("chartSubtitle").textContent = `${selectionSummary("region")} · ${selectionSummary("sector")}`;
   drawChart(rows);
   renderTable(rows);
 }
@@ -804,9 +927,41 @@ async function init() {
       render();
     });
   });
-  ["regionSelect", "sectorSelect"].forEach((id) => {
-    $(id).addEventListener("change", () => {
-      refreshPeriods({ region: $("regionSelect").value, sector: $("sectorSelect").value });
+  $("regionPickerButton").addEventListener("click", () => openPicker("region"));
+  $("sectorPickerButton").addEventListener("click", () => openPicker("sector"));
+  $("pickerClose").addEventListener("click", closePicker);
+  $("pickerApply").addEventListener("click", applyPicker);
+  $("pickerClear").addEventListener("click", () => {
+    state.picker.draft = [];
+    renderPickerOptions();
+  });
+  $("pickerSearch").addEventListener("input", renderPickerOptions);
+  $("pickerOptions").addEventListener("click", (event) => {
+    const button = event.target.closest(".picker-option");
+    if (!button) return;
+    const value = button.dataset.value;
+    if (state.picker.draft.includes(value)) {
+      state.picker.draft = state.picker.draft.filter((item) => item !== value);
+    } else {
+      state.picker.draft.push(value);
+    }
+    renderPickerOptions();
+  });
+  $("pickerModal").addEventListener("click", (event) => {
+    if (event.target.id === "pickerModal") closePicker();
+  });
+  ["selectedRegions", "selectedSectors"].forEach((id) => {
+    $(id).addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-kind]");
+      if (!button) return;
+      const key = button.dataset.kind === "region" ? "regions" : "sectors";
+      state.filters[key] = ensureSelection(
+        state.filters[key].filter((value) => value !== button.dataset.value),
+        state.filterOptions[key]
+      );
+      syncHiddenSelect(key === "regions" ? "regionSelect" : "sectorSelect", state.filterOptions[key], state.filters[key]);
+      renderSelectedChips();
+      refreshPeriods();
       render();
     });
   });
