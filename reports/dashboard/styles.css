@@ -95,14 +95,15 @@ button {
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
   gap: 12px;
   margin: 0 0 16px;
 }
 
 .summary article,
 .panel,
-.message {
+.message,
+.confidence-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -131,6 +132,61 @@ button {
   margin-bottom: 16px;
   color: #7a4b00;
   background: #fff8e6;
+}
+
+.confidence-panel {
+  display: grid;
+  grid-template-columns: 130px 1fr 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 74px;
+  height: 38px;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 900;
+  font-size: 20px;
+}
+
+.grade-a {
+  background: #2f72c8;
+}
+
+.grade-b {
+  background: #3e8f50;
+}
+
+.grade-c {
+  background: #b87a18;
+}
+
+.grade-d {
+  background: #c8564a;
+}
+
+.grade-muted {
+  background: #7b8794;
+}
+
+.confidence-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.confidence-item strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 .panel {
@@ -242,7 +298,8 @@ th:nth-child(2) {
 
 @media (max-width: 980px) {
   .controls,
-  .summary {
+  .summary,
+  .confidence-panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

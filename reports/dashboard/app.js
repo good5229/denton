@@ -373,6 +373,70 @@ function valueFields(level, grain) {
   return { predicted: "predicted_gva", actual: "actual_quarterly_gva", error: "quarter_percent_error" };
 }
 
+function confidenceInfo(level, grain) {
+  if (grain === "month") {
+    return {
+      grade: "-",
+      gradeClass: "grade-muted",
+      status: "미지원",
+      method: "월간 예측 산출물이 없습니다.",
+      caution: "연도 또는 분기를 선택해야 합니다.",
+    };
+  }
+  if (level === "emd") {
+    return {
+      grade: "D",
+      gradeClass: "grade-d",
+      status: "탐색용 프록시 배분",
+      method: "시군구 분기 GVA를 읍면동 사업체·종사자·매출 프록시 비중으로 하향 배분",
+      caution: "공식 읍면동 GVA가 아니며 지역 미시분석 후보값으로 사용해야 합니다.",
+    };
+  }
+  if (level === "detail") {
+    return {
+      grade: "C",
+      gradeClass: "grade-c",
+      status: "세부산업 프록시 배분",
+      method: "시군구 부모 산업 총량을 KSIC 세부 프록시 비중으로 배분",
+      caution: "중분류·소분류·세분류는 서로 다른 배분 레벨이므로 동시에 합산하지 않습니다.",
+    };
+  }
+  if (level === "sigungu" && grain === "annual") {
+    return {
+      grade: "A",
+      gradeClass: "grade-a",
+      status: "공식 연간 벤치마크 정합",
+      method: "시군구 연간 GRVA 벤치마크와 비교 가능한 연간 합산값",
+      caution: "연간 합계 검증용이며 분기 내 배분 경로의 직접 관측값은 아닙니다.",
+    };
+  }
+  if (level === "sigungu") {
+    return {
+      grade: "B",
+      gradeClass: "grade-b",
+      status: "벤치마크 제약 추정",
+      method: "시군구 연간 GRVA를 시도 분기 GVA 경로로 비례형 Denton 배분",
+      caution: "분기 실제값은 공개되지 않아 연간 합계 제약으로 정합성을 확인합니다.",
+    };
+  }
+  if (level === "sido" && grain === "annual") {
+    return {
+      grade: "B",
+      gradeClass: "grade-b",
+      status: "rolling 예측 검증 가능",
+      method: "과거 연간 GRVA와 분기 지표로 목표연도 연간 합계를 예측하고 실제값과 비교",
+      caution: "실제 연간 GRVA가 존재하는 기간만 오차가 계산됩니다.",
+    };
+  }
+  return {
+    grade: "B",
+    gradeClass: "grade-b",
+    status: "분기 경로 추정",
+    method: "연간 GRVA와 산업별 분기 지표를 이용한 비례형 Denton 및 외삽",
+    caution: "전국은 분기 GDP actual과 비교 가능하나 시도별 분기 GRVA actual은 공개되지 않습니다.",
+  };
+}
+
 function detailSectorGroups(rows) {
   const buckets = { middle: new Map(), small: new Map(), class: new Map(), other: new Map() };
   rows.forEach((row) => {
@@ -499,6 +563,8 @@ function aggregateIfNeeded(rows) {
 function updateMessage(level, grain, rows) {
   const box = $("message");
   const messages = [];
+  const info = confidenceInfo(level, grain);
+  if (info.caution) messages.push(info.caution);
   if (grain === "month") messages.push("현재 원천 데이터는 월간 예측값을 포함하지 않습니다. 연도 또는 분기를 선택해 주세요.");
   if (level === "emd") messages.push("읍면동은 2015 경제총조사 프록시로 시군구 분기 GVA를 하향 배분한 추정값입니다.");
   if (level === "detail" && grain === "quarter") messages.push("세부산업 분기값은 시군구 제조업 분기 총량을 KSIC 연간 프록시 비중으로 배분한 추정값입니다.");
@@ -508,6 +574,16 @@ function updateMessage(level, grain, rows) {
   if (!rows.length) messages.push("선택한 조건에 해당하는 행이 없습니다.");
   box.hidden = messages.length === 0;
   box.textContent = messages.join(" ");
+}
+
+function updateConfidence(level, grain) {
+  const info = confidenceInfo(level, grain);
+  $("metricConfidence").textContent = info.grade;
+  $("confidencePanel").innerHTML = `
+    <div><span class="grade-badge ${info.gradeClass}">${escapeHtml(info.grade)}</span></div>
+    <div class="confidence-item"><span>방법론 상태</span><strong>${escapeHtml(info.status)}</strong></div>
+    <div class="confidence-item"><span>산출 방식</span><strong>${escapeHtml(info.method)}</strong></div>
+  `;
 }
 
 function drawChart(rows) {
@@ -621,6 +697,7 @@ function render() {
   state.rows = rows;
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
+  updateConfidence(level, grain);
   updateMessage(level, grain, rows);
   updateMetrics(rows);
   $("chartTitle").textContent = level === "emd" ? "읍면동 예측값" : "예측값과 실제값";
