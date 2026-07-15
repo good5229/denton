@@ -211,6 +211,35 @@ button {
   margin-bottom: 16px;
 }
 
+.data-role-panel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.data-role-panel article {
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.data-role-panel strong {
+  display: block;
+  color: var(--blue);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.data-role-panel span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .grade-badge {
   display: inline-flex;
   align-items: center;
@@ -505,6 +534,7 @@ th:nth-child(2) {
   .controls,
   .summary,
   .confidence-panel,
+  .data-role-panel,
   .selected-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

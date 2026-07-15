@@ -3,11 +3,42 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from data_availability import annual_forecast_origin, is_available_as_of
 from kosis_common import PROCESSED_DIR, parse_number, read_csv, write_csv
 
 
 MANUFACTURING_PARENT = "C00"
 PROXY_PRIORITY = ("value_added", "employees", "establishments")
+ANNUAL_PROXY_PUBLICATION_LAG_MONTHS = 12
+FORECAST_ORIGIN_MONTH = 1
+FORECAST_ORIGIN_DAY = 1
+USE_ECOS_IO_PRIOR = True
+KSIC_TO_ECOS_IO_MIDDLE = {
+    "C10": "08",
+    "C11": "09",
+    "C12": "10",
+    "C13": "11",
+    "C14": "11",
+    "C15": "12",
+    "C16": "13",
+    "C17": "14",
+    "C18": "15",
+    "C19": "16",
+    "C20": "22",
+    "C21": "20",
+    "C22": "23",
+    "C23": "26",
+    "C24": "27",
+    "C25": "30",
+    "C26": "33",
+    "C27": "37",
+    "C28": "38",
+    "C29": "40",
+    "C30": "42",
+    "C31": "43",
+    "C32": "43",
+    "C33": "44",
+}
 ADMIN_PREFIX_TO_PARENT = {
     "11": "11",
     "21": "21",
@@ -81,13 +112,45 @@ def load_proxy_rows() -> list[dict[str, Any]]:
     return rows
 
 
-def nearest_year(available: set[int], year: int) -> int | None:
-    if not available:
-        return None
-    return min(available, key=lambda candidate: (abs(candidate - year), candidate))
+def latest_available_proxy_year(available: set[int], target_year: int) -> int | None:
+    as_of = annual_forecast_origin(target_year, FORECAST_ORIGIN_MONTH, FORECAST_ORIGIN_DAY)
+    candidates = [
+        year
+        for year in available
+        if is_available_as_of(str(year), "A", ANNUAL_PROXY_PUBLICATION_LAG_MONTHS, as_of)
+    ]
+    return max(candidates) if candidates else None
+
+
+def ksic_middle_code(detail_code: str) -> str:
+    text = str(detail_code)
+    return text[:3] if text.startswith("C") and len(text) >= 3 else text
+
+
+def load_io_self_factors() -> dict[str, dict[str, Any]]:
+    factors: dict[str, dict[str, Any]] = {}
+    path = PROCESSED_DIR / "ecos_io_middle_industry_prior.csv"
+    if not path.exists() or not USE_ECOS_IO_PRIOR:
+        return factors
+    for row in read_csv(path):
+        if row.get("demand_code") != row.get("input_code"):
+            continue
+        value = parse_number(row.get("value_added_inducement"))
+        if value is None or value <= 0:
+            value = parse_number(row.get("production_inducement"))
+        if value is None or value <= 0:
+            continue
+        factors[row["demand_code"]] = {
+            "factor": value,
+            "io_code": row.get("demand_code"),
+            "io_name": row.get("demand_name"),
+            "io_year": row.get("year"),
+        }
+    return factors
 
 
 def build_weights(proxy_rows: list[dict[str, Any]]) -> dict[tuple[str, str, str, str, int], list[dict[str, Any]]]:
+    io_factors = load_io_self_factors()
     by_metric: dict[tuple[str, str, str, str, int, str], list[dict[str, Any]]] = defaultdict(list)
     for row in proxy_rows:
         key = (
@@ -112,8 +175,33 @@ def build_weights(proxy_rows: list[dict[str, Any]]) -> dict[tuple[str, str, str,
             current_metric = current[0]["metric"]
             if PROXY_PRIORITY.index(current_metric) <= PROXY_PRIORITY.index(metric):
                 continue
-        selected[base] = [{**row, "share": float(row["proxy_value"]) / total} for row in rows]
-    return selected
+        selected[base] = rows
+    adjusted: dict[tuple[str, str, str, str, int], list[dict[str, Any]]] = {}
+    for base, rows in selected.items():
+        prepared = []
+        for row in rows:
+            io_code = KSIC_TO_ECOS_IO_MIDDLE.get(ksic_middle_code(row["detail_code"]), "")
+            io_payload = io_factors.get(io_code, {})
+            io_factor = float(io_payload.get("factor", 1.0)) if io_payload else 1.0
+            adjusted_proxy = float(row["proxy_value"]) * io_factor
+            prepared.append(
+                {
+                    **row,
+                    "io_prior_code": io_payload.get("io_code", io_code),
+                    "io_prior_name": io_payload.get("io_name", ""),
+                    "io_prior_year": io_payload.get("io_year", ""),
+                    "io_value_added_self_factor": io_factor if io_payload else "",
+                    "io_adjusted_proxy_value": adjusted_proxy,
+                }
+            )
+        adjusted_total = sum(float(row["io_adjusted_proxy_value"]) for row in prepared)
+        if adjusted_total <= 0:
+            continue
+        adjusted[base] = [
+            {**row, "share": float(row["io_adjusted_proxy_value"]) / adjusted_total}
+            for row in prepared
+        ]
+    return adjusted
 
 
 def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -134,7 +222,7 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
             if group_parent != parent_area or group_name != sigungu_name:
                 continue
             for (year, quarter), parent_row in parent_quarters.items():
-                proxy_year = nearest_year(available_years, year)
+                proxy_year = latest_available_proxy_year(available_years, year)
                 if proxy_year is None:
                     continue
                 weight_rows = weights.get((parent_area, sigungu_code, group_name, level, proxy_year), [])
@@ -162,7 +250,15 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                             "allocation_share": round(float(weight["share"]), 12),
                             "proxy_metric": weight["metric"],
                             "proxy_year": proxy_year,
-                            "method": "annual KSIC proxy share within sigungu manufacturing quarterly GVA",
+                            "io_prior_code": weight.get("io_prior_code", ""),
+                            "io_prior_name": weight.get("io_prior_name", ""),
+                            "io_prior_year": weight.get("io_prior_year", ""),
+                            "io_value_added_self_factor": weight.get("io_value_added_self_factor", ""),
+                            "io_adjusted_proxy_value": round(float(weight.get("io_adjusted_proxy_value", 0.0)), 6),
+                            "forecast_as_of": f"{year:04d}-{FORECAST_ORIGIN_MONTH:02d}-{FORECAST_ORIGIN_DAY:02d}",
+                            "proxy_publication_lag_months": ANNUAL_PROXY_PUBLICATION_LAG_MONTHS,
+                            "release_filter": "proxy year must be released before forecast_as_of",
+                            "method": "lag-aware annual KSIC proxy share with ECOS IO prior within sigungu manufacturing quarterly GVA",
                         }
                     )
                     annual_key = (parent_area, sigungu_code, group_name, level, weight["detail_code"], year)
@@ -183,6 +279,14 @@ def allocate() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[st
                             "actual_proxy_value": weight["proxy_value"] if weight["metric"] == "value_added" and proxy_year == year else "",
                             "proxy_metric": weight["metric"],
                             "proxy_year": proxy_year,
+                            "io_prior_code": weight.get("io_prior_code", ""),
+                            "io_prior_name": weight.get("io_prior_name", ""),
+                            "io_prior_year": weight.get("io_prior_year", ""),
+                            "io_value_added_self_factor": weight.get("io_value_added_self_factor", ""),
+                            "io_adjusted_proxy_value": round(float(weight.get("io_adjusted_proxy_value", 0.0)), 6),
+                            "forecast_as_of": f"{year:04d}-{FORECAST_ORIGIN_MONTH:02d}-{FORECAST_ORIGIN_DAY:02d}",
+                            "proxy_publication_lag_months": ANNUAL_PROXY_PUBLICATION_LAG_MONTHS,
+                            "release_filter": "proxy year must be released before forecast_as_of",
                         },
                     )
                     item["estimated_annual_gva"] += estimate
