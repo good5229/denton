@@ -42,3 +42,4 @@
 | [municipality_small_cell_policy.md](../municipality_small_cell_policy.md) | Small-cell policy interpretation |
 | [municipality_feature_feasibility.md](../municipality_feature_feasibility.md) | Municipality direct-feature feasibility |
 | [municipality_ml_stop_decision.md](../municipality_ml_stop_decision.md) | Municipality ML correction stop decision |
+| [municipality_new_feature_dataset.md](../municipality_new_feature_dataset.md) | New feature mart prepared before restarting municipality ML |

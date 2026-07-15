@@ -8,6 +8,6 @@
 | [ecos_data_integration.md](../ecos_data_integration.md) | ECOS integration results |
 | [energy_gas_exogenous_indicators.md](../energy_gas_exogenous_indicators.md) | Energy and FX feature candidates |
 | [sector_feature_collection.md](../sector_feature_collection.md) | A/B/D structural business feature collection |
+| [municipality_new_feature_dataset.md](../municipality_new_feature_dataset.md) | 시군구 ML 재개용 직접 feature mart collection |
 | [eupmyeondong_data_sources.md](../eupmyeondong_data_sources.md) | 읍면동 data source scan |
 | [seoul_emd_latest_proxy_update.md](../seoul_emd_latest_proxy_update.md) | Seoul EMD latest proxy update |
-
