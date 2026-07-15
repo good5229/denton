@@ -12,6 +12,10 @@ from kosis_common import PROCESSED_DIR, ROOT, parse_number, read_csv, write_csv
 REPORT_PATH = ROOT / "reports" / "ml_baseline_experiment.md"
 RIDGE_ALPHA = 5.0
 MIN_TRAIN_ROWS = 300
+TREE_MAX_DEPTH = 3
+TREE_MIN_LEAF = 25
+BOOSTING_ROUNDS = 25
+BOOSTING_LEARNING_RATE = 0.08
 
 
 def load_rows() -> list[dict[str, Any]]:
@@ -78,6 +82,98 @@ def ridge_fit(x: np.ndarray, y: np.ndarray, alpha: float) -> np.ndarray:
     return np.linalg.pinv(x.T @ x + penalty) @ x.T @ y
 
 
+class RegressionTree:
+    def __init__(self, max_depth: int = TREE_MAX_DEPTH, min_leaf: int = TREE_MIN_LEAF) -> None:
+        self.max_depth = max_depth
+        self.min_leaf = min_leaf
+        self.root: dict[str, Any] | None = None
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> "RegressionTree":
+        self.root = self._build(x, y, depth=0)
+        return self
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        if self.root is None:
+            raise RuntimeError("tree is not fitted")
+        return np.array([self._predict_one(row, self.root) for row in x], dtype=float)
+
+    def _predict_one(self, row: np.ndarray, node: dict[str, Any]) -> float:
+        if "value" in node:
+            return float(node["value"])
+        if row[int(node["feature"])] <= float(node["threshold"]):
+            return self._predict_one(row, node["left"])
+        return self._predict_one(row, node["right"])
+
+    def _build(self, x: np.ndarray, y: np.ndarray, depth: int) -> dict[str, Any]:
+        if depth >= self.max_depth or len(y) < self.min_leaf * 2:
+            return {"value": float(np.mean(y))}
+        split = self._best_split(x, y)
+        if split is None:
+            return {"value": float(np.mean(y))}
+        feature, threshold, left_mask = split
+        return {
+            "feature": int(feature),
+            "threshold": float(threshold),
+            "left": self._build(x[left_mask], y[left_mask], depth + 1),
+            "right": self._build(x[~left_mask], y[~left_mask], depth + 1),
+        }
+
+    def _thresholds(self, values: np.ndarray) -> list[float]:
+        unique = np.unique(values)
+        if len(unique) <= 1:
+            return []
+        if set(unique.tolist()).issubset({0.0, 1.0}):
+            return [0.5]
+        quantiles = np.quantile(values, [0.2, 0.4, 0.6, 0.8])
+        return sorted({float(value) for value in quantiles if np.min(values) < value < np.max(values)})
+
+    def _best_split(self, x: np.ndarray, y: np.ndarray) -> tuple[int, float, np.ndarray] | None:
+        base_error = float(np.sum((y - np.mean(y)) ** 2))
+        best_gain = 0.0
+        best: tuple[int, float, np.ndarray] | None = None
+        for feature in range(x.shape[1]):
+            values = x[:, feature]
+            for threshold in self._thresholds(values):
+                left = values <= threshold
+                left_count = int(np.sum(left))
+                right_count = len(y) - left_count
+                if left_count < self.min_leaf or right_count < self.min_leaf:
+                    continue
+                left_error = float(np.sum((y[left] - np.mean(y[left])) ** 2))
+                right_error = float(np.sum((y[~left] - np.mean(y[~left])) ** 2))
+                gain = base_error - left_error - right_error
+                if gain > best_gain:
+                    best_gain = gain
+                    best = (feature, threshold, left)
+        return best
+
+
+class GradientBoostedTrees:
+    def __init__(self, rounds: int = BOOSTING_ROUNDS, learning_rate: float = BOOSTING_LEARNING_RATE) -> None:
+        self.rounds = rounds
+        self.learning_rate = learning_rate
+        self.base = 0.0
+        self.trees: list[RegressionTree] = []
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> "GradientBoostedTrees":
+        self.base = float(np.mean(y))
+        pred = np.full(len(y), self.base, dtype=float)
+        self.trees = []
+        for _ in range(self.rounds):
+            residual = y - pred
+            tree = RegressionTree(max_depth=2, min_leaf=TREE_MIN_LEAF).fit(x, residual)
+            update = tree.predict(x)
+            pred += self.learning_rate * update
+            self.trees.append(tree)
+        return self
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        pred = np.full(x.shape[0], self.base, dtype=float)
+        for tree in self.trees:
+            pred += self.learning_rate * tree.predict(x)
+        return pred
+
+
 def metrics(rows: list[dict[str, Any]], field: str) -> dict[str, Any]:
     errors = []
     abs_actual = 0.0
@@ -115,23 +211,37 @@ def run_backtest(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         y_train_log_ratio = np.array([log(float(row["actual"]) / float(row["baseline"])) for row in train])
         beta_level = ridge_fit(x_train, y_train_log_actual, RIDGE_ALPHA)
         beta_ratio = ridge_fit(x_train, y_train_log_ratio, RIDGE_ALPHA)
+        tree_ratio_model = RegressionTree().fit(x_train, y_train_log_ratio)
+        boosted_ratio_model = GradientBoostedTrees().fit(x_train, y_train_log_ratio)
         pred_level = x_test @ beta_level
         pred_ratio = x_test @ beta_ratio
-        for row, log_level, log_ratio in zip(test, pred_level, pred_ratio):
+        pred_tree_ratio = tree_ratio_model.predict(x_test)
+        pred_boosted_ratio = boosted_ratio_model.predict(x_test)
+        for row, log_level, log_ratio, tree_ratio, boosted_ratio in zip(test, pred_level, pred_ratio, pred_tree_ratio, pred_boosted_ratio):
             ridge_level = exp(float(log_level))
             residual_corrected = float(row["baseline"]) * exp(float(log_ratio))
+            tree_corrected = float(row["baseline"]) * exp(float(tree_ratio))
+            boosted_corrected = float(row["baseline"]) * exp(float(boosted_ratio))
             out.append(
                 {
                     **row,
                     "baseline_prediction": round(float(row["baseline"]), 6),
                     "ridge_log_level_prediction": round(ridge_level, 6),
                     "ridge_residual_prediction": round(residual_corrected, 6),
+                    "tree_residual_prediction": round(tree_corrected, 6),
+                    "boosted_tree_residual_prediction": round(boosted_corrected, 6),
                     "baseline_percent_error": round((float(row["baseline"]) - float(row["actual"])) / float(row["actual"]) * 100.0, 12),
                     "ridge_level_percent_error": round((ridge_level - float(row["actual"])) / float(row["actual"]) * 100.0, 12),
                     "ridge_residual_percent_error": round((residual_corrected - float(row["actual"])) / float(row["actual"]) * 100.0, 12),
+                    "tree_residual_percent_error": round((tree_corrected - float(row["actual"])) / float(row["actual"]) * 100.0, 12),
+                    "boosted_tree_residual_percent_error": round((boosted_corrected - float(row["actual"])) / float(row["actual"]) * 100.0, 12),
                     "train_rows": len(train),
                     "ridge_alpha": RIDGE_ALPHA,
-                    "model_note": "rolling expanding-window ridge using log baseline, year, area, sector, method dummies",
+                    "tree_max_depth": TREE_MAX_DEPTH,
+                    "tree_min_leaf": TREE_MIN_LEAF,
+                    "boosting_rounds": BOOSTING_ROUNDS,
+                    "boosting_learning_rate": BOOSTING_LEARNING_RATE,
+                    "model_note": "rolling expanding-window models using only pre-target official actuals; features are log baseline, year, area, sector, method dummies",
                 }
             )
     return out
@@ -142,6 +252,8 @@ def summarize(predictions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ("baseline_prediction", "Denton/indicator baseline"),
         ("ridge_log_level_prediction", "Ridge log-level"),
         ("ridge_residual_prediction", "Ridge residual correction"),
+        ("tree_residual_prediction", "Tree residual correction"),
+        ("boosted_tree_residual_prediction", "Boosted tree residual correction"),
     ]
     out = []
     for field, label in specs:
@@ -165,13 +277,17 @@ def write_report(summary: list[dict[str, Any]]) -> None:
         "",
         "## 목적",
         "",
-        "시도 대분류 official actual 구간에서 기존 Denton/indicator baseline 대비 간단한 ML 보정이 실제로 개선되는지 확인했다. 현재 환경에서는 `scikit-learn`이 아키텍처 문제로 사용할 수 없어, `numpy` 기반 Ridge 회귀를 직접 구현했다.",
+        "시도 대분류 official actual 구간에서 기존 Denton/indicator baseline 대비 ML 보정이 실제로 개선되는지 확인했다. 현재 환경에서는 `scikit-learn`이 아키텍처 문제로 사용할 수 없어, `numpy` 기반 Ridge와 작은 회귀트리/부스팅을 직접 구현했다.",
         "",
         "## 모델",
         "",
         "- Baseline: 기존 rolling annual prediction",
         "- Ridge log-level: `log(actual)`을 직접 예측",
         "- Ridge residual correction: `log(actual / baseline)`을 예측한 뒤 baseline에 곱해 보정",
+        "- Tree residual correction: 회귀트리로 `log(actual / baseline)` 보정",
+        "- Boosted tree residual correction: 작은 회귀트리를 순차적으로 더해 residual 보정",
+        "",
+        "모든 모델은 target year 이전의 official actual만 학습한다. target year 또는 그 이후의 값은 학습에 들어가지 않으므로 데이터 유출을 피한다.",
         "",
         "## 전체 성능",
         "",
