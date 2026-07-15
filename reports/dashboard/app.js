@@ -280,14 +280,43 @@ function ensureSelection(currentValues, options, fallbackIndex = 0) {
   return options[fallbackIndex] ? [options[fallbackIndex][0]] : [];
 }
 
+function ensureFilterSelection(key, values) {
+  if (key === "sectors") {
+    const valid = new Set(state.filterOptions.sectors.map(([value]) => value));
+    const kept = values.filter((value) => valid.has(value));
+    return kept.length ? kept : [ALL_SECTOR];
+  }
+  return ensureSelection(values, state.filterOptions.regions);
+}
+
 function pickerOptionsFor(kind) {
-  return kind === "region" ? state.filterOptions.regions : state.filterOptions.sectors;
+  const options = kind === "region" ? state.filterOptions.regions : state.filterOptions.sectors;
+  return options.filter(([value]) => value !== ALL_SECTOR);
+}
+
+function pickerScopeText(kind) {
+  const levelOption = $("levelSelect").selectedOptions[0];
+  const grainOption = $("grainSelect").selectedOptions[0];
+  const levelText = levelOption ? levelOption.textContent : "";
+  const grainText = grainOption ? grainOption.textContent : "";
+  if (kind === "region") {
+    return `현재 지역 수준: ${levelText}. 검색어와 일치하는 지역을 복수로 선택할 수 있습니다.`;
+  }
+  return `현재 지역 수준: ${levelText}, 시점 단위: ${grainText}. 대분류·중분류·소분류·세분류 라벨과 업종명을 검색할 수 있습니다.`;
+}
+
+function filteredPickerOptions() {
+  const kind = state.picker.kind;
+  const query = compactName($("pickerSearch").value).toLowerCase();
+  return pickerOptionsFor(kind).filter(([, label]) => !query || compactName(label).toLowerCase().includes(query));
 }
 
 function openPicker(kind) {
   state.picker.kind = kind;
-  state.picker.draft = [...state.filters[kind === "region" ? "regions" : "sectors"]];
-  $("pickerTitle").textContent = kind === "region" ? "지역 선택" : "산업군 선택";
+  const selected = state.filters[kind === "region" ? "regions" : "sectors"];
+  state.picker.draft = selected.includes(ALL_SECTOR) ? pickerOptionsFor(kind).map(([value]) => value) : [...selected];
+  $("pickerTitle").textContent = kind === "region" ? "지역 검색 및 선택" : "산업군 검색 및 선택";
+  $("pickerScope").textContent = pickerScopeText(kind);
   $("pickerSearch").value = "";
   $("pickerModal").hidden = false;
   renderPickerOptions();
@@ -301,11 +330,14 @@ function closePicker() {
 }
 
 function renderPickerOptions() {
-  const kind = state.picker.kind;
-  const query = compactName($("pickerSearch").value).toLowerCase();
   const draft = new Set(state.picker.draft);
-  const options = pickerOptionsFor(kind).filter(([, label]) => !query || compactName(label).toLowerCase().includes(query));
+  const options = filteredPickerOptions();
+  const visibleValues = options.map(([value]) => value);
+  const selectedVisibleCount = visibleValues.filter((value) => draft.has(value)).length;
   $("pickerCount").textContent = `${draft.size.toLocaleString("ko-KR")}개 선택 · ${options.length.toLocaleString("ko-KR")}개 표시`;
+  $("pickerToggleVisible").hidden = options.length === 0;
+  $("pickerToggleVisible").textContent =
+    options.length > 0 && selectedVisibleCount === options.length ? "검색 결과 전체 선택 해제" : "검색 결과 전체 선택";
   $("pickerOptions").innerHTML = options
     .map(([value, label]) => {
       const selected = draft.has(value);
@@ -320,9 +352,11 @@ function renderPickerOptions() {
 async function applyPicker() {
   const kind = state.picker.kind;
   const key = kind === "region" ? "regions" : "sectors";
-  const options = pickerOptionsFor(kind);
-  state.filters[key] = ensureSelection(state.picker.draft, options, kind === "sector" ? 0 : 0);
-  syncHiddenSelect(kind === "region" ? "regionSelect" : "sectorSelect", options, state.filters[key]);
+  const allOptions = pickerOptionsFor(kind);
+  const baseOptions = kind === "region" ? state.filterOptions.regions : state.filterOptions.sectors;
+  const allVisibleSelected = allOptions.length > 0 && state.picker.draft.length === allOptions.length;
+  state.filters[key] = kind === "sector" && allVisibleSelected ? [ALL_SECTOR] : ensureFilterSelection(key, state.picker.draft);
+  syncHiddenSelect(kind === "region" ? "regionSelect" : "sectorSelect", baseOptions, state.filters[key]);
   renderSelectedChips();
   closePicker();
   refreshPeriods();
@@ -935,6 +969,16 @@ async function init() {
     state.picker.draft = [];
     renderPickerOptions();
   });
+  $("pickerToggleVisible").addEventListener("click", () => {
+    const visible = filteredPickerOptions().map(([value]) => value);
+    if (!visible.length) return;
+    const visibleSet = new Set(visible);
+    const allVisibleSelected = visible.every((value) => state.picker.draft.includes(value));
+    state.picker.draft = allVisibleSelected
+      ? state.picker.draft.filter((value) => !visibleSet.has(value))
+      : [...new Set([...state.picker.draft, ...visible])];
+    renderPickerOptions();
+  });
   $("pickerSearch").addEventListener("input", renderPickerOptions);
   $("pickerOptions").addEventListener("click", (event) => {
     const button = event.target.closest(".picker-option");
@@ -955,10 +999,7 @@ async function init() {
       const button = event.target.closest("button[data-kind]");
       if (!button) return;
       const key = button.dataset.kind === "region" ? "regions" : "sectors";
-      state.filters[key] = ensureSelection(
-        state.filters[key].filter((value) => value !== button.dataset.value),
-        state.filterOptions[key]
-      );
+      state.filters[key] = ensureFilterSelection(key, state.filters[key].filter((value) => value !== button.dataset.value));
       syncHiddenSelect(key === "regions" ? "regionSelect" : "sectorSelect", state.filterOptions[key], state.filters[key]);
       renderSelectedChips();
       refreshPeriods();

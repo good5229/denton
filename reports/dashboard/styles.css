@@ -13,6 +13,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -112,7 +116,7 @@ button {
   border-radius: 8px;
 }
 
-.selected-strip span {
+.selected-strip > div > span {
   display: block;
   color: var(--muted);
   font-size: 12px;
@@ -385,7 +389,7 @@ th:nth-child(2) {
   width: min(760px, calc(100vw - 48px));
   max-height: min(720px, calc(100vh - 48px));
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto auto 1fr auto;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -395,6 +399,7 @@ th:nth-child(2) {
 
 .modal-head,
 .modal-tools,
+.modal-bulk,
 .modal-actions {
   display: flex;
   align-items: center;
@@ -404,8 +409,27 @@ th:nth-child(2) {
   border-bottom: 1px solid var(--line);
 }
 
+.modal-scope {
+  margin: 0;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .modal-tools input {
   flex: 1;
+}
+
+.modal-bulk {
+  justify-content: flex-start;
+  padding: 10px 16px;
+}
+
+.modal-bulk button {
+  height: 32px;
+  font-size: 13px;
 }
 
 #pickerCount {
