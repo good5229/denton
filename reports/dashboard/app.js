@@ -729,11 +729,16 @@ async function refreshFilters(keep = {}) {
 function refreshPeriods(keep = {}) {
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
+  const currentStart = $("startSelect").value;
+  const currentEnd = $("endSelect").value;
   const rows = filteredBaseRows(false);
   const periods = unique(rows, (row) => periodKey(row, grain)).sort((a, b) => periodNumber(a) - periodNumber(b));
   const options = periods.map((period) => [period, period]);
-  setOptions($("startSelect"), options, keep.start || periods[0]);
-  setOptions($("endSelect"), options, keep.end || periods[periods.length - 1]);
+  const available = new Set(periods);
+  const start = keep.start || (available.has(currentStart) ? currentStart : periods[0]);
+  const end = keep.end || (available.has(currentEnd) ? currentEnd : periods[periods.length - 1]);
+  setOptions($("startSelect"), options, start);
+  setOptions($("endSelect"), options, end);
 }
 
 function filteredBaseRows(applyPeriod = true) {
