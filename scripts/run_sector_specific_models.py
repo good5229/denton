@@ -311,6 +311,29 @@ def run() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
 
 def write_report(summary: list[dict[str, Any]]) -> None:
     perf = [row for row in summary if "comparison_count" in row]
+    best_by_sector: dict[str, dict[str, Any]] = {}
+    baseline_by_sector: dict[str, dict[str, Any]] = {}
+    for row in perf:
+        sector = row["sector_code"]
+        if row["model"] == "baseline":
+            baseline_by_sector[sector] = row
+        current = best_by_sector.get(sector)
+        if current is None or float(row["wmape"]) < float(current["wmape"]):
+            best_by_sector[sector] = row
+    adoption_lines = []
+    for sector in ["A00", "B00", "D00"]:
+        base = baseline_by_sector.get(sector)
+        best = best_by_sector.get(sector)
+        if not base or not best:
+            continue
+        if best["model"] == "baseline":
+            adoption_lines.append(
+                f"- `{sector}`: baseline WMAPE {base['wmape']}가 최저이므로 ML 보정은 진단용으로만 보관한다."
+            )
+        else:
+            adoption_lines.append(
+                f"- `{sector}`: `{best['model']}` WMAPE {best['wmape']}가 baseline {base['wmape']}보다 낮아 제한적 채택 후보로 둔다."
+            )
     lines = [
         "# A/B/D 산업별 전용 모델 실험",
         "",
@@ -334,6 +357,14 @@ def write_report(summary: list[dict[str, Any]]) -> None:
             "## 해석",
             "",
             "이 실험은 산업별 특화 feature와 파라미터 탐색이 baseline을 개선하는지 검정한다. 성능이 개선되지 않는 산업은 기존 Denton/indicator baseline을 유지하고, 개선되는 산업만 제한적으로 residual correction을 채택하는 것이 안전하다.",
+            "",
+            "## 결론",
+            "",
+            *adoption_lines,
+            "",
+            "현재 수집된 구조변수와 외생변수만으로는 `A00/B00/D00` 어느 산업에서도 baseline보다 낮은 WMAPE를 안정적으로 얻지 못했다. 따라서 기본 산출에는 기존 Denton/indicator baseline을 유지하고, ML 보정값은 진단용 후보로만 보관한다.",
+            "",
+            "다음 보강 후보는 산업별로 더 직접적인 설명변수다. 농림어업은 경지면적·품목별 생산량·기상 및 재해 지표, 광업은 광산 수·광종별 생산량·광산 개폐 정보, 전기·가스는 지역별 발전량·발전원 구성·전력판매량이 우선순위다.",
         ]
     )
     REPORT_PATH.write_text("\n".join(lines), encoding="utf-8")
