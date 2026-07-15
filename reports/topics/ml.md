@@ -17,3 +17,10 @@
 | [regret_gating_report.md](../regret_gating_report.md) | Expected-regret gating policies |
 | [reconciled_feature_ablation.md](../reconciled_feature_ablation.md) | XGBoost feature group ablation |
 | [sector_model_structure.md](../sector_model_structure.md) | Global, sector, and sector-group model comparison |
+| [global_reconciled_ml_final_report.md](../global_reconciled_ml_final_report.md) | Global pooled model audit, tuning, leakage checks, and operating policy |
+| [evaluation_metric_audit.md](../evaluation_metric_audit.md) | Common-population metric audit for global vs sector models |
+| [global_model_reproducibility.md](../global_model_reproducibility.md) | Global model seed reproducibility |
+| [global_model_tuning.md](../global_model_tuning.md) | Global nested rolling tuning |
+| [global_model_pooling_analysis.md](../global_model_pooling_analysis.md) | Sector and region pooling diagnostics |
+| [global_model_safety_policy.md](../global_model_safety_policy.md) | Global regret and adaptive shrinkage policies |
+| [global_model_leakage_checks.md](../global_model_leakage_checks.md) | Global negative controls and leakage checks |

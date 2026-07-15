@@ -15,4 +15,4 @@ This directory contains generated research notes, validation reports, dashboard 
 
 ## Current Main Result
 
-The most recent ML work is summarized in [reconciled_ml_next_round_integrated_report.md](reconciled_ml_next_round_integrated_report.md). The current practical conclusion is that parent-total ML correction is not yet better than the baseline, expected-regret gating is the best near-term operating policy, and a common-feature global XGBoost model should be the next full-grid tuning target.
+The most recent ML work is summarized in [global_reconciled_ml_final_report.md](global_reconciled_ml_final_report.md). The current practical conclusion is that the common-feature global XGBoost model improves the shared 2019-2023 evaluation population, while `global_regret_adaptive` is the conservative operating candidate because it controls downside risk.
