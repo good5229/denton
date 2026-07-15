@@ -6,6 +6,7 @@ from pptx import Presentation
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches
 
+import make_ai_monitoring_ppt as base
 from make_ai_monitoring_ppt import (
     BG,
     BLUE,
@@ -17,8 +18,6 @@ from make_ai_monitoring_ppt import (
     MUTED,
     PURPLE,
     RED,
-    SLIDE_H,
-    SLIDE_W,
     TEAL,
     WHITE,
     add_circle,
@@ -29,6 +28,14 @@ from make_ai_monitoring_ppt import (
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "reports" / "ppt"
+TARGET_SLIDE_W = 20.0
+TARGET_SLIDE_H = 11.25
+
+# The user's portfolio deck is 20 x 11.25 inches. The imported drawing
+# helpers convert 1920x1080 design coordinates into inches through these
+# module globals, so align them before building any shapes.
+base.SLIDE_W = TARGET_SLIDE_W
+base.SLIDE_H = TARGET_SLIDE_H
 
 
 def add_center_card(slide, x, y, w, h, num, title, lines, accent) -> None:
@@ -48,6 +55,52 @@ def add_metric_card(slide, x, y, w, h, title, value, note, accent) -> None:
 def add_small_chip(slide, x, y, w, label, accent) -> None:
     add_rect(slide, x, y, w, 34, LIGHT, LIGHT, False)
     add_text(slide, x + 10, y + 8, w - 20, 20, label, 10, accent, True, PP_ALIGN.CENTER)
+
+
+def add_micro_step(slide, x, y, num, title, body, accent) -> None:
+    add_circle(slide, x, y, 38, accent, num)
+    add_text(slide, x + 52, y - 4, 130, 26, title, 13, accent, True)
+    add_text(slide, x + 52, y + 28, 150, 24, body, 10, MUTED, True)
+
+
+def add_overlay_metric(slide, x, y, w, title, value, note, accent) -> None:
+    add_rect(slide, x, y, w, 118, WHITE, LINE)
+    add_text(slide, x + 22, y + 16, w - 44, 24, title, 12, accent, True)
+    add_text(slide, x + 22, y + 46, w - 44, 36, value, 20, INK, True)
+    add_text(slide, x + 22, y + 88, w - 44, 22, note, 9, MUTED, True)
+
+
+def build_overlay_slide(prs: Presentation) -> None:
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+
+    # This slide is intentionally sparse: copy all shapes and paste onto the
+    # user's portfolio slide without scaling. Coordinates match the empty
+    # center/bottom zones in the screenshot-style composition.
+    add_rect(slide, 590, 340, 565, 205, WHITE, LINE)
+    add_text(slide, 625, 370, 240, 34, "구현 파이프라인", 18, INK, True)
+    add_micro_step(slide, 630, 425, "1", "파싱", "PDF 본문·메타", BLUE)
+    add_micro_step(slide, 830, 425, "2", "정제", "유효 문장 선별", TEAL)
+    add_micro_step(slide, 1030, 425, "3", "추론", "BERT·Trigram", PURPLE)
+    add_text(slide, 625, 505, 485, 24, "리포트 문장을 산업별 경기 신호로 변환하는 자동화 흐름", 11, MUTED, True)
+
+    add_rect(slide, 590, 590, 565, 175, WHITE, LINE)
+    add_text(slide, 625, 620, 170, 28, "핵심 로직", 16, INK, True)
+    add_text(slide, 625, 668, 110, 24, "TBCI", 12, PURPLE, True)
+    add_text(slide, 755, 668, 330, 24, "(긍정 - 부정) / 감성 문장", 12, INK, True)
+    add_text(slide, 625, 710, 110, 24, "TIEI·TEEI", 12, BLUE, True)
+    add_text(slide, 755, 710, 330, 24, "이벤트 영향도와 긍정·부정 평가", 12, INK, True)
+
+    metrics = [
+        ("데이터", "12.8만", "기업 리포트", BLUE),
+        ("정제", "145만", "유효 문장", TEAL),
+        ("모델", "BERT", "감성분류", PURPLE),
+        ("키워드", "Trigram", "이슈 추출", GOLD),
+        ("검증", "0.91", "상관 예시", GREEN),
+    ]
+    x = 95
+    for metric in metrics:
+        add_overlay_metric(slide, x, 845, 280, *metric)
+        x += 300
 
 
 def build_copy_ready_slide(prs: Presentation) -> None:
@@ -147,8 +200,9 @@ def build_variant_slide(prs: Presentation) -> None:
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     prs = Presentation()
-    prs.slide_width = Inches(SLIDE_W)
-    prs.slide_height = Inches(SLIDE_H)
+    prs.slide_width = Inches(TARGET_SLIDE_W)
+    prs.slide_height = Inches(TARGET_SLIDE_H)
+    build_overlay_slide(prs)
     build_copy_ready_slide(prs)
     build_variant_slide(prs)
     out = OUT / "ai_industry_monitoring_fill_blocks_editable.pptx"

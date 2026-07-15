@@ -42,8 +42,10 @@ AI monitoring deck structure:
 AI monitoring supplemental block deck structure:
 
 - 2 slides
-- Slide 1: 63 selectable elements, 47 text-bearing elements
-- Slide 2: 35 selectable elements, 29 text-bearing elements
+- Slide size: 20 x 11.25 inches, matching `/Users/bellhundred/Documents/Portfolio_202607.pptx`
+- Slide 1: portfolio-positioned overlay blocks for direct paste into the AI monitoring slide
+- Slide 2: full-page block catalog
+- Slide 3: compressed block catalog
 
 ## Verification Notes
 
@@ -53,3 +55,4 @@ AI monitoring supplemental block deck structure:
 - Supplemental block preview initially had overflow in long descriptions and the `2019-2023` label; shortened the copy and changed the data label to `5년` with `2019~2023` as the note.
 - AI monitoring preview initially had wrapped date text and overlaps in the process blocks; shortened labels and widened the date/title blocks before regenerating the final preview.
 - AI monitoring supplemental preview initially had clipped section headings, a long validation line, and a wrapped `Implementation` label; shortened the headings and labels before regenerating the final deck.
+- The user's portfolio deck uses a 20 x 11.25 inch canvas, while the first supplemental deck used the default 13.333 x 7.5 inch widescreen canvas. PowerPoint paste preserves physical size, so copied elements appeared about two-thirds as large. Regenerated the supplemental deck on the portfolio canvas and made slide 1 a sparse overlay with only the center/bottom elements.
