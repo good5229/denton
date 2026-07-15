@@ -10,13 +10,26 @@ const DATA_PATHS = {
   seoulDistrictAnnual: "../../data/processed/seoul_district_grdp_annual.csv",
   detailQuarter: "../../data/processed/detailed_industry_quarterly_estimates.csv",
   detailAnnual: "../../data/processed/detailed_industry_annual_estimates.csv",
+  serviceDetailQuarter: "../../data/processed/service_detail_quarterly_estimates.csv",
+  serviceDetailAnnual: "../../data/processed/service_detail_annual_estimates.csv",
   emdQuarter: "../../data/processed/emd_quarterly_gva_estimates.csv",
   emdAnnual: "../../data/processed/emd_annual_gva_estimates.csv",
   emdInventory: "../../data/processed/eupmyeondong_source_inventory.csv",
   confidenceScores: "../../data/processed/estimate_confidence_scores.csv",
 };
 
-const OPTIONAL_DATA_KEYS = new Set(["sigunguQuarterForecast", "sigunguAnnualForecast", "seoulDistrictAnnual", "detailQuarter", "detailAnnual", "emdQuarter", "emdAnnual", "confidenceScores"]);
+const OPTIONAL_DATA_KEYS = new Set([
+  "sigunguQuarterForecast",
+  "sigunguAnnualForecast",
+  "seoulDistrictAnnual",
+  "detailQuarter",
+  "detailAnnual",
+  "serviceDetailQuarter",
+  "serviceDetailAnnual",
+  "emdQuarter",
+  "emdAnnual",
+  "confidenceScores",
+]);
 const BASE_DATA_KEYS = ["sidoAnnual", "sidoQuarter", "sidoActual", "nationalQuarterActual", "sigunguQuarter", "sigunguAnnual", "seoulDistrictAnnual"];
 const ALL_SECTOR = "__ALL__";
 const REGION_SUM_PREFIX = "__REGION_SUM__|";
@@ -209,6 +222,9 @@ async function ensureLevelData(level, grain) {
     await loadDataKey(grain === "annual" ? "sigunguAnnualForecast" : "sigunguQuarterForecast");
     normalizeSigunguAnnualRows();
     normalizeSigunguQuarterRows();
+  }
+  if (level === "detail") {
+    await loadDataKey(grain === "annual" ? "serviceDetailAnnual" : "serviceDetailQuarter");
   }
 }
 
@@ -540,7 +556,11 @@ function periodNumber(period) {
 
 function datasetFor(level, grain) {
   if (level === "emd") return grain === "annual" ? state.data.emdAnnual : state.data.emdQuarter;
-  if (level === "detail") return grain === "annual" ? state.data.detailAnnual : state.data.detailQuarter;
+  if (level === "detail") {
+    return grain === "annual"
+      ? [...(state.data.detailAnnual || []), ...(state.data.serviceDetailAnnual || [])]
+      : [...(state.data.detailQuarter || []), ...(state.data.serviceDetailQuarter || [])];
+  }
   if (level === "sigungu") {
     return grain === "annual"
       ? [...(state.data.sigunguAnnual || []), ...(state.data.sigunguAnnualForecast || [])]
@@ -711,7 +731,7 @@ async function refreshFilters(keep = {}) {
   sectors.unshift([ALL_SECTOR, "전체"]);
   state.filterOptions.regions = regions;
   if (level === "detail") {
-    const groups = [{ label: "집계", options: [[ALL_SECTOR, "전체 제조업 세부산업"]] }, ...detailSectorGroups(rows)];
+    const groups = [{ label: "집계", options: [[ALL_SECTOR, "전체 세부산업"]] }, ...detailSectorGroups(rows)];
     state.filterOptions.sectors = groups.flatMap((group) => group.options.map(([value, label]) => [value, `${group.label} · ${label}`]));
   } else {
     state.filterOptions.sectors = sectors;
@@ -853,8 +873,8 @@ function updateMessage(level, grain, rows) {
   }
   if (grain === "month") messages.push("현재 원천 데이터는 월간 예측값을 포함하지 않습니다. 연도 또는 분기를 선택해 주세요.");
   if (level === "emd") messages.push("읍면동은 2015 경제총조사 프록시로 시군구 분기 GVA를 하향 배분한 추정값입니다.");
-  if (level === "detail" && grain === "quarter") messages.push("세부산업 분기값은 시군구 제조업 분기 총량을 KSIC 연간 프록시 비중으로 배분한 추정값입니다.");
-  if (level === "detail" && grain === "annual") messages.push("세부산업 연도 actual은 제조업조사 부가가치 프록시가 있는 경우에만 비교합니다.");
+  if (level === "detail" && grain === "quarter") messages.push("세부산업 분기값은 시군구 부모 산업 분기 총량을 제조업/서비스업 세부 프록시 비중으로 배분한 추정값입니다.");
+  if (level === "detail" && grain === "annual") messages.push("세부산업 연도 actual은 제조업조사 등 비교 가능한 프록시가 있는 경우에만 표시합니다.");
   if (level === "sigungu" && grain === "quarter") messages.push("시군구 분기 실제값은 공개되지 않아 예측값만 표시합니다. 연간 실제 벤치마크 비교는 시점 단위 '연도'에서 볼 수 있습니다.");
   if (level === "sido" && grain === "quarter") messages.push("전국은 GDP 분기 실측치와 비교합니다. 강원특별자치도 같은 시도에는 분기·월간 산업활동 지표가 있지만, 이는 GRDP/GVA actual이 아니라 Denton 추정에 쓰는 indicator입니다.");
   if (!rows.length) messages.push("선택한 조건에 해당하는 행이 없습니다.");
