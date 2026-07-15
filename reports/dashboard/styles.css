@@ -447,7 +447,7 @@ th:nth-child(2) {
   width: min(760px, calc(100vw - 48px));
   max-height: min(720px, calc(100vh - 48px));
   display: grid;
-  grid-template-rows: auto auto auto auto 1fr auto;
+  grid-template-rows: auto auto auto auto auto 1fr auto;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -456,6 +456,7 @@ th:nth-child(2) {
 }
 
 .modal-head,
+.modal-tabs,
 .modal-tools,
 .modal-bulk,
 .modal-actions {
@@ -465,6 +466,25 @@ th:nth-child(2) {
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid var(--line);
+}
+
+.modal-tabs {
+  justify-content: flex-start;
+  padding: 10px 16px;
+}
+
+.modal-tabs button {
+  height: 32px;
+  border-color: #c7d3e2;
+  background: #f7f9fc;
+  color: #405069;
+  font-size: 13px;
+}
+
+.modal-tabs button.active {
+  border-color: var(--blue);
+  background: #eaf2ff;
+  color: #1d5fae;
 }
 
 .modal-scope {

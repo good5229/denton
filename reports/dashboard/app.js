@@ -40,6 +40,7 @@ const DETAIL_LEVEL_LABELS = {
   small: "소분류",
   class: "세분류",
 };
+const DETAIL_SEARCH_LEVELS = ["middle", "small", "class"];
 
 const REGION_CODE_NAMES = {
   "00": "전국",
@@ -95,14 +96,17 @@ const state = {
   filterOptions: {
     regions: [],
     sectors: [],
+    sectorGroups: {},
   },
   filters: {
     regions: [],
     sectors: [],
+    detailSectorLevel: "middle",
   },
   picker: {
     kind: "",
     draft: [],
+    detailSectorLevel: "middle",
   },
   lookup: {
     areaNames: {},
@@ -327,8 +331,42 @@ function ensureFilterSelection(key, values) {
   return ensureSelection(values, state.filterOptions.regions);
 }
 
+function buildDetailSectorOptions(rows, targetLevel) {
+  const bucket = new Map();
+  rows.forEach((row) => {
+    const level = row.detail_level || "other";
+    if (level !== targetLevel) return;
+    const key = sectorKey(row, "detail");
+    if (!key || bucket.has(key)) return;
+    const prefix = DETAIL_LEVEL_LABELS[level] || "기타";
+    const parent = row.parent_sector_name ? `${row.parent_sector_name} · ` : "";
+    bucket.set(key, `${parent}[${prefix}] ${row.detail_name || key} (${key})`);
+  });
+  return [...bucket.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "ko"));
+}
+
+function ensureDetailSectorOptions(level = state.filters.detailSectorLevel) {
+  if (!Object.prototype.hasOwnProperty.call(state.filterOptions.sectorGroups, level)) {
+    const currentLevel = $("levelSelect").value;
+    const currentGrain = $("grainSelect").value;
+    state.filterOptions.sectorGroups[level] = buildDetailSectorOptions(datasetFor(currentLevel, currentGrain) || [], level);
+  }
+  return state.filterOptions.sectorGroups[level] || [];
+}
+
+function detailSectorOptionsForLevel(level = state.filters.detailSectorLevel) {
+  const label = DETAIL_LEVEL_LABELS[level] || "세부산업";
+  const options = ensureDetailSectorOptions(level);
+  return [[ALL_SECTOR, `전체 ${label}`], ...options];
+}
+
 function pickerOptionsFor(kind) {
-  const options = kind === "region" ? state.filterOptions.regions : state.filterOptions.sectors;
+  const options =
+    kind === "region"
+      ? state.filterOptions.regions
+      : $("levelSelect").value === "detail"
+        ? detailSectorOptionsForLevel(state.picker.detailSectorLevel)
+        : state.filterOptions.sectors;
   return options.filter(([value]) => value !== ALL_SECTOR);
 }
 
@@ -343,7 +381,8 @@ function pickerScopeText(kind) {
   if ($("levelSelect").value !== "detail") {
     return `현재 지역 수준: ${levelText}, 시점 단위: ${grainText}. 이 화면은 대분류 산업군만 제공합니다. 중분류·소분류·세분류는 세부산업 검색으로 전환해야 합니다.`;
   }
-  return `현재 지역 수준: ${levelText}, 시점 단위: ${grainText}. 대분류·중분류·소분류·세분류 라벨과 업종명을 검색할 수 있습니다.`;
+  const label = DETAIL_LEVEL_LABELS[state.picker.detailSectorLevel || state.filters.detailSectorLevel] || "세부산업";
+  return `현재 지역 수준: ${levelText}, 시점 단위: ${grainText}. ${label} 산업명과 코드를 검색할 수 있습니다.`;
 }
 
 function filteredPickerOptions() {
@@ -354,6 +393,7 @@ function filteredPickerOptions() {
 
 function openPicker(kind) {
   state.picker.kind = kind;
+  state.picker.detailSectorLevel = state.filters.detailSectorLevel;
   const selected = state.filters[kind === "region" ? "regions" : "sectors"];
   state.picker.draft = selected.includes(ALL_SECTOR) ? pickerOptionsFor(kind).map(([value]) => value) : [...selected];
   $("pickerTitle").textContent = kind === "region" ? "지역 검색 및 선택" : "산업군 검색 및 선택";
@@ -378,6 +418,12 @@ function renderPickerOptions() {
   $("pickerCount").textContent = `${draft.size.toLocaleString("ko-KR")}개 선택 · ${options.length.toLocaleString("ko-KR")}개 표시`;
   $("pickerToggleVisible").hidden = options.length === 0;
   $("pickerDetailMode").hidden = state.picker.kind !== "sector" || $("levelSelect").value === "detail";
+  $("pickerSectorLevels").hidden = state.picker.kind !== "sector" || $("levelSelect").value !== "detail";
+  if (!$("pickerSectorLevels").hidden) {
+    $("pickerSectorLevels").querySelectorAll("button").forEach((button) => {
+      button.classList.toggle("active", button.dataset.detailLevel === state.picker.detailSectorLevel);
+    });
+  }
   $("pickerToggleVisible").textContent =
     options.length > 0 && selectedVisibleCount === options.length ? "검색 결과 전체 선택 해제" : "검색 결과 전체 선택";
   $("pickerOptions").innerHTML = options
@@ -391,10 +437,24 @@ function renderPickerOptions() {
     .join("");
 }
 
+function switchPickerDetailLevel(level) {
+  if (!DETAIL_SEARCH_LEVELS.includes(level)) return;
+  state.picker.detailSectorLevel = level;
+  const currentAll = state.filters.sectors.includes(ALL_SECTOR);
+  state.picker.draft = currentAll ? pickerOptionsFor("sector").map(([value]) => value) : [];
+  $("pickerSearch").value = "";
+  $("pickerScope").textContent = pickerScopeText("sector");
+  renderPickerOptions();
+}
+
 async function applyPicker() {
   const kind = state.picker.kind;
   const key = kind === "region" ? "regions" : "sectors";
   const allOptions = pickerOptionsFor(kind);
+  if (kind === "sector" && $("levelSelect").value === "detail") {
+    state.filters.detailSectorLevel = state.picker.detailSectorLevel;
+    state.filterOptions.sectors = detailSectorOptionsForLevel(state.filters.detailSectorLevel);
+  }
   const baseOptions = kind === "region" ? state.filterOptions.regions : state.filterOptions.sectors;
   const allVisibleSelected = allOptions.length > 0 && state.picker.draft.length === allOptions.length;
   state.filters[key] = kind === "sector" && allVisibleSelected ? [ALL_SECTOR] : ensureFilterSelection(key, state.picker.draft);
@@ -711,27 +771,6 @@ function dynamicConfidenceInfo(level, grain) {
   };
 }
 
-function detailSectorGroups(rows) {
-  const buckets = { middle: new Map(), small: new Map(), class: new Map(), other: new Map() };
-  rows.forEach((row) => {
-    const key = sectorKey(row, "detail");
-    if (!key) return;
-    const level = row.detail_level || "other";
-    const bucket = buckets[level] || buckets.other;
-    if (!bucket.has(key)) {
-      const prefix = DETAIL_LEVEL_LABELS[level] || "기타";
-      const parent = row.parent_sector_name ? `${row.parent_sector_name} · ` : "";
-      bucket.set(key, `${parent}[${prefix}] ${row.detail_name || key} (${key})`);
-    }
-  });
-  return ["middle", "small", "class", "other"]
-    .filter((level) => buckets[level].size)
-    .map((level) => ({
-      label: DETAIL_LEVEL_LABELS[level] || "기타",
-      options: [...buckets[level].entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "ko")),
-    }));
-}
-
 async function refreshFilters(keep = {}) {
   const level = $("levelSelect").value;
   const grain = $("grainSelect").value;
@@ -750,9 +789,19 @@ async function refreshFilters(keep = {}) {
   sectors.unshift([ALL_SECTOR, "전체"]);
   state.filterOptions.regions = regions;
   if (level === "detail") {
-    const groups = [{ label: "집계", options: [[ALL_SECTOR, "전체 세부산업"]] }, ...detailSectorGroups(rows)];
-    state.filterOptions.sectors = groups.flatMap((group) => group.options.map(([value, label]) => [value, `${group.label} · ${label}`]));
+    state.filterOptions.sectorGroups = {};
+    if (!DETAIL_SEARCH_LEVELS.includes(state.filters.detailSectorLevel)) state.filters.detailSectorLevel = "middle";
+    state.filterOptions.sectorGroups[state.filters.detailSectorLevel] = buildDetailSectorOptions(rows, state.filters.detailSectorLevel);
+    if (!state.filterOptions.sectorGroups[state.filters.detailSectorLevel].length) {
+      state.filters.detailSectorLevel =
+        DETAIL_SEARCH_LEVELS.find((item) => {
+          state.filterOptions.sectorGroups[item] = buildDetailSectorOptions(rows, item);
+          return state.filterOptions.sectorGroups[item].length;
+        }) || "middle";
+    }
+    state.filterOptions.sectors = detailSectorOptionsForLevel(state.filters.detailSectorLevel);
   } else {
+    state.filterOptions.sectorGroups = {};
     state.filterOptions.sectors = sectors;
   }
   const keepRegions = Array.isArray(keep.regions) ? keep.regions : keep.region ? [keep.region] : state.filters.regions;
@@ -801,6 +850,9 @@ function filteredBaseRows(applyPeriod = true) {
   }
   if (sectors.length && !sectors.includes(ALL_SECTOR)) {
     rows = rows.filter((row) => sectors.includes(sectorKey(row, level)));
+  }
+  if (level === "detail") {
+    rows = rows.filter((row) => (row.detail_level || "other") === state.filters.detailSectorLevel);
   }
   if (applyPeriod && start && end) {
     const lo = Math.min(periodNumber(start), periodNumber(end));
@@ -1166,6 +1218,11 @@ async function init() {
       ? state.picker.draft.filter((value) => !visibleSet.has(value))
       : [...new Set([...state.picker.draft, ...visible])];
     renderPickerOptions();
+  });
+  $("pickerSectorLevels").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-detail-level]");
+    if (!button) return;
+    switchPickerDetailLevel(button.dataset.detailLevel);
   });
   $("pickerSearch").addEventListener("input", renderPickerOptions);
   $("pickerOptions").addEventListener("click", (event) => {
