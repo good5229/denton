@@ -51,3 +51,4 @@
 | [electricity_feature_acceptance_decision.md](../electricity_feature_acceptance_decision.md) | Electricity feature acceptance status after dry-run |
 | [electricity_guardrail_robustness_round.md](../electricity_guardrail_robustness_round.md) | O1 electricity guardrail robustness, placebo, bootstrap, LOSO, lag, and missingness diagnostics |
 | [electricity_all_only_refinement_round.md](../electricity_all_only_refinement_round.md) | All-only electricity shadow-policy refinement and confirmatory gate decision |
+| [electricity_preconfirmatory_policy_selection.md](../electricity_preconfirmatory_policy_selection.md) | Final R2/R3b electricity challenger selection before confirmatory actual |
