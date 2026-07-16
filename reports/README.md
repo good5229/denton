@@ -32,3 +32,5 @@ The guardrail robustness round is summarized in [electricity_guardrail_robustnes
 The all-only refinement round is summarized in [electricity_all_only_refinement_round.md](electricity_all_only_refinement_round.md). It keeps the electricity feature as an all-sector shadow candidate, but does not freeze it as an operating policy because 2023 and placebo gates remain weak.
 
 The pre-confirmatory policy selection is summarized in [electricity_preconfirmatory_policy_selection.md](electricity_preconfirmatory_policy_selection.md). Neither R2 nor R3b passed all final gates, so the operating policy remains global and no frozen electricity challenger is promoted.
+
+The electricity-only closure decision and next workstreams are summarized in [electricity_only_policy_closure_and_next_workstreams.md](electricity_only_policy_closure_and_next_workstreams.md). Electricity-only residual correction is closed without a confirmatory challenger; the electricity pipeline remains active for future combined structural models.
