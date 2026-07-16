@@ -44,9 +44,9 @@
 
 | 우선순위 | 후보 | 대상 산업 | 희망 지역 레벨 | 이유 |
 | ---: | --- | --- | --- | --- |
-| 1 | factory_registration | B00,C00 | sigungu | 광업·제조업 시군구 share를 직접 설명할 수 있는 입지/설비 stock 변수 |
-| 2 | industrial_complex_activity | C00 | sigungu | 제조업 생산·수출·고용 변동을 시군구별로 직접 반영 가능 |
-| 3 | electricity_sales_by_use | C00,D00,E00,all | sigungu | 산업생산과 사업장 활동의 고빈도 proxy 후보 |
-| 4 | building_permits_and_starts | F00,L00 | sigungu | 건설업·부동산업 지역 변동을 설명할 수 있는 직접 activity 변수 |
+| 1 | electricity_sales_by_use | C00,D00,E00,all | sigungu | 전국 시군구 월간 flow feature로 산업생산과 사업장 가동 강도를 직접 반영 가능 |
+| 2 | building_permits_and_starts | F00,L00 | sigungu | 건설업·부동산업 지역 변동을 설명할 수 있는 직접 activity 변수 |
+| 3 | factory_registration | B00,C00 | sigungu | 광업·제조업 시군구 share를 직접 설명할 수 있는 입지/설비 stock 변수 |
+| 4 | industrial_complex_activity | C00 | sigungu | 제조업 생산·수출·고용 변동을 시군구별로 직접 반영 가능 |
 | 5 | agriculture_livestock_fishery | A00 | sigungu | 농림어업은 사업체수보다 생산량·면적·사육두수 신호가 직접적 |
 | 6 | local_card_sales_and_foot_traffic | G00,I00,R00 | sigungu,eupmyeondong | 도소매·숙박음식·여가서비스의 하위지역 수요 proxy |
