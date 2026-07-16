@@ -11,5 +11,6 @@
 | [municipality_new_feature_dataset.md](../municipality_new_feature_dataset.md) | 시군구 ML 재개용 직접 feature mart collection |
 | [public_feature_source_collection.md](../public_feature_source_collection.md) | KEPCO electricity and public external feature source collection |
 | [electricity_feature_report.md](../electricity_feature_report.md) | KEPCO 시군구 월간 전력 feature integration, source manifest, leakage audit, and quality checks |
+| [kepco_historical_electricity_collection.md](../kepco_historical_electricity_collection.md) | KEPCO 과거 시군구 전력자료 수집, schema fingerprint, 2021-2023 feature coverage |
 | [eupmyeondong_data_sources.md](../eupmyeondong_data_sources.md) | 읍면동 data source scan |
 | [seoul_emd_latest_proxy_update.md](../seoul_emd_latest_proxy_update.md) | Seoul EMD latest proxy update |

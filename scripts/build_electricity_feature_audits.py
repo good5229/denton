@@ -4,6 +4,7 @@ import hashlib
 import csv
 import math
 import re
+import json
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -11,11 +12,12 @@ from statistics import median
 from typing import Any
 
 from collect_public_feature_sources import PUBLIC_RAW_DIR, parse_kepco_workbook
-from kosis_common import PROCESSED_DIR, read_csv, write_csv
+from kosis_common import PROCESSED_DIR, cp949_safe, read_csv, write_csv
 
 
 REPORT_DIR = Path("reports")
 PARSER_VERSION = "electricity_parser_v2"
+REGION_CROSSWALK_VERSION = "electricity_region_crosswalk_v1"
 KEPCO_BOARD_URL = "https://www.kepco.co.kr/home/customer/library/electricity-statistics/sales-volume/boardList.do"
 SIDO_ALIASES = {
     "강원도": "강원특별자치도",
@@ -41,7 +43,7 @@ def write_csv_with_fields(path: Path, rows: list[dict[str, Any]], fields: list[s
     with path.open("w", encoding="cp949", newline="", errors="replace") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows([{key: cp949_safe(value) for key, value in row.items()} for row in rows])
 
 
 def add_months(period: str, months: int) -> str:
@@ -89,6 +91,8 @@ def build_manifest() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     downloaded_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for path in sorted(PUBLIC_RAW_DIR.glob("kepco_sigungu_electricity_*.xlsx")):
+        if "_historical" in path.name:
+            continue
         match = re.search(r"(20\d{4})", path.name)
         if not match:
             continue
@@ -263,18 +267,43 @@ def region_crosswalk(wide_rows: list[dict[str, Any]]) -> tuple[list[dict[str, An
             continue
         seen.add(key)
         code = region_map.get(key, "")
+        match_status = "matched" if code else "unmatched"
+        match_rule = "normalized_sido_sigungu_name"
+        target_sido = sido
+        target_sigungu = sigungu
+        target_code = code
+        effective_from = ""
+        effective_to = ""
+        if not code and sido == "대구광역시" and sigungu == "군위군":
+            target_code = "대구광역시:군위군"
+            match_status = "manual_resolved"
+            match_rule = "gunwi_daegu_current_boundary_no_pilot_official_actual"
+            effective_from = "202307"
+        elif not code and sido == "세종특별자치시" and sigungu == "세종시":
+            target_code = "세종특별자치시:세종시"
+            match_status = "manual_resolved"
+            match_rule = "sejong_single_tier_municipality"
+            effective_from = "201207"
         out = {
             "sido_name_raw": row.get("sido_name", ""),
             "sido_name_normalized": sido,
             "sigungu_name_raw": row.get("sigungu_name", ""),
             "sigungu_name_normalized": sigungu,
-            "sigungu_code": code,
-            "sigungu_feature_key": f"{sido}:{code or sigungu}",
-            "match_status": "matched" if code else "unmatched",
-            "match_rule": "normalized_sido_sigungu_name",
+            "sigungu_code": target_code,
+            "sigungu_feature_key": f"{target_sido}:{target_code or target_sigungu}",
+            "match_status": match_status,
+            "match_rule": match_rule,
+            "source_sigungu": f"{sido} {sigungu}",
+            "source_sigungu_code": "",
+            "target_sigungu": f"{target_sido} {target_sigungu}",
+            "target_sigungu_code": target_code,
+            "crosswalk_effective_from": effective_from,
+            "crosswalk_effective_to": effective_to,
+            "crosswalk_rule": match_rule,
+            "crosswalk_version": REGION_CROSSWALK_VERSION,
         }
         crosswalk_rows.append(out)
-        if not code:
+        if match_status == "unmatched":
             unmatched.append(out)
     write_csv(PROCESSED_DIR / "electricity_region_crosswalk_audit.csv", crosswalk_rows)
     write_csv(PROCESSED_DIR / "region_crosswalk_audit.csv", crosswalk_rows)
@@ -575,6 +604,56 @@ first_eligible_period <= prediction_origin_period
     )
 
 
+def freeze_v1_outputs(
+    manifest: list[dict[str, Any]],
+    crosswalk: list[dict[str, Any]],
+    quality: list[dict[str, Any]],
+    lag_rows: list[dict[str, Any]],
+    registry: list[dict[str, Any]],
+) -> None:
+    frozen_manifest = []
+    for row in manifest:
+        frozen_manifest.append(
+            {
+                **row,
+                "feature_version": "electricity_feature_v1_candidate",
+                "parser_version": PARSER_VERSION,
+                "region_crosswalk_version": REGION_CROSSWALK_VERSION,
+                "latest_source_selection_rule": "latest source vintage by observation key",
+                "publication_lag_rule": "max(observation+2m, publication_month)",
+                "aggregation_rule": "monthly sigungu source value; latest source wins",
+                "missing_value_policy": "no imputation in source feature table",
+                "outlier_policy": "preserve source values; downstream model handles winsorization if pre-registered",
+                "freeze_status": "v1_candidate",
+            }
+        )
+    write_csv(PROCESSED_DIR / "electricity_feature_v1_manifest.csv", frozen_manifest)
+    write_csv(PROCESSED_DIR / "electricity_feature_v1_registry.csv", registry)
+    write_csv(PROCESSED_DIR / "electricity_feature_v1_crosswalk.csv", crosswalk)
+
+    validation = {
+        "feature_version": "electricity_feature_v1_candidate",
+        "parser_version": PARSER_VERSION,
+        "region_crosswalk_version": REGION_CROSSWALK_VERSION,
+        "source_file_count": len(manifest),
+        "quality_checks": quality,
+        "publication_lag_summary": lag_rows[-1] if lag_rows and lag_rows[-1].get("source_period") == "SUMMARY" else {},
+        "manual_crosswalk_rules": [
+            {
+                "source_sigungu": "대구광역시 군위군",
+                "rule": "2023-07 이후 대구광역시 군위군으로 보존한다. 기존 2021-2023 pilot actual에는 경상북도 군위군만 존재하므로 현행 대구 군위는 별도 target key로 둔다.",
+            },
+            {
+                "source_sigungu": "세종특별자치시 세종시",
+                "rule": "하위 자치구가 없는 단층 지자체로 보아 시군구 관측단위 하나로 보존한다. 기존 pilot official actual에는 세종이 없어 별도 target key로 둔다.",
+            },
+        ],
+        "freeze_status": "v1_candidate",
+    }
+    path = PROCESSED_DIR / "electricity_feature_v1_validation.json"
+    path.write_text(json.dumps(validation, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def write_report(
     manifest: list[dict[str, Any]],
     comparisons: list[dict[str, Any]],
@@ -589,6 +668,7 @@ def write_report(
     revision_changed = sum(1 for row in comparisons if row["changed"] == "Y")
     revision_rate = revision_changed / len(comparisons) if comparisons else 0
     matched = sum(1 for row in crosswalk if row["match_status"] == "matched")
+    manual_resolved = sum(1 for row in crosswalk if row["match_status"] == "manual_resolved")
     lines = [
         "# 전력사용량 Feature 편입 및 ML 재개 준비 결과",
         "",
@@ -602,7 +682,7 @@ def write_report(
         f"| duplicate observation comparisons | {len(comparisons):,} |",
         f"| changed duplicate observations | {revision_changed:,} |",
         f"| revision rate | {revision_rate:.6f} |",
-        f"| region matched | {matched:,} / {len(crosswalk):,} |",
+        f"| region matched | {matched:,} direct + {manual_resolved:,} manual / {len(crosswalk):,} |",
         f"| unmatched regions | {len(unmatched):,} |",
         f"| feature rows | {len(feature_rows):,} |",
         "",
@@ -620,6 +700,10 @@ def write_report(
         "| `data/processed/electricity_unmatched_region_rows.csv` | 지역코드 미매칭 목록 |",
         "| `data/processed/electricity_total_consistency_audit.csv` | 원표 합계·정규화 합계 일치 검증 |",
         "| `data/processed/feature_registry.csv` | ML feature registry |",
+        "| `data/processed/electricity_feature_v1_manifest.csv` | V1 candidate freeze manifest |",
+        "| `data/processed/electricity_feature_v1_registry.csv` | V1 candidate feature registry |",
+        "| `data/processed/electricity_feature_v1_crosswalk.csv` | V1 candidate region crosswalk |",
+        "| `data/processed/electricity_feature_v1_validation.json` | V1 candidate validation snapshot |",
         "| `docs/data_contracts/electricity.md` | 전력 source data contract |",
         "",
         "## Revision Audit",
@@ -655,7 +739,7 @@ def write_report(
             "",
             "## Region Crosswalk",
             "",
-            f"전력 원천의 시도·시군구 명칭을 기존 시군구 pilot crosswalk와 매칭했다. 매칭률은 `{matched}/{len(crosswalk)}`이다.",
+            f"전력 원천의 시도·시군구 명칭을 기존 시군구 pilot crosswalk와 매칭했다. 직접 매칭은 `{matched}/{len(crosswalk)}`이고, 군위군·세종시는 수동 규칙으로 보존해 최종 미매칭은 `{len(unmatched)}`이다.",
         ]
     )
     if unmatched:
@@ -701,6 +785,7 @@ def main() -> int:
     lag_rows = publication_lag_audit(manifest)
     registry = feature_registry()
     ml_rows = ml_overlap_audit(feature_rows)
+    freeze_v1_outputs(manifest, crosswalk, quality, lag_rows, registry)
     write_data_contract()
     write_report(manifest, comparisons, revision_log, crosswalk, unmatched, feature_rows, quality, lag_rows, ml_rows)
     print(f"manifest rows: {len(manifest)}")

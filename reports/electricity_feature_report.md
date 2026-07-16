@@ -10,8 +10,8 @@ KEPCO 시군구별 전력사용량 원천 XLSX를 vintage 자료로 보존하고
 | duplicate observation comparisons | 130,043 |
 | changed duplicate observations | 0 |
 | revision rate | 0.000000 |
-| region matched | 227 / 229 |
-| unmatched regions | 2 |
+| region matched | 227 direct + 2 manual / 229 |
+| unmatched regions | 0 |
 | feature rows | 3,664 |
 
 ## 생성 산출물
@@ -28,6 +28,10 @@ KEPCO 시군구별 전력사용량 원천 XLSX를 vintage 자료로 보존하고
 | `data/processed/electricity_unmatched_region_rows.csv` | 지역코드 미매칭 목록 |
 | `data/processed/electricity_total_consistency_audit.csv` | 원표 합계·정규화 합계 일치 검증 |
 | `data/processed/feature_registry.csv` | ML feature registry |
+| `data/processed/electricity_feature_v1_manifest.csv` | V1 candidate freeze manifest |
+| `data/processed/electricity_feature_v1_registry.csv` | V1 candidate feature registry |
+| `data/processed/electricity_feature_v1_crosswalk.csv` | V1 candidate region crosswalk |
+| `data/processed/electricity_feature_v1_validation.json` | V1 candidate validation snapshot |
 | `docs/data_contracts/electricity.md` | 전력 source data contract |
 
 ## Revision Audit
@@ -61,14 +65,7 @@ KEPCO 시군구별 전력사용량 원천 XLSX를 vintage 자료로 보존하고
 
 ## Region Crosswalk
 
-전력 원천의 시도·시군구 명칭을 기존 시군구 pilot crosswalk와 매칭했다. 매칭률은 `227/229`이다.
-
-미매칭 지역은 별도 파일에 보존했다. 대표 예시는 다음과 같다.
-
-| 시도 | 시군구 |
-| --- | --- |
-| 대구광역시 | 군위군 |
-| 세종특별자치시 | 세종시 |
+전력 원천의 시도·시군구 명칭을 기존 시군구 pilot crosswalk와 매칭했다. 직접 매칭은 `227/229`이고, 군위군·세종시는 수동 규칙으로 보존해 최종 미매칭은 `0`이다.
 
 ## Quality Checks
 
@@ -77,7 +74,7 @@ KEPCO 시군구별 전력사용량 원천 XLSX를 vintage 자료로 보존하고
 | feature_rows | 3664 | Y |
 | total_consistency_failed_rows | 0 | Y |
 | duplicate_feature_keys | 0 | Y |
-| unmatched_regions | 2 | N |
+| unmatched_regions | 0 | Y |
 | negative_total_kwh_rows | 0 | Y |
 | zero_total_kwh_rows | 0 | Y |
 

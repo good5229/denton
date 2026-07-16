@@ -22,3 +22,5 @@ The follow-up data step is summarized in [municipality_new_feature_dataset.md](m
 The latest public-source collection is summarized in [public_feature_source_collection.md](public_feature_source_collection.md). KEPCO 시군구 monthly electricity usage has been collected and normalized as an immediately usable external feature; MOLIT building permits and KICOX factory registration remain acquisition/schema follow-ups.
 
 The electricity feature readiness result is summarized in [electricity_feature_report.md](electricity_feature_report.md), with the operational ML restart decision in [ml_restart_decision.md](ml_restart_decision.md). KEPCO electricity features are ML-ready, but ablation is blocked until a common official-actual evaluation period is available.
+
+The historical KEPCO collection result is summarized in [kepco_historical_electricity_collection.md](kepco_historical_electricity_collection.md). It found 2021-2023 historical electricity coverage for all 36 target months and produced a historical municipality electricity feature table for the next ablation harness.
