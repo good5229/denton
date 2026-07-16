@@ -47,3 +47,5 @@
 | [electricity_feature_report.md](../electricity_feature_report.md) | Electricity feature readiness and ML ablation gating audit |
 | [ml_restart_decision.md](../ml_restart_decision.md) | Municipality ML restart decision after electricity feature integration |
 | [kepco_historical_electricity_collection.md](../kepco_historical_electricity_collection.md) | Historical electricity common-period recovery for municipality ML ablation |
+| [electricity_vintage_aware_dry_run_report.md](../electricity_vintage_aware_dry_run_report.md) | Vintage-aware KEPCO electricity dry-run ablation results |
+| [electricity_feature_acceptance_decision.md](../electricity_feature_acceptance_decision.md) | Electricity feature acceptance status after dry-run |

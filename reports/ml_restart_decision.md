@@ -50,4 +50,4 @@ first_eligible_period <= prediction_origin_period
 
 ## Conclusion
 
-이번 작업의 결론은 “무조건 ML 재개”가 아니라 “공통 평가기간 확보로 dry-run ablation 가능”이다. 다음 실험은 2021~2023 official actual을 대상으로 baseline, global policy, electricity-only를 동일 population에서 비교하되, 모든 feature는 prediction origin 기준 공표 가능 vintage만 사용한다.
+Vintage-aware dry-run 결과 full-strength electricity correction은 악화됐고, alpha=0.25 guardrail 정책은 global 대비 WMAPE를 개선했다. 따라서 현재 결론은 “운영 채택”이 아니라 `guardrailed_candidate_needs_robustness`다. 다음 단계는 bootstrap, future-lead placebo, missingness simulation, leave-one-sido-out, material degradation 검토다.

@@ -1,0 +1,4 @@
+experiment,wmape,improvement_vs_global_pct,interpretation
+region_permutation,6.904764,-26.22604,diagnostic_only
+random_noise,7.074431,-29.327732,diagnostic_only
+latest_source_leakage_benchmark,6.205452,-13.441916,leakage_upper_bound_only

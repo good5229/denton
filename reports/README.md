@@ -24,3 +24,5 @@ The latest public-source collection is summarized in [public_feature_source_coll
 The electricity feature readiness result is summarized in [electricity_feature_report.md](electricity_feature_report.md), with the operational ML restart decision in [ml_restart_decision.md](ml_restart_decision.md). KEPCO electricity features are ML-ready, but ablation is blocked until a common official-actual evaluation period is available.
 
 The historical KEPCO collection result is summarized in [kepco_historical_electricity_collection.md](kepco_historical_electricity_collection.md). It found 2021-2023 historical electricity coverage for all 36 target months and produced a historical municipality electricity feature table for the next ablation harness.
+
+The first vintage-aware electricity dry-run is summarized in [electricity_vintage_aware_dry_run_report.md](electricity_vintage_aware_dry_run_report.md). The current decision is a guardrailed candidate, not operational acceptance.
