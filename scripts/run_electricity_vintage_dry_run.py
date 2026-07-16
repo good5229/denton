@@ -273,6 +273,11 @@ def make_feature_row(
     total_prev_ytd, total_prev_ytd_n = sum_periods(rows_by_period, prev_ytd, "electricity_total_kwh")
     ind_prev_ytd, ind_prev_ytd_n = sum_periods(rows_by_period, prev_ytd, "electricity_industrial_kwh")
     yoy_cov = min(total_ytd_n, total_prev_ytd_n) / max(1, len(ytd_periods)) if ytd_periods else 0.0
+    latest_total = max(float(latest_row.get("electricity_total_kwh") or 0.0), 0.0)
+    latest_industrial = max(float(latest_row.get("electricity_industrial_kwh") or 0.0), 0.0)
+    latest_commercial = max(float(latest_row.get("electricity_commercial_kwh") or 0.0), 0.0)
+    safe_total_t12 = max(total_t12, 0.0)
+    safe_ind_t12 = max(ind_t12, 0.0)
     return {
         "sigungu_feature_key": fkey,
         "target_year": target_year,
@@ -288,17 +293,17 @@ def make_feature_row(
         "sido_name_normalized": latest_row.get("sido_name_normalized", ""),
         "sigungu_name_normalized": latest_row.get("sigungu_name_normalized", ""),
         "sigungu_code": latest_row.get("sigungu_code", ""),
-        "total_latest": float(latest_row.get("electricity_total_kwh") or 0.0),
-        "industrial_latest": float(latest_row.get("electricity_industrial_kwh") or 0.0),
-        "commercial_latest": float(latest_row.get("electricity_commercial_kwh") or 0.0),
-        "log_total_latest": math.log1p(float(latest_row.get("electricity_total_kwh") or 0.0)),
-        "log_industrial_latest": math.log1p(float(latest_row.get("electricity_industrial_kwh") or 0.0)),
+        "total_latest": latest_total,
+        "industrial_latest": latest_industrial,
+        "commercial_latest": latest_commercial,
+        "log_total_latest": math.log1p(latest_total),
+        "log_industrial_latest": math.log1p(latest_industrial),
         "total_trailing12_sum": total_t12,
         "industrial_trailing12_sum": ind_t12,
         "commercial_trailing12_sum": com_t12,
-        "log_total_trailing12_sum": math.log1p(total_t12),
-        "log_industrial_trailing12_sum": math.log1p(ind_t12),
-        "industrial_share_latest": float(latest_row.get("electricity_industrial_kwh") or 0.0) / float(latest_row.get("electricity_total_kwh") or 1.0),
+        "log_total_trailing12_sum": math.log1p(safe_total_t12),
+        "log_industrial_trailing12_sum": math.log1p(safe_ind_t12),
+        "industrial_share_latest": latest_industrial / latest_total if latest_total else 0.0,
         "industrial_share_trailing12": ind_t12 / total_t12 if total_t12 else 0.0,
         "commercial_share_trailing12": com_t12 / total_t12 if total_t12 else 0.0,
         "total_3m_momentum": (total_t3 / total_t3_n) / (total_prev3 / total_prev3_n) - 1 if total_t3_n >= 2 and total_prev3_n >= 2 and total_prev3 else "",

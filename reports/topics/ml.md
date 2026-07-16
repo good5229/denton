@@ -49,3 +49,4 @@
 | [kepco_historical_electricity_collection.md](../kepco_historical_electricity_collection.md) | Historical electricity common-period recovery for municipality ML ablation |
 | [electricity_vintage_aware_dry_run_report.md](../electricity_vintage_aware_dry_run_report.md) | Vintage-aware KEPCO electricity dry-run ablation results |
 | [electricity_feature_acceptance_decision.md](../electricity_feature_acceptance_decision.md) | Electricity feature acceptance status after dry-run |
+| [electricity_guardrail_robustness_round.md](../electricity_guardrail_robustness_round.md) | O1 electricity guardrail robustness, placebo, bootstrap, LOSO, lag, and missingness diagnostics |
