@@ -28,3 +28,5 @@ The historical KEPCO collection result is summarized in [kepco_historical_electr
 The first vintage-aware electricity dry-run is summarized in [electricity_vintage_aware_dry_run_report.md](electricity_vintage_aware_dry_run_report.md). The current decision is a guardrailed candidate, not operational acceptance.
 
 The guardrail robustness round is summarized in [electricity_guardrail_robustness_round.md](electricity_guardrail_robustness_round.md). The current best electricity policy improves pooled O1 WMAPE but remains a refinement candidate because C00 deteriorates while all-sector totals improve.
+
+The all-only refinement round is summarized in [electricity_all_only_refinement_round.md](electricity_all_only_refinement_round.md). It keeps the electricity feature as an all-sector shadow candidate, but does not freeze it as an operating policy because 2023 and placebo gates remain weak.
