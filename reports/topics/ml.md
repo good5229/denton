@@ -44,3 +44,5 @@
 | [municipality_ml_stop_decision.md](../municipality_ml_stop_decision.md) | Municipality ML correction stop decision |
 | [municipality_new_feature_dataset.md](../municipality_new_feature_dataset.md) | New feature mart prepared before restarting municipality ML |
 | [public_feature_source_collection.md](../public_feature_source_collection.md) | Public external feature collection for the next municipality ML restart |
+| [electricity_feature_report.md](../electricity_feature_report.md) | Electricity feature readiness and ML ablation gating audit |
+| [ml_restart_decision.md](../ml_restart_decision.md) | Municipality ML restart decision after electricity feature integration |

@@ -20,3 +20,5 @@ The most recent ML decision is summarized in [municipality_oracle_upper_bound.md
 The follow-up data step is summarized in [municipality_new_feature_dataset.md](municipality_new_feature_dataset.md). It builds a new municipality feature mart from KOSIS structural business statistics, mining/manufacturing 시군구 KSIC statistics, and economic-census 읍면동 proxy data before any future ML restart.
 
 The latest public-source collection is summarized in [public_feature_source_collection.md](public_feature_source_collection.md). KEPCO 시군구 monthly electricity usage has been collected and normalized as an immediately usable external feature; MOLIT building permits and KICOX factory registration remain acquisition/schema follow-ups.
+
+The electricity feature readiness result is summarized in [electricity_feature_report.md](electricity_feature_report.md), with the operational ML restart decision in [ml_restart_decision.md](ml_restart_decision.md). KEPCO electricity features are ML-ready, but ablation is blocked until a common official-actual evaluation period is available.
