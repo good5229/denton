@@ -171,15 +171,80 @@ Generated artifacts:
 
 ## 건축HUB Operation Inventory
 
-Not started. D1 결과상 기본개요 endpoint의 `startDate/endDate` 의미가 충분히 명확하지 않으므로, 다음 단계에서는 허가·착공·사용승인별 공식 operation 또는 별도 endpoint 존재 여부를 먼저 조사한다.
+O1을 실행했다. 공공데이터포털의 `국토교통부_건축HUB_건축인허가정보 서비스` API 목록과 건축HUB Open API 안내를 기준으로 건축인허가 operation 17개를 inventory화하고, 각 endpoint에 대해 `sigunguCd=11680`, `bjdongCd=10300`, `numOfRows=1` 원칙으로 1행 probe를 수행했다.
+
+| item | result |
+| --- | --- |
+| operation candidates | 17 |
+| probe policy | endpoint별 1행, 대량 수집 없음 |
+| successful probe responses | 17 |
+| actual row operations | 17 |
+| permit/start/approval-specific operation | not found |
+| mixed event field operation | `getApBasisOulnInfo` |
+| mixed event fields | `archPmsDay`, `realStcnsDay`, `useAprDay` |
+| selected event-specific route | none |
+
+`getApBasisOulnInfo`는 허가일·실제착공일·사용승인일 필드를 모두 포함하지만 D1에서 `startDate/endDate` 필터 의미 검증을 통과하지 못했다. 나머지 operation은 동별개요, 층별개요, 호별개요, 대수선, 전유공용면적, 공작물관리대장, 철거멸실관리대장, 가설건축물, 오수정화시설, 주차장, 부설주차장, 호별전유공용면적, 지역지구구역, 도로명대장, 대지위치, 주택유형 등 상세 속성 조회이며 permit/start/approval 전용 event endpoint로 보지 않는다.
+
+Generated artifacts:
+
+- `data/processed/buildinghub_operation_inventory.csv`
+- `data/processed/buildinghub_event_endpoint_probe.csv`
+
+## 건축HUB Event-specific Operation Inventory
+
+Current decision: `event_specific_endpoint_found = false`.
+
+공식 API 목록에는 `착공신고`, `실제착공`, `사용승인`, `허가취소`를 각각 독립적으로 조회하는 operation이 확인되지 않았다. 따라서 현재 단계에서는 event-specific API route를 선택하지 않는다. 다음 경로는 bulk historical route 확인 또는 broad collection + event-date post-filter pilot이다.
 
 ## 건축HUB Bulk Download Feasibility
 
-Not started in this phase. 대용량 historical archive가 존재하면 API 전수 수집보다 우선한다. D1이 block 상태이므로 다음 phase에서 operation inventory와 함께 bulk route를 재검증한다.
+B1을 실행했다. 건축HUB의 `원하는대로 건축데이터`, `대용량 제공 서비스`, 공공데이터포털 OpenAPI/표준데이터 페이지를 확인했다.
+
+| item | result |
+| --- | --- |
+| checked pages | 4 |
+| bulk route mention | yes |
+| provided themes observed | 건축인허가, 건축물대장, 주택인허가, 건물에너지 등 |
+| file formats observed | CSV, JSON, XLSX |
+| monthly update signal | yes |
+| login/member signal | yes |
+| unauthenticated direct download confirmed | no |
+| historical monthly vintage confirmed | no |
+| historical archive usable for pipeline | not confirmed |
+
+건축HUB 페이지는 대용량 데이터 제공 서비스가 존재하며, 운영 중인 세움터 현황 데이터를 월 단위로 생성한다는 신호를 제공한다. 또한 최근 월 대용량 데이터는 전월까지의 갱신데이터를 익월 20일 전후 제공한다는 설명이 확인된다. 다만 현재 자동 probe에서는 로그인 없이 직접 받을 수 있는 historical archive 파일 URL이나 월별 vintage 보존 구조를 확인하지 못했다.
+
+Generated artifact:
+
+- `data/processed/buildinghub_bulk_download_inventory.csv`
+
+## 건축HUB Bulk Historical Route
+
+Current decision: `historical_bulk_route = not_confirmed`.
+
+대용량 route는 존재하지만 바로 production pipeline의 primary route로 전환할 수 없다. 이유는 다음과 같다.
+
+- 직접 다운로드 URL이 확인되지 않았다.
+- 과거 월별 vintage가 보존되는지 확인되지 않았다.
+- 로그인 또는 회원 권한이 필요한 흐름으로 보인다.
+- 파일별 공개시점과 revision policy가 아직 확인되지 않았다.
+
+따라서 bulk route는 계속 우선 후보로 유지하되, 현재 단계에서는 `switch_to_bulk_pipeline` 판정을 내리지 않는다.
 
 ## 건축HUB Request Budget
 
 이번 D1은 540개 제한 probe로 수행했다. 전국 실행은 여전히 금지한다. 현재 단순 월별 전국 totalCount inventory 예상치는 729,936회이며, D1 결과상 이 요청량을 감수할 만큼 event semantics가 확정되지 않았다.
+
+O1/B1 이후에도 전국 실행은 금지한다. Event-specific endpoint가 없고 직접 historical bulk route도 확인되지 않았으므로, 다음 실험은 소규모 broad collection + event-date post-filter pilot이어야 한다. 이 pilot에서도 먼저 5개 지역·2023년·연간/반기/분기/월 query recall만 비교하고 전국으로 확장하지 않는다.
+
+## 건축HUB Broad Collection Pilot
+
+Not started. 실행 조건은 `event_specific_endpoint = not_found`와 `historical_bulk_route = not_available`이다. 현재 O1에서 event-specific endpoint는 찾지 못했지만, B1에서 bulk route는 존재 신호가 있으나 직접 archive가 미확인 상태다. 따라서 broad pilot은 다음 단계에서 수동 검토 또는 추가 bulk 접근 확인 후 진행한다.
+
+## 건축 Event Post-filter Recall
+
+Not started. Broad collection pilot을 실행한 뒤에만 연간·반기·분기·월별 query의 event recall을 비교한다. 기준 event date는 계속 `permit=archPmsDay`, `start=realStcnsDay`, `approval=useAprDay`로 유지하며, query 기간을 observation period로 직접 사용하지 않는다.
 
 ## 건축HUB Historical Vintage Feasibility
 
@@ -226,15 +291,15 @@ Required future outputs:
 
 ## 건축HUB Final Source Status
 
-Current status: `blocked`.
+Current status: `blocked_pending_broad_collection_pilot`.
 
-Reason: D1 event semantics gate failed. 기본개요 endpoint의 `startDate/endDate`는 permit/start/approval 중 어떤 이벤트 날짜도 95% 기준으로 안정적으로 설명하지 못했다. 특히 approval은 가장 높은 target 반환율을 보였지만 90%로 기준에 미달했고, permit/start는 훨씬 낮았다.
+Reason: D1 event semantics gate failed, O1에서 permit/start/approval 전용 operation을 찾지 못했고, B1에서 비로그인 직접 historical bulk archive를 확인하지 못했다. 기본개요 endpoint의 `startDate/endDate`는 permit/start/approval 중 어떤 이벤트 날짜도 95% 기준으로 안정적으로 설명하지 못했다. 특히 approval은 가장 높은 target 반환율을 보였지만 90%로 기준에 미달했고, permit/start는 훨씬 낮았다.
 
 Allowed next actions:
 
-- 공식 operation inventory에서 event-specific endpoint를 찾는다.
-- 대용량 historical file 또는 snapshot route를 재검증한다.
-- broad collection 후 `archPmsDay`, `realStcnsDay`, `useAprDay`로 사후 필터링하는 방식의 traffic budget을 별도로 추정한다.
+- 건축HUB 대용량 데이터 제공 화면에서 직접 파일 접근 가능 여부를 수동 확인한다.
+- 수동 확인에서도 historical bulk archive가 없으면 5개 지역·2023년 broad collection pilot을 실행한다.
+- broad collection 후 `archPmsDay`, `realStcnsDay`, `useAprDay`로 사후 필터링하는 방식의 recall과 traffic budget을 별도로 추정한다.
 
 Prohibited actions:
 
