@@ -408,14 +408,34 @@ def decide_challenger(gates: list[dict[str, Any]], metrics: list[dict[str, Any]]
     return "none", "no_candidate_passed_all_preconfirmatory_gates"
 
 
-def write_manifest(challenger: str, reason: str, gates: list[dict[str, Any]], metrics: list[dict[str, Any]]) -> None:
+def write_manifest(challenger: str, reason: str, gates: list[dict[str, Any]], metrics: list[dict[str, Any]], selection_rows: list[dict[str, Any]]) -> None:
     selected_cfg = next((c for c in challenger_configs() if c["policy"] == challenger), None)
+    strict_selection_p = next(
+        (float(r["probability_of_improvement"]) for r in selection_rows if r.get("summary_type") == "selection_aware_delta"),
+        None,
+    )
     manifest = {
+        "champion": "global",
+        "challenger": None if challenger == "none" else challenger,
         "confirmatory_challenger": challenger,
         "selection_reason": reason,
+        "electricity_only_policy_status": "closed_no_confirmatory_challenger" if challenger == "none" else "frozen_shadow_challenger",
         "operating_policy": "global",
-        "production_replacement": "prohibited",
+        "production_replacement": False,
+        "production_replacement_status": "prohibited",
         "shadow_evaluation": "allowed" if challenger != "none" else "disabled",
+        "same_actual_retuning_allowed": False,
+        "strict_selection_aware_p_improve": strict_selection_p,
+        "same_actual_retuning_prohibited_actions": [
+            "new_alpha_search",
+            "alpha_grid_refinement",
+            "clipping_change",
+            "feature_bundle_change",
+            "residual_target_change",
+            "R2_R3b_mixing",
+            "region_specific_policy_selection",
+            "gate_relaxation_after_result",
+        ],
         "policy_version": "electricity_preconfirmatory_selection_v1",
         "feature_bundle": selected_cfg["bundle"] if selected_cfg else "",
         "feature_source_version": "kepco_historical_vintage_selector_v1",
@@ -513,14 +533,34 @@ def write_report(
             "",
             f"- confirmatory challenger: `{challenger}`",
             "- operating policy remains: `global`",
+            "- electricity-only policy status: `closed_no_confirmatory_challenger`",
             "- C00 policy: global fallback",
             "- D00 policy: global fallback",
             "- no additional 2022-2023 tuning is allowed after this report",
             "- if challenger is `none`, electricity-only policy remains research candidate only",
+            "- unused official actual is not automatically assigned to R2/R3b confirmatory evaluation because no challenger is frozen",
+            "",
+            "## 전력 Feature 최종 해석",
+            "",
+            "- regional scale signal: present",
+            "- cross-sectional structure signal: present",
+            "- tail degradation: not observed",
+            "- standalone residual correction: unsupported",
+            "- stable temporal signal: insufficient",
+            "- future use: auxiliary or interaction variable with factory, industrial complex, building, business, or employment sources",
+            "",
+            "## 종료 규칙",
+            "",
+            "- same-actual retuning allowed: `false`",
+            "- 2022-2023 actual role: development actual only",
+            "- R2/R3b production use: prohibited",
+            "- R2/R3b confirmatory use: prohibited",
+            "- future ML restart requires at least one non-electricity structural source to be ML-ready, preregistration committed, candidate bundles frozen, and acceptance gates frozen",
             "",
             "## Manifest 요약",
             "",
             f"- manifest: `data/processed/{MANIFEST_PATH.name}`",
+            "- manifest challenger: `null` when `confirmatory_challenger` is `none`",
             "- confirmatory actual: 2024 이후 또는 최초 미사용 official actual",
             "- confirmatory failure action: reject frozen challenger and retain global; no same-actual retuning",
         ]
@@ -586,7 +626,7 @@ def main() -> int:
     write_csv(PROCESSED_DIR / "electricity_r2_r3b_large_removal.csv", large_rows)
     write_csv(PROCESSED_DIR / "electricity_r2_r3b_degradation.csv", degradation_rows)
 
-    write_manifest(challenger, reason, gates, metrics)
+    write_manifest(challenger, reason, gates, metrics, selection_rows)
     write_report(metrics, year_rows, selection_rows, placebo_rows, loso_summary_rows, large_rows, missing_rows, gates, challenger, reason)
     print(f"panel rows: {len(panel)}")
     print(f"confirmatory challenger: {challenger}")

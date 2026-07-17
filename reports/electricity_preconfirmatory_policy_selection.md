@@ -126,13 +126,33 @@
 
 - confirmatory challenger: `none`
 - operating policy remains: `global`
+- electricity-only policy status: `closed_no_confirmatory_challenger`
 - C00 policy: global fallback
 - D00 policy: global fallback
 - no additional 2022-2023 tuning is allowed after this report
 - if challenger is `none`, electricity-only policy remains research candidate only
+- unused official actual is not automatically assigned to R2/R3b confirmatory evaluation because no challenger is frozen
+
+## 전력 Feature 최종 해석
+
+- regional scale signal: present
+- cross-sectional structure signal: present
+- tail degradation: not observed
+- standalone residual correction: unsupported
+- stable temporal signal: insufficient
+- future use: auxiliary or interaction variable with factory, industrial complex, building, business, or employment sources
+
+## 종료 규칙
+
+- same-actual retuning allowed: `false`
+- 2022-2023 actual role: development actual only
+- R2/R3b production use: prohibited
+- R2/R3b confirmatory use: prohibited
+- future ML restart requires at least one non-electricity structural source to be ML-ready, preregistration committed, candidate bundles frozen, and acceptance gates frozen
 
 ## Manifest 요약
 
 - manifest: `data/processed/electricity_confirmatory_challenger_manifest.json`
+- manifest challenger: `null` when `confirmatory_challenger` is `none`
 - confirmatory actual: 2024 이후 또는 최초 미사용 official actual
 - confirmatory failure action: reject frozen challenger and retain global; no same-actual retuning
