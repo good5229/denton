@@ -15,5 +15,6 @@
 | [electricity_vintage_aware_dry_run_report.md](../electricity_vintage_aware_dry_run_report.md) | Prediction-origin as-of electricity feature cube and dry-run model inputs |
 | [next_structural_feature_workstreams.md](../next_structural_feature_workstreams.md) | Factory, industrial complex, building, business/employment, and electricity-maintenance source status |
 | [next_structural_feature_experiment_protocol.md](../next_structural_feature_experiment_protocol.md) | Data coverage, publication-lag, and vintage gates before structural-feature ML restart |
+| [structural_feature_phase0_readiness.md](../structural_feature_phase0_readiness.md) | Phase 0 source gate matrix and restart manifest for post-electricity structural features |
 | [eupmyeondong_data_sources.md](../eupmyeondong_data_sources.md) | 읍면동 data source scan |
 | [seoul_emd_latest_proxy_update.md](../seoul_emd_latest_proxy_update.md) | Seoul EMD latest proxy update |

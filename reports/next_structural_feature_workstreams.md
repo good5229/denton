@@ -445,3 +445,7 @@ frozen structural challenger가 없으므로 2024 이후 official actual을 conf
 | 국토교통부_건축인허가 기본개요 | https://www.data.go.kr/data/15044695/fileData.do?recommendDataYn=Y | 건축HUB 대용량/공공데이터포털 경로 확인 | external link; direct file download is outside data.go.kr contentUrl | N_file_or_external_download_route |
 | 지방행정인허가데이터개방 Open API | https://www.localdata.go.kr/devcenter/applyGroupApi.do?menuNo=20002 | LOCALDATA 별도 API 신청 | user_reported_api_page_unavailable_2026-07-17 | Y_or_confirm_existing_approval |
 | 소상공인시장진흥공단_상가(상권)정보 | https://www.data.go.kr/data/15012005/openapi.do | 공공데이터포털 활용신청 | sample rows downloaded only; full historical inventory and gates not completed | N_api_sample_reachable |
+
+## Phase 0 Structural Source Gate
+
+최신 Phase 0 판정은 `reports/structural_feature_phase0_readiness.md`에 별도 정리했다. 현재 ML 재개 판단은 `blocked_no_ml_ready_structural_source`이며, 전력 feature는 standalone correction이 아니라 structural source 통과 이후의 interaction/auxiliary 변수로만 유지한다.
