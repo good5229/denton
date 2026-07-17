@@ -53,3 +53,5 @@
 | [electricity_all_only_refinement_round.md](../electricity_all_only_refinement_round.md) | All-only electricity shadow-policy refinement and confirmatory gate decision |
 | [electricity_preconfirmatory_policy_selection.md](../electricity_preconfirmatory_policy_selection.md) | Final R2/R3b electricity challenger selection before confirmatory actual |
 | [electricity_only_policy_closure_and_next_workstreams.md](../electricity_only_policy_closure_and_next_workstreams.md) | Electricity-only policy closure, temporal signal diagnostics, and next structural feature workstreams |
+| [next_structural_feature_workstreams.md](../next_structural_feature_workstreams.md) | Post-electricity structural feature workstreams and ML restart gates |
+| [next_structural_feature_experiment_protocol.md](../next_structural_feature_experiment_protocol.md) | Preregistered guardrails required before any new structural-feature ML restart |
