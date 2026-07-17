@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import csv
 import json
 import re
 import ssl
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
@@ -87,10 +89,90 @@ def legal_code_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def local_legal_dong_text_files() -> list[Path]:
+    raw_dir = RAW_DIR / "buildinghub"
+    if not raw_dir.exists():
+        return []
+    candidates = []
+    for path in raw_dir.iterdir():
+        if path.suffix.lower() != ".txt":
+            continue
+        normalized = unicodedata.normalize("NFC", path.name)
+        score = 0
+        if "법정동코드" in normalized:
+            score += 3
+        if "전체자료" in normalized:
+            score += 2
+        if "법정" in normalized:
+            score += 1
+        candidates.append((score, path.stat().st_mtime, path))
+    return [item[2] for item in sorted(candidates, reverse=True)]
+
+
+def parse_local_legal_dong_text(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    raw = path.read_bytes()
+    last_error = ""
+    for encoding in ("cp949", "euc-kr", "utf-8-sig", "utf-8"):
+        try:
+            text = raw.decode(encoding)
+        except UnicodeDecodeError as exc:
+            last_error = repr(exc)
+            continue
+        delimiter = "\t" if "\t" in text.splitlines()[0] else ","
+        reader = csv.DictReader(text.splitlines(), delimiter=delimiter)
+        rows = []
+        for record in reader:
+            region_cd = str(record.get("법정동코드") or record.get("region_cd") or record.get("지역코드") or "").strip()
+            address = str(record.get("법정동명") or record.get("locatadd_nm") or record.get("지역주소명") or "").strip()
+            abolished_value = str(record.get("폐지여부") or record.get("폐지구분") or record.get("비고") or "").strip()
+            if not region_cd and not address:
+                continue
+            locat_rm = "" if abolished_value in {"", "존재", "0", "N", "n"} else abolished_value
+            rows.append(
+                {
+                    "region_cd": region_cd,
+                    "sido_cd": region_cd[:2],
+                    "sgg_cd": region_cd[2:5],
+                    "umd_cd": region_cd[5:8],
+                    "ri_cd": region_cd[8:10],
+                    "locatadd_nm": address,
+                    "locat_order": "",
+                    "locat_rm": locat_rm,
+                    "adpt_de": "",
+                    "raw_status": abolished_value,
+                }
+            )
+        return rows, {
+            "source": "local_official_legal_dong_text",
+            "path": str(path),
+            "encoding": encoding,
+            "delimiter": "\\t" if delimiter == "\t" else delimiter,
+            "retrieval_date": TODAY,
+            "raw_rows": len(rows),
+        }
+    raise RuntimeError(f"Failed to decode local legal dong text {path}: {last_error}")
+
+
+def load_local_legal_dong_codes() -> tuple[list[dict[str, Any]], dict[str, Any]] | None:
+    for path in local_legal_dong_text_files():
+        rows, meta = parse_local_legal_dong_text(path)
+        if rows:
+            return rows, {"StanReginCd": [{"row": rows}], "_request_meta": meta}
+    return None
+
+
 def fetch_legal_dong_codes() -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    key = data_go_key()
     raw_dir = RAW_DIR / "buildinghub"
     raw_dir.mkdir(parents=True, exist_ok=True)
+    local_result = load_local_legal_dong_codes()
+    if local_result:
+        rows, payload = local_result
+        cache_path = raw_dir / f"local_legal_dong_text_{datetime.now().strftime('%Y%m%d')}.json"
+        if not cache_path.exists():
+            write_json(cache_path, payload)
+        return rows, payload
+
+    key = data_go_key()
     cache_path = raw_dir / f"stanregincd_legal_dong_{datetime.now().strftime('%Y%m%d')}.json"
     if cache_path.exists():
         payload = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -276,6 +358,23 @@ def schema_hash_from_items(items: list[dict[str, Any]]) -> str:
     return hashlib.sha256("|".join(fields).encode("utf-8")).hexdigest()[:16] if fields else ""
 
 
+def sample_date_alignment(items: list[dict[str, Any]], request_month: str) -> dict[str, Any]:
+    date_fields = ("archPmsDay", "realStcnsDay", "useAprDay")
+    observed_dates = []
+    aligned_rows = 0
+    for item in items:
+        dates = [str(item.get(field) or "").strip() for field in date_fields]
+        dates = [value for value in dates if re.fullmatch(r"\d{8}", value)]
+        observed_dates.extend(dates)
+        if any(value[:6] == request_month for value in dates):
+            aligned_rows += 1
+    return {
+        "sample_rows_with_requested_month_date": aligned_rows,
+        "sample_observed_date_min": min(observed_dates) if observed_dates else "",
+        "sample_observed_date_max": max(observed_dates) if observed_dates else "",
+    }
+
+
 def historical_inventory_rows(universe: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     key = data_go_key()
     base = {"serviceKey": key, "_type": "json", "pageNo": 1, "numOfRows": 1}
@@ -298,6 +397,7 @@ def historical_inventory_rows(universe: list[dict[str, Any]]) -> tuple[list[dict
             data = payload.get("data", {})
             body = data.get("response", {}).get("body", {}) if isinstance(data, dict) else {}
             items = response_items(payload)
+            alignment = sample_date_alignment(items, month)
             for item in items:
                 samples_by_key[str(item.get("mgmPmsrgstPk") or item)] = item
             inventory.append(
@@ -311,6 +411,7 @@ def historical_inventory_rows(universe: list[dict[str, Any]]) -> tuple[list[dict
                     "returned_rows": len(items),
                     "response_status": response_status(payload),
                     "schema_hash": schema_hash_from_items(items),
+                    **alignment,
                     "retrieval_date": TODAY,
                 }
             )
