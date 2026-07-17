@@ -9,6 +9,7 @@
 - 사용자가 건축HUB 활용승인 완료를 확인했으며, 서울 열린데이터광장 키(`SEOUL_OPENAPI_KEY`)도 `.env`에 추가했다.
 - LOCALDATA는 API 페이지 접근 자체가 되지 않는 상태로 보고되어 현재 workstream에서는 보류한다.
 - 건축HUB 전용 readiness probe를 추가해 schema, request manifest, 날짜 품질, 용도/지역 sample crosswalk, feature pilot 산출물을 생성했다. 새 ML 학습은 실행하지 않았다.
+- 건축HUB Pre-ML readiness 실험에서 공식 법정동 request universe 구축을 시도했으나 `행정안전부_행정표준코드_법정동코드` API가 403을 반환했고, code.go.kr 다운로드 fallback은 header-only 파일로 내려와 공식 코드표를 확보하지 못했다. 따라서 전국 historical inventory는 시작하지 않았다.
 
 ## 2. 현재 ML 상태
 
@@ -71,6 +72,84 @@ Generated artifacts:
 - `data/processed/buildinghub_region_crosswalk.csv`
 - `data/processed/buildinghub_feature_table_pilot.csv`
 - `data/processed/buildinghub_ml_ready_gate_status.csv`
+- `data/processed/buildinghub_legal_dong_request_universe.csv`
+- `data/processed/buildinghub_historical_inventory.csv`
+- `data/processed/buildinghub_monthly_total_count.csv`
+- `data/processed/buildinghub_collection_budget.json`
+- `data/processed/buildinghub_historical_schema_audit.csv`
+- `data/processed/buildinghub_purpose_code_inventory.csv`
+- `data/processed/buildinghub_official_region_crosswalk.csv`
+- `data/processed/buildinghub_publication_lag_audit.csv`
+- `data/processed/buildinghub_snapshot_revision_audit.csv`
+- `data/processed/buildinghub_feature_table.csv`
+- `data/processed/buildinghub_final_ml_readiness.json`
+
+## 건축HUB Request Universe
+
+| item | result |
+| --- | --- |
+| official source | 행정안전부_행정표준코드_법정동코드 |
+| data.go.kr endpoint | `http://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList` |
+| API result | HTTP 403 for all tested service key variants |
+| code.go.kr fallback | official download endpoint found, but downloaded workbook contained header only under current request |
+| request universe rows | 0 |
+| status | blocked |
+| required user action | 공공데이터포털 `행정안전부_행정표준코드_법정동코드` 활용신청/승인 확인 또는 공식 법정동코드 전체자료 파일 제공 |
+
+Request universe는 건축HUB 전국 수집의 선행조건이다. `bjdongCd` 생략 또는 빈 값 조회를 전국 수집 방식으로 사용하지 않는다.
+
+## 건축HUB Historical Inventory
+
+| item | result |
+| --- | --- |
+| representative months | `202101`, `202106`, `202112`, `202201`, `202206`, `202212`, `202301`, `202306`, `202312` |
+| pilot inventory requests | 0 |
+| reason | official legal-dong request universe unavailable |
+| full inventory decision | not started |
+
+2021~2023 전체 row 수집은 진행하지 않았다. 법정동 request universe가 완성된 뒤에도 먼저 월별 `totalCount` inventory와 request budget을 확정해야 한다.
+
+## 건축 Event 날짜 품질
+
+기존 sample probe 기준으로 허가일은 `archPmsDay`, 실제 착공일은 `realStcnsDay`, 사용승인일은 `useAprDay`로 분리한다. 이번 Pre-ML 실험에서는 공식 법정동코드 blocker 때문에 historical row가 추가되지 않아 날짜 품질 지표는 sample 수준을 넘지 못했다.
+
+## 건축 주용도 Mapping
+
+Sample 기반 rule은 존재하지만 전체 관측 코드 목록이 없으므로 확정 mapping으로 사용하지 않는다. `buildinghub_purpose_code_inventory.csv`는 현재 blocker row를 포함하며, 전체 코드 inventory 확보 후 `unknown_purpose_rate <= 0.05` 기준을 다시 평가한다.
+
+## 건축 지역 Coverage
+
+공식 법정동 코드표가 없으므로 `sigunguCd`/`bjdongCd` 기반 공식 crosswalk를 만들지 못했다. 현재 `buildinghub_region_crosswalk.csv`는 sample `platPlc` 문자열 파싱 결과에 불과하며, official actual 모집단 coverage 계산에는 사용하지 않는다.
+
+## 건축 Publication Lag
+
+`buildinghub_publication_lag_audit.csv`에 V0~V3 후보 규칙을 기록했다. 다만 monthly snapshot revision audit가 아직 baseline 이상으로 쌓이지 않았으므로 `publication_date`와 `first_eligible_period`는 구현하지 않는다.
+
+## 건축 Feature Pilot
+
+기존 `buildinghub_feature_table_pilot.csv`는 sample row 기반 pilot이고, 신규 `buildinghub_feature_table.csv`는 request universe blocker 때문에 production feature table로 생성되지 않았다. F00/L00 모델 학습에는 사용할 수 없다.
+
+## 서울 열린데이터 교차검증
+
+`SEOUL_OPENAPI_KEY`는 `.env`에 존재하지만, 이번 단계에서는 건축HUB request universe가 막혀 서울 열린데이터와 동일 기간·동일 지역 비교를 진행하지 않았다. 서울 열린데이터는 전국 source가 아니라 validation pilot으로만 사용한다.
+
+## 건축HUB ML-ready 최종 판정
+
+| gate | status |
+| --- | --- |
+| Access | pass |
+| Schema probe | pass |
+| Request universe | blocked |
+| Historical inventory | blocked |
+| Region crosswalk | blocked |
+| Coverage | not complete |
+| Purpose mapping | not complete |
+| Publication lag | not complete |
+| First eligible period | not implemented |
+| Feature table | pilot only / blocked for production |
+| Final status | blocked |
+
+현재 차단 조건은 모델 문제가 아니라 공식 법정동 코드표 접근 문제다. 공공데이터포털 `행정안전부_행정표준코드_법정동코드` 활용신청이 키에 연결되거나, 공식 법정동코드 전체자료 파일이 제공되면 다음 단계로 진행한다.
 
 ## 7. 사업체·고용 Source 평가
 
