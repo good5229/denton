@@ -58,3 +58,4 @@
 | [structural_feature_phase0_readiness.md](../structural_feature_phase0_readiness.md) | Phase 0 structural-source gate decision before Ridge/ElasticNet restart |
 | [structural_feature_phase1_readiness.md](../structural_feature_phase1_readiness.md) | Phase 1 Korea geography context and source-readiness gates without model training |
 | [structural_phase2_long_running_data_discovery.md](../structural_phase2_long_running_data_discovery.md) | Phase 2 source discovery and ML restart block decision with no new model training |
+| [structural_phase3_data_native_ksic_and_spatial_readiness.md](../structural_phase3_data_native_ksic_and_spatial_readiness.md) | Phase 3 KSIC/spatial foundation gates; Spatial passes but model training remains prohibited pending structural history and mapping readiness |
