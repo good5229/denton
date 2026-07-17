@@ -8,6 +8,7 @@
 - 파일데이터 다운로드는 API 일일 트래픽을 소비하지 않는 `contentUrl` 직접 다운로드 경로를 우선 사용한다.
 - 사용자가 건축HUB 활용승인 완료를 확인했으며, 서울 열린데이터광장 키(`SEOUL_OPENAPI_KEY`)도 `.env`에 추가했다.
 - LOCALDATA는 API 페이지 접근 자체가 되지 않는 상태로 보고되어 현재 workstream에서는 보류한다.
+- 건축HUB 전용 readiness probe를 추가해 schema, request manifest, 날짜 품질, 용도/지역 sample crosswalk, feature pilot 산출물을 생성했다. 새 ML 학습은 실행하지 않았다.
 
 ## 2. 현재 ML 상태
 
@@ -40,7 +41,36 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 | source | access | rows | blocking issue |
 | --- | --- | ---: | --- |
 | 국토교통부_건축인허가 기본개요 | external_link_confirmed | 0 | external link; direct file download is outside data.go.kr contentUrl |
-| 국토교통부_건축HUB_건축인허가 기본개요 | sample_downloaded | 1 | sample rows downloaded only; full historical inventory and gates not completed |
+| 국토교통부_건축HUB_건축인허가 기본개요 | sample_downloaded | 5 unique sample rows | schema 42 fields; historical/query probe logged; full inventory and gates not completed |
+
+### 6.1 건축HUB Readiness Probe
+
+| item | result |
+| --- | --- |
+| request headers | `User-Agent: Mozilla/5.0`, `Accept: application/json, application/xml, text/xml, */*` required |
+| successful sample query | `sigunguCd=11680`, `bjdongCd=10300`, `numOfRows=1` |
+| schema fields | 42 |
+| unique sample rows | 5 |
+| request manifest rows | 9 |
+| `bjdongCd` omitted | body exists but no usable rows; not accepted as sigungu-wide collection route |
+| `bjdongCd` empty | normal response, `totalCount=0` |
+| representative legal-dong probes | Jongno and Busan Haeundae returned rows |
+| historical month probes | 2021-01 and 2022-01 returned 0 for Gangnam/gaepo; 2023-01 and 2023-12 returned rows |
+| start-date field mapping | actual response uses `realStcnsDay`, not `stcnsDay` |
+| publication lag | still unknown; retrieval snapshot preserved but first eligible period not implemented |
+
+Generated artifacts:
+
+- `data/processed/buildinghub_response_schema.json`
+- `data/processed/buildinghub_sample_row.csv`
+- `data/processed/buildinghub_schema_fingerprint.csv`
+- `data/processed/buildinghub_request_manifest.csv`
+- `data/processed/buildinghub_date_quality_audit.csv`
+- `data/processed/buildinghub_event_sequence_audit.csv`
+- `data/processed/buildinghub_main_purpose_crosswalk.csv`
+- `data/processed/buildinghub_region_crosswalk.csv`
+- `data/processed/buildinghub_feature_table_pilot.csv`
+- `data/processed/buildinghub_ml_ready_gate_status.csv`
 
 ## 7. 사업체·고용 Source 평가
 
@@ -63,6 +93,7 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 | data_go_kr_industrial_complex_prd_api | blocked | blocked | blocked | Complete historical inventory, regional coverage, publication lag, and quality gates before ML use |
 | data_go_kr_buildinghub_ap_basis | sample_downloaded | parser_development | blocked | Complete historical inventory, regional coverage, publication lag, and quality gates before ML use |
 | data_go_kr_small_shop_large_upjong_api | sample_downloaded | parser_development | blocked | Complete historical inventory, regional coverage, publication lag, and quality gates before ML use |
+| seoul_open_data | credential_available | not_started | pilot_only | 후보 endpoint inventory 및 1행 probe |
 | localdata_business_license_delta_api | blocked | blocked | blocked | 공공데이터포털 키가 아니라 LOCALDATA 개발용/운영용 API 신청이 필요하며 API는 변동분 중심이다. |
 
 ## 9. Coverage
@@ -75,17 +106,20 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 
 - 공장등록 snapshot 파일은 공개 페이지의 등록일을 보수적 publication date로 사용할 수 있다.
 - 건축HUB는 월간 갱신으로 공표되지만 prediction-origin별 `first_eligible_period`는 샘플 확보 후 실제 응답/갱신일 기준으로 다시 고정한다.
+- 건축HUB retrieval snapshot은 `data/raw/buildinghub/vintage_YYYYMMDD/`에 저장했다. 다만 historical publication lag는 아직 검증되지 않았으므로 과거 observation의 최초 공개일로 소급 사용하지 않는다.
 - API source는 승인 확인용 1행 probe만 수행했으므로 publication lag 측정에는 아직 쓰지 않는다.
 
 ## 11. Region Crosswalk
 
 - 공장등록 주소 기반 `sido/sigungu` 1차 parser는 스크립트에 구현했다.
+- 건축HUB sample crosswalk는 `platPlc` 문자열을 파싱한 임시 mapping이다. 전체 수집 전 공식 법정동 코드표를 확보해 `sigunguCd`, `bjdongCd` 기반 crosswalk로 교체해야 한다.
 - 최종 ML-ready에는 official actual 시군구 모집단 기준 `unmatched_regions = 0`이 필요하다.
 - 세종, 통합시, 행정구가 있는 시 지역은 별도 crosswalk rule을 보존해야 한다.
 
 ## 12. Feature Table
 
 - `factory_feature_table.csv`: annual snapshot 기반 `active_factory_count_snapshot`, `industrial_complex_factory_share_snapshot` 생성.
+- `buildinghub_feature_table_pilot.csv`: 샘플 row에서 유효한 허가/착공/사용승인 날짜가 있는 경우에만 pilot feature를 생성한다. `first_eligible_period`는 publication lag audit 전까지 비워 둔다.
 - `sigungu_feature_key`, `observation_period`, `prediction_origin`, `feature_name`, `feature_value`, `first_eligible_period`, `source_version` 형식을 사용한다.
 - 등록일·폐쇄일이 없으면 flow feature와 월/분기 stock 복원은 만들지 않는다.
 
@@ -99,7 +133,7 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 | data_go_kr_molit_building_permit_basic_link | blocked | external link; direct file download is outside data.go.kr contentUrl |
 | data_go_kr_factory_realtime_api | blocked | "<response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response>" |
 | data_go_kr_industrial_complex_prd_api | blocked | "<response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response>" |
-| data_go_kr_buildinghub_ap_basis | not_started | sample rows downloaded only; full historical inventory and gates not completed |
+| data_go_kr_buildinghub_ap_basis | quality_validation | schema/date/query probe complete for sample; full historical inventory, official crosswalk, publication lag not completed |
 | data_go_kr_small_shop_large_upjong_api | not_started | sample rows downloaded only; full historical inventory and gates not completed |
 | localdata_business_license_delta_api | blocked | user_reported_api_page_unavailable_2026-07-17 |
 
@@ -113,7 +147,7 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 | data_go_kr_molit_building_permit_basic_link | fail | hub_bulk_download | Y | no | blocked |
 | data_go_kr_factory_realtime_api | fail | not_verified | not_verified | no | blocked |
 | data_go_kr_industrial_complex_prd_api | fail | not_verified | not_verified | no | blocked |
-| data_go_kr_buildinghub_ap_basis | pass | not_verified | not_verified | partial | blocked |
+| data_go_kr_buildinghub_ap_basis | pass | probe_only | partial_snapshot | partial | blocked |
 | data_go_kr_small_shop_large_upjong_api | pass | not_verified | not_verified | partial | blocked |
 | localdata_business_license_delta_api | fail | not_verified | not_verified | no | blocked |
 
@@ -121,8 +155,8 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 
 - 파일데이터형 source는 활용신청 대상이 아니라 다운로드/스키마/파서/교차표 검증 대상이다.
 - `unauthorized` API와 소상공인시장진흥공단 상가정보 API는 사용자가 활용신청을 완료했으므로, 승인 반영 여부는 1행 probe 결과로만 판단한다.
-- API 일일 트래픽 보호를 위해 대량 수집 코드는 별도 rate limit, 캐시, resume manifest가 생기기 전까지 실행하지 않는다.
-- LOCALDATA 인허가 API는 공공데이터포털 키가 아니라 LOCALDATA 별도 신청/대용량 다운로드 경로를 확인해야 한다.
+- API 일일 트래픽 보호를 위해 대량 수집은 별도 rate limit, 캐시, resume manifest 기준으로만 실행한다. 건축HUB probe script는 `request_interval_seconds >= 0.5`, cache, manifest를 구현했다.
+- LOCALDATA 인허가 API는 페이지 접근 불가 상태이므로 API 페이지 복구, 기존 승인정보 확인, 공식 대용량 다운로드 경로 확보, 공식 문의 답변 중 하나가 발생할 때까지 보류한다.
 
 ## 16. 다음 실험 재개 판단
 
@@ -134,11 +168,11 @@ frozen structural challenger가 없으므로 2024 이후 official actual을 conf
 
 ## 18. 다음 실행 항목
 
-1. 파일데이터 source의 전체 row를 안정적으로 파싱하고 CP949 sample/schema 산출물을 유지한다.
-2. 승인된 API는 endpoint별 1행 확인 후, 별도 rate limit manifest가 준비되면 2021~2023 historical inventory를 만든다.
-3. 공장등록 주소 parser를 official region crosswalk와 대조해 unmatched region을 0으로 만든다.
-4. 산업단지 complex-to-sigungu allocation rule을 기업주소·면적·고용·GIS 순서로 작성한다.
-5. 건축HUB 기본개요 샘플에서 허가일, 실제착공일, 사용승인일을 분리한 월간 집계를 만든다.
+1. 건축HUB 법정동 코드표를 확보하고 `sigunguCd`/`bjdongCd` 기반 request universe를 만든다.
+2. 건축HUB 2021~2023 historical inventory를 월별 `totalCount` 중심으로 확장하되, row 대량 수집 전 request budget과 resume policy를 고정한다.
+3. 건축HUB 주용도 crosswalk를 sample rule에서 공식/전체 observed code 기반으로 확장한다.
+4. 서울 열린데이터광장 후보 endpoint를 1행 probe하고 건축HUB 강남구 건축 이벤트와 교차검증할 후보를 고른다.
+5. 공장등록 파일데이터와 산업단지 파일데이터의 schema mapping, 공식 region crosswalk, allocation rule을 이어서 작성한다.
 
 ### 활용신청/다운로드 경로 재분류
 
