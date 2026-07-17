@@ -571,7 +571,7 @@ def main() -> int:
         real_delta = wmape(preds, "global_prediction") - wmape(preds, "prediction")
         placebo_rows.extend(placebo(panel, cfg, real_delta, selected_alpha_by_year(preds)))
 
-    selection_rows = selection_aware_bootstrap_from_predictions(by_policy)
+    selection_rows = selection_aware_bootstrap(panel, cfgs)
     gates = []
     for cfg in cfgs:
         metric = next(r for r in metrics if r["policy"] == cfg["policy"])

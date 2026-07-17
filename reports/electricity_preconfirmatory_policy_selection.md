@@ -35,11 +35,25 @@
 
 | type | selected | count | frequency | mean | median | CI 2.5 | CI 97.5 | P(improve) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| selection_aware_delta_fixed_policy |  |  |  | 0.089246 | 0.099621 | -0.109408 | 0.245914 | 0.8175 |
-| selected_policy_frequency | R3b_all_only_conservative_B4_rel5 | 1185 | 0.5925 |  |  |  |  |  |
-| selected_policy_frequency | R2_all_only_trainalpha_B6_rel5 | 815 | 0.4075 |  |  |  |  |  |
-| selected_alpha_frequency | 0.25 | 1185 | 0.5925 |  |  |  |  |  |
-| selected_alpha_frequency | 0.4 | 815 | 0.4075 |  |  |  |  |  |
+| selection_aware_delta |  |  |  | 0.093619 | 0.100197 | -0.174055 | 0.339472 | 0.746 |
+| selected_policy_frequency | R2_all_only_trainalpha_B6_rel5 | 1990 | 0.995 |  |  |  |  |  |
+| selected_policy_frequency | R3b_all_only_conservative_B4_rel5 | 10 | 0.005 |  |  |  |  |  |
+| selected_alpha_frequency | 0.4/0.4 | 1371 | 0.6855 |  |  |  |  |  |
+| selected_alpha_frequency | 0.4/0.5 | 290 | 0.145 |  |  |  |  |  |
+| selected_alpha_frequency | 0.5/0.5 | 215 | 0.1075 |  |  |  |  |  |
+| selected_alpha_frequency | 0.4/0.3 | 42 | 0.021 |  |  |  |  |  |
+| selected_alpha_frequency | 0.5/0.4 | 30 | 0.015 |  |  |  |  |  |
+| selected_alpha_frequency | 0.3/0.4 | 23 | 0.0115 |  |  |  |  |  |
+| selected_alpha_frequency | 0.25/0.25 | 10 | 0.005 |  |  |  |  |  |
+| selected_alpha_frequency | 0.3/0.5 | 8 | 0.004 |  |  |  |  |  |
+| selected_alpha_frequency | 0.4/0.25 | 3 | 0.0015 |  |  |  |  |  |
+| selected_alpha_frequency | 0.5/0.25 | 2 | 0.001 |  |  |  |  |  |
+| selected_alpha_frequency | 0.15/0.5 | 1 | 0.0005 |  |  |  |  |  |
+| selected_alpha_frequency | 0.4/0.2 | 1 | 0.0005 |  |  |  |  |  |
+| selected_alpha_frequency | 0.5/0.3 | 1 | 0.0005 |  |  |  |  |  |
+| selected_alpha_frequency | 0.25/0.5 | 1 | 0.0005 |  |  |  |  |  |
+| selected_alpha_frequency | 0.3/0.2 | 1 | 0.0005 |  |  |  |  |  |
+| selected_alpha_frequency | 0.4/0.15 | 1 | 0.0005 |  |  |  |  |  |
 
 ## Placebo
 
@@ -96,14 +110,14 @@
 | R2_all_only_trainalpha_B6_rel5 | data_integrity | Y | primary vintage audit has zero leakage |
 | R2_all_only_trainalpha_B6_rel5 | year_consistency | N | 2022=0.312914, 2023=-0.221146, pooled=0.090573 |
 | R2_all_only_trainalpha_B6_rel5 | placebo | N | requires all three placebo p95 passes |
-| R2_all_only_trainalpha_B6_rel5 | selection_aware_bootstrap | N | P(improve)=0.8175 |
+| R2_all_only_trainalpha_B6_rel5 | selection_aware_bootstrap | N | P(improve)=0.746 |
 | R2_all_only_trainalpha_B6_rel5 | tail_stability | Y | material=0, +5pp=0, +10pp=0 |
 | R2_all_only_trainalpha_B6_rel5 | region_generalization | Y | improved=11, worst=-0.184183 |
 | R2_all_only_trainalpha_B6_rel5 | large_observation_removal | Y | requires positive improvement after every removal |
 | R3b_all_only_conservative_B4_rel5 | data_integrity | Y | primary vintage audit has zero leakage |
 | R3b_all_only_conservative_B4_rel5 | year_consistency | Y | 2022=0.227336, 2023=-0.077404, pooled=0.100466 |
 | R3b_all_only_conservative_B4_rel5 | placebo | N | requires all three placebo p95 passes |
-| R3b_all_only_conservative_B4_rel5 | selection_aware_bootstrap | N | P(improve)=0.8175 |
+| R3b_all_only_conservative_B4_rel5 | selection_aware_bootstrap | N | P(improve)=0.746 |
 | R3b_all_only_conservative_B4_rel5 | tail_stability | Y | material=0, +5pp=0, +10pp=0 |
 | R3b_all_only_conservative_B4_rel5 | region_generalization | Y | improved=11, worst=-0.168469 |
 | R3b_all_only_conservative_B4_rel5 | large_observation_removal | Y | requires positive improvement after every removal |
