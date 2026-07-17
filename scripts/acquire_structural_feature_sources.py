@@ -4,12 +4,15 @@ import json
 import math
 import re
 import ssl
+import csv
 import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from openpyxl import load_workbook
 
 from kosis_common import PROCESSED_DIR, RAW_DIR, ROOT, load_env, write_csv, write_json
 
@@ -18,6 +21,7 @@ PUBLIC_RAW_DIR = RAW_DIR / "public_data_portal"
 REPORT_PATH = ROOT / "reports" / "next_structural_feature_workstreams.md"
 STATUS_PATH = PROCESSED_DIR / "next_feature_source_status.csv"
 STRUCTURAL_INVENTORY_PATH = PROCESSED_DIR / "structural_source_inventory.csv"
+MAX_API_PROBE_ROWS = 1
 
 ALLOWED_STATUS = {
     "not_started",
@@ -158,19 +162,73 @@ APPLICATION_SOURCES = [
     },
 ]
 
+FILE_DATA_SOURCES = [
+    {
+        "source_id": "data_go_kr_factory_registration_snapshot_file",
+        "source_name": "한국산업단지공단_전국등록공장현황_등록공장현황자료",
+        "provider": "한국산업단지공단",
+        "url": "https://www.data.go.kr/data/15105482/fileData.do",
+        "content_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003109845&fileDetailSn=1&insertDataPrcus=N",
+        "target_sector": "C00",
+        "raw_filename": "factory_registration_snapshot_15105482_download",
+        "time_frequency": "annual_snapshot",
+        "expected_period": "20241231",
+        "publication_date": "2025-03-16",
+        "regional_unit": "address_to_sigungu",
+        "industry_code_available": "N_or_unknown",
+    },
+    {
+        "source_id": "data_go_kr_factory_full_snapshot_20200229_file",
+        "source_name": "한국산업단지공단_전국등록공장현황",
+        "provider": "한국산업단지공단",
+        "url": "https://www.data.go.kr/data/15106170/fileData.do",
+        "content_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003557086&fileDetailSn=1&insertDataPrcus=N",
+        "target_sector": "C00",
+        "raw_filename": "factory_full_snapshot_15106170_download",
+        "time_frequency": "one_time_snapshot",
+        "expected_period": "20200229",
+        "publication_date": "2020_snapshot_page_latest_2025",
+        "regional_unit": "address_to_sigungu",
+        "industry_code_available": "Y_expected",
+    },
+    {
+        "source_id": "data_go_kr_industrial_complex_trends_file",
+        "source_name": "한국산업단지공단_국가산업단지 산업동향정보",
+        "provider": "한국산업단지공단",
+        "url": "https://www.data.go.kr/data/3042071/fileData.do",
+        "content_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003646647&fileDetailSn=1&insertDataPrcus=N",
+        "target_sector": "C00",
+        "raw_filename": "industrial_complex_trends_3042071_download",
+        "time_frequency": "quarterly",
+        "expected_period": "latest_quarter_file",
+        "publication_date": "page_metadata",
+        "regional_unit": "industrial_complex",
+        "industry_code_available": "Y_expected",
+    },
+    {
+        "source_id": "data_go_kr_molit_building_permit_basic_link",
+        "source_name": "국토교통부_건축인허가 기본개요",
+        "provider": "국토교통부",
+        "url": "https://www.data.go.kr/data/15044695/fileData.do?recommendDataYn=Y",
+        "content_url": "https://www.hub.go.kr/portal/opn/tyb/idx-acpmslg.do",
+        "target_sector": "F00,L00",
+        "raw_filename": "",
+        "time_frequency": "monthly",
+        "expected_period": "hub_bulk_download",
+        "publication_date": "hub_metadata",
+        "regional_unit": "sigungu_bjdong",
+        "industry_code_available": "N",
+    },
+]
 
-def get_data_go_keys() -> list[tuple[str, str]]:
+
+def get_primary_data_go_key() -> tuple[str, str, bool]:
     env = load_env()
-    keys: list[tuple[str, str]] = []
     for name in ("DATA_GO_KR_DECODING", "DATA_GO_KR_ENCODING", "PUBLIC_DATA_API_KEY", "DATA_GO_KR_API_KEY"):
         value = env.get(name)
         if value:
-            keys.append((name, value))
-            unquoted = urllib.parse.unquote(value)
-            if unquoted != value:
-                keys.append((f"{name}_UNQUOTE", unquoted))
-    if keys:
-        return keys
+            raw_service_key = name == "DATA_GO_KR_ENCODING"
+            return name, value, raw_service_key
     raise SystemExit("DATA_GO_KR_DECODING or DATA_GO_KR_ENCODING not found in .env")
 
 
@@ -204,34 +262,18 @@ def request_json(url: str, params: dict[str, Any], timeout: int = 90, raw_servic
         return status, {}, text[:800]
 
 
-def request_json_key_candidates(
+def request_json_with_primary_key(
     url: str,
     params: dict[str, Any],
-    keys: list[tuple[str, str]],
+    primary_key: tuple[str, str, bool],
     timeout: int = 90,
 ) -> tuple[int, Any, str, str]:
-    attempts: list[tuple[int, Any, str, str]] = []
-    for key_name, key_value in keys:
-        for mode in ("urlencode", "raw"):
-            trial_params = dict(params)
-            trial_params["serviceKey"] = key_value
-            status, payload, text = request_json(url, trial_params, timeout=timeout, raw_service_key=(mode == "raw"))
-            label = f"{key_name}:{mode}"
-            attempts.append((status, payload, text, label))
-            if status < 400:
-                if isinstance(payload, dict):
-                    if payload.get("data"):
-                        return status, payload, text, label
-                    body = payload.get("response", {}).get("body", {})
-                    items = body.get("items", {}) if isinstance(body, dict) else {}
-                    if items:
-                        return status, payload, text, label
-                    msg = compact_error(payload, text)
-                    if "유효하지 않은 인증키" not in msg and "SERVICE_KEY" not in msg and "Forbidden" not in msg:
-                        return status, payload, text, label
-                elif text:
-                    return status, payload, text, label
-    return attempts[-1]
+    key_name, key_value, raw_service_key = primary_key
+    trial_params = dict(params)
+    trial_params["serviceKey"] = key_value
+    status, payload, text = request_json(url, trial_params, timeout=timeout, raw_service_key=raw_service_key)
+    mode = "raw" if raw_service_key else "urlencode"
+    return status, payload, text, f"{key_name}:{mode}:single_probe"
 
 
 def odcloud_url(dataset_id: str, uddi: str) -> str:
@@ -270,6 +312,239 @@ def normalize_region(address: str) -> tuple[str, str, str]:
     return sido, sigungu, f"{sido} {sigungu}".strip()
 
 
+def urlopen_bytes(url: str, timeout: int = 180) -> tuple[int, bytes, dict[str, str]]:
+    context = None
+    try:
+        import certifi  # type: ignore
+
+        context = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        context = None
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout, context=context) as response:
+            return response.status, response.read(), dict(response.headers.items())
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read(), dict(exc.headers.items())
+
+
+def download_file_once(source: dict[str, Any]) -> tuple[Path | None, int, str, str]:
+    content_url = source["content_url"]
+    if not content_url.startswith("https://www.data.go.kr/cmm/cmm/fileDownload.do"):
+        return None, 0, "external_link_confirmed", "external link; direct file download is outside data.go.kr contentUrl"
+    raw_base = PUBLIC_RAW_DIR / source["raw_filename"]
+    existing = sorted(PUBLIC_RAW_DIR.glob(f"{source['raw_filename']}*"))
+    if existing:
+        size = existing[0].stat().st_size
+        return existing[0], size, "sample_downloaded", "already_downloaded"
+    status, body, headers = urlopen_bytes(content_url)
+    if status >= 400 or not body:
+        return None, len(body), "blocked", f"http_status={status}"
+    content_type = headers.get("Content-Type", "")
+    suffix = ".bin"
+    if body[:2] == b"PK":
+        suffix = ".xlsx"
+    elif body[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":
+        suffix = ".xls"
+    elif "html" in content_type.lower() or body[:100].lstrip().lower().startswith(b"<!doctype"):
+        suffix = ".html"
+    elif "csv" in content_type.lower() or b"," in body[:4096]:
+        suffix = ".csv"
+    out_path = raw_base.with_suffix(suffix)
+    out_path.write_bytes(body)
+    if suffix == ".html":
+        return out_path, len(body), "blocked", "download returned html instead of data file"
+    return out_path, len(body), "sample_downloaded", "direct_content_url_downloaded"
+
+
+def read_text_rows(path: Path, limit: int = 200) -> tuple[list[str], list[dict[str, Any]]]:
+    for encoding in ("utf-8-sig", "cp949", "euc-kr", "utf-8"):
+        try:
+            text = path.read_text(encoding=encoding, errors="strict")
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    sample = text[:4096]
+    try:
+        dialect = csv.Sniffer().sniff(sample)
+    except csv.Error:
+        dialect = csv.excel
+    reader = csv.DictReader(text.splitlines(), dialect=dialect)
+    rows = []
+    for idx, row in enumerate(reader):
+        if idx >= limit:
+            break
+        rows.append(dict(row))
+    return list(reader.fieldnames or []), rows
+
+
+def read_xlsx_rows(path: Path, limit: int = 200) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    schema: list[dict[str, Any]] = []
+    samples: list[dict[str, Any]] = []
+    workbook = load_workbook(path, read_only=True, data_only=True)
+    for sheet in workbook.worksheets:
+        rows_iter = sheet.iter_rows(values_only=True)
+        headers = [str(v).strip() if v is not None else f"col_{idx+1}" for idx, v in enumerate(next(rows_iter, []))]
+        schema.append(
+            {
+                "sheet_name": sheet.title,
+                "max_row": sheet.max_row,
+                "max_column": sheet.max_column,
+                "field_names": "|".join(headers[:80]),
+            }
+        )
+        for row_idx, values in enumerate(rows_iter, start=1):
+            if len(samples) >= limit:
+                break
+            record = {headers[idx] if idx < len(headers) else f"col_{idx+1}": value for idx, value in enumerate(values)}
+            samples.append({"sheet_name": sheet.title, "sample_row_no": row_idx, **record})
+    workbook.close()
+    return schema, samples
+
+
+def build_factory_features_from_rows(source_id: str, period: str, rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    feature_counter: dict[tuple[str, str, str], Counter[str]] = defaultdict(Counter)
+    samples: list[dict[str, Any]] = []
+    for row in rows:
+        address = str(first_value(row, ["공장주소", "공장대표주소", "소재지", "주소", "지번주소", "도로명주소"]))
+        sido, sigungu, area_name = normalize_region(address)
+        complex_name = str(first_value(row, ["단지명", "산업단지명", "관할산단", "입주형태"]))
+        industry = str(first_value(row, ["업종명", "업종", "표준산업분류명", "공장업종"]))
+        product = str(first_value(row, ["생산품", "생산품목", "주생산품"]))
+        if area_name:
+            key_tuple = (period[:4], area_name, sido)
+            feature_counter[key_tuple]["factory_count"] += 1
+            if complex_name.strip():
+                feature_counter[key_tuple]["industrial_complex_factory_count"] += 1
+            if industry.strip():
+                feature_counter[key_tuple]["industry_nonmissing_count"] += 1
+            if product.strip():
+                feature_counter[key_tuple]["product_nonmissing_count"] += 1
+        if len(samples) < 200:
+            samples.append(
+                {
+                    "source_id": source_id,
+                    "source_period": period,
+                    "company_name": str(first_value(row, ["회사명", "업체명", "공장명"])),
+                    "industrial_complex_name": complex_name,
+                    "industry_name": industry,
+                    "product": product,
+                    "address": address,
+                    "sido_name": sido,
+                    "sigungu_name": sigungu,
+                    "area_name": area_name,
+                }
+            )
+    feature_rows: list[dict[str, Any]] = []
+    for (year, area_name, sido), counts in sorted(feature_counter.items()):
+        factory_count = counts["factory_count"]
+        feature_rows.extend(
+            [
+                {
+                    "sigungu_feature_key": area_name,
+                    "sido_name": sido,
+                    "observation_period": year,
+                    "prediction_origin": f"{int(year) + 1}-12-31_or_publication_date",
+                    "feature_name": "active_factory_count_snapshot",
+                    "feature_value": factory_count,
+                    "first_eligible_period": f"{int(year) + 1}-12-31",
+                    "source_version": source_id,
+                },
+                {
+                    "sigungu_feature_key": area_name,
+                    "sido_name": sido,
+                    "observation_period": year,
+                    "prediction_origin": f"{int(year) + 1}-12-31_or_publication_date",
+                    "feature_name": "industrial_complex_factory_share_snapshot",
+                    "feature_value": counts["industrial_complex_factory_count"] / factory_count if factory_count else "",
+                    "first_eligible_period": f"{int(year) + 1}-12-31",
+                    "source_version": source_id,
+                },
+            ]
+        )
+    return samples, feature_rows
+
+
+def collect_file_data_sources() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    PUBLIC_RAW_DIR.mkdir(parents=True, exist_ok=True)
+    inventory: list[dict[str, Any]] = []
+    schema_rows: list[dict[str, Any]] = []
+    sample_rows: list[dict[str, Any]] = []
+    factory_samples: list[dict[str, Any]] = []
+    factory_features: list[dict[str, Any]] = []
+
+    for source in FILE_DATA_SOURCES:
+        path, bytes_downloaded, access_status, issue = download_file_once(source)
+        rows_downloaded = 0
+        parser_status = "blocked"
+        data_granularity = "file_or_external_link"
+        if path and access_status == "sample_downloaded":
+            parser_status = "parser_development"
+            if path.suffix.lower() in {".csv", ".txt"}:
+                fields, rows = read_text_rows(path)
+                rows_downloaded = len(rows)
+                schema_rows.extend(
+                    {
+                        "source_id": source["source_id"],
+                        "source_name": source["source_name"],
+                        "sheet_or_file": path.name,
+                        "field_name": field,
+                        "field_order": idx + 1,
+                    }
+                    for idx, field in enumerate(fields)
+                )
+                sample_rows.extend({"source_id": source["source_id"], "sample_row_no": idx + 1, **row} for idx, row in enumerate(rows[:50]))
+                if "factory" in source["source_id"]:
+                    samples, features = build_factory_features_from_rows(source["source_id"], source["expected_period"], rows)
+                    factory_samples.extend(samples)
+                    factory_features.extend(features)
+            elif path.suffix.lower() == ".xlsx":
+                xlsx_schema, xlsx_samples = read_xlsx_rows(path)
+                rows_downloaded = len(xlsx_samples)
+                schema_rows.extend({"source_id": source["source_id"], "source_name": source["source_name"], **row} for row in xlsx_schema)
+                sample_rows.extend({"source_id": source["source_id"], **row} for row in xlsx_samples[:50])
+            else:
+                issue = f"unsupported_download_suffix={path.suffix}"
+        inventory.append(
+            {
+                "source_id": source["source_id"],
+                "source_name": source["source_name"],
+                "provider": source["provider"],
+                "source_url_or_board": source["url"],
+                "target_sector": source["target_sector"],
+                "data_granularity": data_granularity,
+                "time_frequency": source["time_frequency"],
+                "earliest_period": source["expected_period"],
+                "latest_period": source["expected_period"],
+                "publication_date_available": "Y",
+                "source_vintage_available": "Y",
+                "regional_unit": source["regional_unit"],
+                "industry_code_available": source["industry_code_available"],
+                "access_status": access_status,
+                "authentication_required": "N" if "fileDownload.do" in source["content_url"] else "external",
+                "download_method": "data_go_kr_contentUrl_file" if "fileDownload.do" in source["content_url"] else "external_link",
+                "parser_status": parser_status,
+                "regional_coverage": "sample_only_or_not_calculated",
+                "historical_coverage": source["expected_period"],
+                "common_actual_period": "not_verified",
+                "first_eligible_period_status": "conservative_publication_date_available",
+                "quality_status": "quality_validation" if rows_downloaded else "blocked",
+                "ml_ready_status": "blocked",
+                "blocking_issue": "" if rows_downloaded else issue,
+                "next_action": "Complete schema mapping, full historical inventory, region crosswalk, publication lag audit, and quality gates",
+                "last_checked_at": TODAY,
+                "rows_downloaded": rows_downloaded,
+                "bytes_downloaded": bytes_downloaded,
+                "local_raw_path": str(path or ""),
+                "content_url": source["content_url"],
+                "successful_key_variant": "not_applicable_file_download",
+            }
+        )
+    return inventory, schema_rows, sample_rows, factory_samples, factory_features
+
+
 def first_value(row: dict[str, Any], names: list[str]) -> Any:
     for name in names:
         if name in row and row[name] not in (None, ""):
@@ -286,7 +561,7 @@ def collect_factory_snapshots(keys: list[tuple[str, str]]) -> tuple[list[dict[st
 
     for spec in FACTORY_SNAPSHOTS:
         url = odcloud_url(spec["dataset_id"], spec["uddi"])
-        status, payload, text, key_label = request_json_key_candidates(url, {"page": 1, "perPage": 1000}, keys)
+        status, payload, text, key_label = 0, {}, "disabled_to_avoid_api_traffic_use_file_download_route", "disabled"
         data = payload.get("data", []) if isinstance(payload, dict) else []
         total = int(payload.get("totalCount") or len(data) or 0) if isinstance(payload, dict) else 0
         access_status = "sample_downloaded" if data else "blocked"
@@ -421,24 +696,30 @@ def probe_endpoint(
     params: dict[str, Any],
     target_sector: str,
     provider: str,
-    keys: list[tuple[str, str]],
+    primary_key: tuple[str, str, bool],
 ) -> dict[str, Any]:
     probe_params = dict(params)
     probe_params.pop("serviceKey", None)
-    status, payload, text, key_label = request_json_key_candidates(url, probe_params, keys)
-    rows = []
+    status, payload, text, key_label = request_json_with_primary_key(url, probe_params, primary_key)
+    rows: list[Any] = []
     if isinstance(payload, dict):
         body = payload.get("response", {}).get("body", {})
-        items = body.get("items", {})
+        if not body and isinstance(payload.get("body"), dict):
+            body = payload.get("body", {})
+        if not body:
+            body = payload
+        items = body.get("items", {}) if isinstance(body, dict) else {}
         if isinstance(items, dict):
-            rows = items.get("item") or []
+            rows = items.get("item") or items.get("items") or []
         elif isinstance(items, list):
             rows = items
+        elif isinstance(body, dict) and isinstance(body.get("item"), list):
+            rows = body["item"]
         if isinstance(rows, dict):
             rows = [rows]
     msg = compact_error(payload, text)
     access_status = "sample_downloaded" if rows else "blocked"
-    blocking = "" if rows else msg
+    blocking = "" if rows else (msg or "empty_response_or_no_items")
     return {
         "source_id": source_id,
         "source_name": source_name,
@@ -470,10 +751,11 @@ def probe_endpoint(
         "sample_row_count": len(rows),
         "sample_fields": ",".join(sorted(rows[0].keys())) if rows and isinstance(rows[0], dict) else "",
         "successful_key_variant": key_label,
+        "traffic_policy": f"single_probe_only_numOfRows_{MAX_API_PROBE_ROWS}",
     }
 
 
-def probe_application_apis(keys: list[tuple[str, str]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def probe_application_apis(primary_key: tuple[str, str, bool]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     samples: list[dict[str, Any]] = []
     rows: list[dict[str, Any]] = []
 
@@ -482,7 +764,7 @@ def probe_application_apis(keys: list[tuple[str, str]]) -> tuple[list[dict[str, 
             "data_go_kr_factory_realtime_api",
             "한국산업단지공단_공장등록생산정보조회서비스",
             "http://apis.data.go.kr/B550624/fctryRegistInfo/getFctryPrdctnService_v2",
-            {"pageNo": 1, "numOfRows": 10, "type": "json"},
+            {"pageNo": 1, "numOfRows": MAX_API_PROBE_ROWS, "type": "json"},
             "C00",
             "한국산업단지공단",
         ),
@@ -490,7 +772,7 @@ def probe_application_apis(keys: list[tuple[str, str]]) -> tuple[list[dict[str, 
             "data_go_kr_industrial_complex_prd_api",
             "한국산업단지공단_산업동향조사 통계 조회 서비스 - 단지별 생산실적",
             "http://apis.data.go.kr/B550624/indparkstats/kicoxPrdRecByIrsttStatsService",
-            {"pageNo": 1, "numOfRows": 10, "type": "json", "searchYearMonth": "202312"},
+            {"pageNo": 1, "numOfRows": MAX_API_PROBE_ROWS, "type": "json", "searchYearMonth": "202312"},
             "C00",
             "한국산업단지공단",
         ),
@@ -504,15 +786,23 @@ def probe_application_apis(keys: list[tuple[str, str]]) -> tuple[list[dict[str, 
                 "startDate": "20240101",
                 "endDate": "20240131",
                 "_type": "json",
-                "numOfRows": 10,
+                "numOfRows": MAX_API_PROBE_ROWS,
                 "pageNo": 1,
             },
             "F00,L00",
             "국토교통부",
         ),
+        (
+            "data_go_kr_small_shop_large_upjong_api",
+            "소상공인시장진흥공단_상가(상권)정보 - 업종 대분류",
+            "http://apis.data.go.kr/B553077/api/open/sdsc2/largeUpjongList",
+            {"pageNo": 1, "numOfRows": MAX_API_PROBE_ROWS, "type": "json"},
+            "G00,I00,service,all",
+            "소상공인시장진흥공단",
+        ),
     ]
     for source_id, source_name, url, params, target_sector, provider in probes:
-        row = probe_endpoint(source_id, source_name, url, params, target_sector, provider, keys)
+        row = probe_endpoint(source_id, source_name, url, params, target_sector, provider, primary_key)
         rows.append(row)
         samples.append(
             {
@@ -523,6 +813,7 @@ def probe_application_apis(keys: list[tuple[str, str]]) -> tuple[list[dict[str, 
                 "sample_fields": row["sample_fields"],
                 "blocking_issue": row["blocking_issue"],
                 "successful_key_variant": row["successful_key_variant"],
+                "traffic_policy": row["traffic_policy"],
             }
         )
     return rows, samples
@@ -626,27 +917,33 @@ def source_status_from_inventory(inventory: list[dict[str, Any]]) -> list[dict[s
 
 def application_needed_rows(probe_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = []
+    probe_by_source = {row["source_id"]: row for row in probe_rows}
+    source_to_probe_id = {
+        "data_go_kr_factory_snapshot_odcloud": "data_go_kr_factory_registration_snapshot_file",
+        "data_go_kr_factory_full_snapshot_20200229": "data_go_kr_factory_full_snapshot_20200229_file",
+        "data_go_kr_factory_realtime_api": "data_go_kr_factory_realtime_api",
+        "data_go_kr_industrial_complex_stats_api": "data_go_kr_industrial_complex_prd_api",
+        "data_go_kr_industrial_complex_trends_file": "data_go_kr_industrial_complex_trends_file",
+        "data_go_kr_arch_pms_hub_api": "data_go_kr_buildinghub_ap_basis",
+        "data_go_kr_molit_building_permit_basic_file": "data_go_kr_molit_building_permit_basic_link",
+        "data_go_kr_small_shop_api": "data_go_kr_small_shop_large_upjong_api",
+    }
     for source in APPLICATION_SOURCES:
-        probe = None
-        for row in probe_rows:
-            if row["source_id"].startswith(source["source_id"]) or source["source_id"] in row["source_id"]:
-                probe = row
-                break
-            if source["source_id"] == "data_go_kr_industrial_complex_stats_api" and "industrial_complex" in row["source_id"]:
-                probe = row
-                break
-            if source["source_id"] == "data_go_kr_arch_pms_hub_api" and "buildinghub" in row["source_id"]:
-                probe = row
-                break
-            if source["source_id"] == "data_go_kr_factory_snapshot_odcloud" and row["source_id"] == "factory_snapshot_odcloud":
-                probe = row
-                break
+        probe = probe_by_source.get(source_to_probe_id.get(source["source_id"], source["source_id"]))
         sample_count = int(probe.get("sample_row_count") or 0) if probe else 0
         if probe and not sample_count:
             sample_count = int(probe.get("rows_downloaded") or 0)
         issue = probe.get("blocking_issue", "") if probe else "not_probed"
-        needs_application = "N" if sample_count else "Y_or_confirm_existing_approval"
-        rows.append({**source, "sample_row_count": sample_count, "current_blocking_issue": issue, "needs_user_application": needs_application})
+        download_method = probe.get("download_method", "") if probe else ""
+        if probe and download_method in {"data_go_kr_contentUrl_file", "external_link"}:
+            needs_application = "N_file_or_external_download_route"
+        elif sample_count:
+            needs_application = "N_api_sample_reachable"
+        elif "NO_MANDATORY_REQUEST_PARAMETERS_ERROR" in issue:
+            needs_application = "N_api_reachable_parameter_required"
+        else:
+            needs_application = "Y_or_confirm_existing_approval"
+        rows.append({**source, "sample_row_count": sample_count, "current_blocking_issue": issue, "needs_user_application": needs_application, "download_method_observed": download_method})
     return rows
 
 
@@ -655,6 +952,8 @@ def supplemental_inventory_rows(application_rows: list[dict[str, Any]], existing
     out: list[dict[str, Any]] = []
     for row in application_rows:
         if row["source_id"] in existing_ids:
+            continue
+        if str(row["needs_user_application"]).startswith("N_"):
             continue
         out.append(
             {
@@ -757,6 +1056,7 @@ def write_report(
     factory_features: list[dict[str, Any]],
     business_scores: list[dict[str, Any]],
     application_rows: list[dict[str, Any]],
+    api_probe_count: int,
 ) -> None:
     factory_rows = [row for row in inventory if "factory" in row["source_id"]]
     industrial_rows = [row for row in inventory if "industrial" in row["source_id"] or "indpark" in row["source_id"]]
@@ -766,7 +1066,10 @@ def write_report(
         "",
         "## 1. 실행 요약",
         "",
-        "공공데이터포털 키(`DATA_GO_KR_DECODING`/`DATA_GO_KR_ENCODING`)를 사용해 구조 feature 후보를 다시 점검했다. 전력 단독 correction은 계속 종료 상태이며, 이번 작업은 새 모델 학습이 아니라 실제 row 확보, 활용신청 필요 여부, publication lag/vintage 가능성, ML-ready gate 판정에 한정한다.",
+        "공공데이터포털 키(`DATA_GO_KR_DECODING`/`DATA_GO_KR_ENCODING`)를 사용해 구조 feature 후보를 다시 점검했다. 사용자가 지적한 대로 `not_probed`였던 다수 항목은 API가 아니라 웹페이지의 CSV/XLSX 다운로드형 파일데이터로 재분류했다. 전력 단독 correction은 계속 종료 상태이며, 이번 작업은 새 모델 학습이 아니라 실제 파일 확보, API 승인 확인, publication lag/vintage 가능성, ML-ready gate 판정에 한정한다.",
+        "",
+        f"- API traffic policy: 승인 확인용 endpoint별 `{MAX_API_PROBE_ROWS}`행 샘플만 호출, 총 probe endpoint `{api_probe_count}`개.",
+        "- 파일데이터 다운로드는 API 일일 트래픽을 소비하지 않는 `contentUrl` 직접 다운로드 경로를 우선 사용한다.",
         "",
         "## 2. 현재 ML 상태",
         "",
@@ -803,34 +1106,37 @@ def write_report(
         if factory_features
         else "- `factory_feature_table.csv`: 파일 구조는 생성했지만 현재 키가 승인되지 않아 row는 비어 있다."
     )
-    lines.extend(["", "## 9. Coverage", "", f"- 공장등록 snapshot feature rows: `{len(factory_features):,}`", "- 전국등록공장현황 snapshot은 명세상 주소 기반 시군구 추출이 가능하지만, 현재 키로 실제 row를 받지 못해 coverage 계산은 보류한다.", "- 산업단지 API는 단지-시군구 배분 규칙이 없으므로 대표주소 전량 배정은 금지한다.", "", "## 10. Publication Lag", "", "- 공장등록 snapshot 파일은 공개 페이지의 등록일을 보수적 publication date로 사용할 수 있다.", "- 건축HUB는 월간 갱신으로 공표되지만 prediction-origin별 `first_eligible_period`는 샘플 확보 후 실제 응답/갱신일 기준으로 다시 고정한다.", "- 활용신청 미승인 또는 샘플 미확보 source는 publication lag를 측정하지 않는다.", "", "## 11. Region Crosswalk", "", "- 공장등록 주소 기반 `sido/sigungu` 1차 parser는 스크립트에 구현했다.", "- 최종 ML-ready에는 official actual 시군구 모집단 기준 `unmatched_regions = 0`이 필요하다.", "- 세종, 통합시, 행정구가 있는 시 지역은 별도 crosswalk rule을 보존해야 한다.", "", "## 12. Feature Table", "", feature_table_note, "- `sigungu_feature_key`, `observation_period`, `prediction_origin`, `feature_name`, `feature_value`, `first_eligible_period`, `source_version` 형식을 사용한다.", "- 등록일·폐쇄일이 없으면 flow feature와 월/분기 stock 복원은 만들지 않는다.", "", "## 13. Quality Audit", "", "| source_id | quality status | issue |", "| --- | --- | --- |"])
+    lines.extend(["", "## 9. Coverage", "", f"- 공장등록 snapshot feature rows: `{len(factory_features):,}`", "- 파일데이터는 주소 기반 시군구 추출이 가능하면 development feature 후보로만 둔다. 아직 official actual 모집단과 crosswalk 검증을 끝내지 않았으므로 ML-ready는 아니다.", "- 산업단지 파일/API는 단지-시군구 배분 규칙이 없으므로 대표주소 전량 배정은 금지한다.", "", "## 10. Publication Lag", "", "- 공장등록 snapshot 파일은 공개 페이지의 등록일을 보수적 publication date로 사용할 수 있다.", "- 건축HUB는 월간 갱신으로 공표되지만 prediction-origin별 `first_eligible_period`는 샘플 확보 후 실제 응답/갱신일 기준으로 다시 고정한다.", "- API source는 승인 확인용 1행 probe만 수행했으므로 publication lag 측정에는 아직 쓰지 않는다.", "", "## 11. Region Crosswalk", "", "- 공장등록 주소 기반 `sido/sigungu` 1차 parser는 스크립트에 구현했다.", "- 최종 ML-ready에는 official actual 시군구 모집단 기준 `unmatched_regions = 0`이 필요하다.", "- 세종, 통합시, 행정구가 있는 시 지역은 별도 crosswalk rule을 보존해야 한다.", "", "## 12. Feature Table", "", feature_table_note, "- `sigungu_feature_key`, `observation_period`, `prediction_origin`, `feature_name`, `feature_value`, `first_eligible_period`, `source_version` 형식을 사용한다.", "- 등록일·폐쇄일이 없으면 flow feature와 월/분기 stock 복원은 만들지 않는다.", "", "## 13. Quality Audit", "", "| source_id | quality status | issue |", "| --- | --- | --- |"])
     for row in inventory:
         lines.append(f"| {row['source_id']} | {row['quality_status']} | {row['blocking_issue']} |")
     lines.extend(["", "## 14. ML-ready Gate", "", "| source_id | access | historical | vintage | feature table | ml-ready |", "| --- | --- | --- | --- | --- | --- |"])
     for row in inventory:
         rows_n = int(row.get("rows_downloaded") or row.get("sample_row_count") or 0)
         lines.append(f"| {row['source_id']} | {'pass' if rows_n else 'fail'} | {row['historical_coverage']} | {row['source_vintage_available']} | {'partial' if rows_n else 'no'} | {row['ml_ready_status']} |")
-    lines.extend(["", "## 15. Blocking Issues", "", "- 현재 `.env` 키는 확인됐지만 대상 공공데이터포털 서비스에 등록되지 않았거나 활용신청 승인이 연결되지 않아 실제 row를 받지 못했다.", "- 공장등록 realtime API와 산업동향조사 API는 활용신청 승인 여부를 실제 호출 결과로 확인해야 하며, 미승인 시 사용자가 공공데이터포털에서 신청해야 한다.", "- 건축HUB는 자동승인 대상이지만 API 응답 샘플 확보 후 허가·착공·승인을 섞지 않는 parser가 필요하다.", "- LOCALDATA 인허가 API는 공공데이터포털 키가 아니라 별도 신청이 필요하다.", "", "## 16. 다음 실험 재개 판단", "", "아직 `at_least_one_structural_source_ml_ready = false`다. 따라서 C00/F00/L00/all 어느 쪽도 모델 학습을 재개하지 않는다. 공장등록 snapshot은 아직 실제 row를 받지 못했으므로 development feature 후보로도 활성화하지 않는다.", "", "## 17. 미사용 Actual 관리", "", "frozen structural challenger가 없으므로 2024 이후 official actual을 confirmatory로 투입하지 않는다. 새 structural policy가 actual 공개 전에 동결될 때만 confirmatory role을 부여한다.", "", "## 18. 다음 실행 항목", "", "1. 아래 활용신청 필요 목록을 공공데이터포털/LOCALDATA에서 승인 상태로 만든다.", "2. 승인된 API에 대해 2021~2023 공통기간 historical inventory를 만든다.", "3. 공장등록 주소 parser를 official region crosswalk와 대조해 unmatched region을 0으로 만든다.", "4. 산업단지 complex-to-sigungu allocation rule을 기업주소·면적·고용·GIS 순서로 작성한다.", "5. 건축HUB 기본개요 샘플에서 허가일, 실제착공일, 사용승인일을 분리한 월간 집계를 만든다.", "", "### 활용신청 필요 목록", "", "| source | where | user action | current issue |", "| --- | --- | --- | --- |"])
+    lines.extend(["", "## 15. Blocking Issues", "", "- 파일데이터형 source는 활용신청 대상이 아니라 다운로드/스키마/파서/교차표 검증 대상이다.", "- `unauthorized` API와 소상공인시장진흥공단 상가정보 API는 사용자가 활용신청을 완료했으므로, 승인 반영 여부는 1행 probe 결과로만 판단한다.", "- API 일일 트래픽 보호를 위해 대량 수집 코드는 별도 rate limit, 캐시, resume manifest가 생기기 전까지 실행하지 않는다.", "- LOCALDATA 인허가 API는 공공데이터포털 키가 아니라 LOCALDATA 별도 신청/대용량 다운로드 경로를 확인해야 한다.", "", "## 16. 다음 실험 재개 판단", "", "아직 `at_least_one_structural_source_ml_ready = false`다. 따라서 C00/F00/L00/all 어느 쪽도 모델 학습을 재개하지 않는다. 파일데이터 source는 실제 row 또는 샘플이 확보돼도 crosswalk, vintage, quality gate가 끝나기 전까지 development feature 후보에만 둔다.", "", "## 17. 미사용 Actual 관리", "", "frozen structural challenger가 없으므로 2024 이후 official actual을 confirmatory로 투입하지 않는다. 새 structural policy가 actual 공개 전에 동결될 때만 confirmatory role을 부여한다.", "", "## 18. 다음 실행 항목", "", "1. 파일데이터 source의 전체 row를 안정적으로 파싱하고 CP949 sample/schema 산출물을 유지한다.", "2. 승인된 API는 endpoint별 1행 확인 후, 별도 rate limit manifest가 준비되면 2021~2023 historical inventory를 만든다.", "3. 공장등록 주소 parser를 official region crosswalk와 대조해 unmatched region을 0으로 만든다.", "4. 산업단지 complex-to-sigungu allocation rule을 기업주소·면적·고용·GIS 순서로 작성한다.", "5. 건축HUB 기본개요 샘플에서 허가일, 실제착공일, 사용승인일을 분리한 월간 집계를 만든다.", "", "### 활용신청/다운로드 경로 재분류", "", "| source | where | route | observed issue | needs user application |", "| --- | --- | --- | --- | --- |"])
     for row in application_rows:
-        lines.append(f"| {row['source_name']} | {row['url']} | {row['approval_type']} | {row['current_blocking_issue']} |")
+        lines.append(f"| {row['source_name']} | {row['url']} | {row['approval_type']} | {row['current_blocking_issue']} | {row['needs_user_application']} |")
     REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> int:
-    keys = get_data_go_keys()
-    factory_inventory, factory_schema, factory_samples, factory_features = collect_factory_snapshots(keys)
-    probe_inventory, probe_samples = probe_application_apis(keys)
+    primary_key = get_primary_data_go_key()
+    file_inventory, file_schema, file_samples, factory_samples, factory_features = collect_file_data_sources()
+    probe_inventory, probe_samples = probe_application_apis(primary_key)
     business_scores = business_employment_score_rows()
 
-    application_rows = application_needed_rows(factory_inventory + probe_inventory)
-    inventory = factory_inventory + probe_inventory
+    application_rows = application_needed_rows(file_inventory + probe_inventory)
+    inventory = file_inventory + probe_inventory
     inventory = inventory + supplemental_inventory_rows(application_rows, inventory)
     status = source_status_from_inventory(inventory)
 
     write_csv(STRUCTURAL_INVENTORY_PATH, inventory)
     write_csv(STATUS_PATH, status)
-    write_csv(PROCESSED_DIR / "factory_download_inventory.csv", factory_inventory)
-    write_csv(PROCESSED_DIR / "factory_schema_fingerprint.csv", factory_schema)
+    write_csv(PROCESSED_DIR / "file_download_source_inventory.csv", file_inventory)
+    write_csv(PROCESSED_DIR / "file_download_schema_fingerprint.csv", file_schema)
+    write_csv(PROCESSED_DIR / "file_download_sample_rows.csv", file_samples)
+    write_csv(PROCESSED_DIR / "factory_download_inventory.csv", [row for row in file_inventory if "factory" in row["source_id"]])
+    write_csv(PROCESSED_DIR / "factory_schema_fingerprint.csv", [row for row in file_schema if "factory" in row["source_id"]])
     write_csv(PROCESSED_DIR / "factory_sample_rows.csv", factory_samples)
     write_csv(PROCESSED_DIR / "factory_feature_table.csv", factory_features)
     write_csv(PROCESSED_DIR / "data_go_kr_api_probe_results.csv", probe_samples)
@@ -840,7 +1146,7 @@ def main() -> int:
     write_readiness_json(inventory, PROCESSED_DIR / "factory_ml_readiness.json", "factory")
     write_readiness_json(inventory, PROCESSED_DIR / "industrial_complex_ml_readiness.json", "industrial")
     write_readiness_json(inventory, PROCESSED_DIR / "building_ml_readiness.json", "building")
-    write_report(inventory, status, factory_features, business_scores, application_rows)
+    write_report(inventory, status, factory_features, business_scores, application_rows, len(probe_samples))
 
     print(f"inventory rows: {len(inventory)}")
     print(f"factory features: {len(factory_features)}")
