@@ -56,3 +56,4 @@
 | [next_structural_feature_workstreams.md](../next_structural_feature_workstreams.md) | Post-electricity structural feature workstreams and ML restart gates |
 | [next_structural_feature_experiment_protocol.md](../next_structural_feature_experiment_protocol.md) | Preregistered guardrails required before any new structural-feature ML restart |
 | [structural_feature_phase0_readiness.md](../structural_feature_phase0_readiness.md) | Phase 0 structural-source gate decision before Ridge/ElasticNet restart |
+| [structural_feature_phase1_readiness.md](../structural_feature_phase1_readiness.md) | Phase 1 Korea geography context and source-readiness gates without model training |
