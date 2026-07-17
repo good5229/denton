@@ -40,3 +40,5 @@ The structural-feature restart plan is summarized in [next_structural_feature_wo
 The current structural Phase 0 gate decision is summarized in [structural_feature_phase0_readiness.md](structural_feature_phase0_readiness.md). No structural source is ML-ready yet, so the restart decision remains blocked and electricity is retained only as a future interaction or auxiliary feature.
 
 The current structural Phase 1 readiness pass is summarized in [structural_feature_phase1_readiness.md](structural_feature_phase1_readiness.md). Factory address crosswalk now passes the 1% unresolved threshold on local snapshots, but historical common-period and KSIC gates still block ML restart; Korea-specific geography features are registered for later ablation.
+
+The current structural Phase 2 long-running discovery pass is summarized in [structural_phase2_long_running_data_discovery.md](structural_phase2_long_running_data_discovery.md). FactoryOn and public-data sources were cached and audited, but ML restart remains blocked because 2021-2023 factory historical snapshots, KSIC crosswalks, and geometry-derived spatial graphs are still incomplete.

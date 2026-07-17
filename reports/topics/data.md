@@ -17,5 +17,6 @@
 | [next_structural_feature_experiment_protocol.md](../next_structural_feature_experiment_protocol.md) | Data coverage, publication-lag, and vintage gates before structural-feature ML restart |
 | [structural_feature_phase0_readiness.md](../structural_feature_phase0_readiness.md) | Phase 0 source gate matrix and restart manifest for post-electricity structural features |
 | [structural_feature_phase1_readiness.md](../structural_feature_phase1_readiness.md) | Factory, industrial-complex, Korea geography registry, and spatial graph readiness for Phase 1 |
+| [structural_phase2_long_running_data_discovery.md](../structural_phase2_long_running_data_discovery.md) | FactoryOn/public-data long-running source discovery, large-file audit, manual-action queue, and ML restart block decision |
 | [eupmyeondong_data_sources.md](../eupmyeondong_data_sources.md) | 읍면동 data source scan |
 | [seoul_emd_latest_proxy_update.md](../seoul_emd_latest_proxy_update.md) | Seoul EMD latest proxy update |
