@@ -6,6 +6,8 @@
 
 - API traffic policy: 승인 확인용 endpoint별 `1`행 샘플만 호출, 총 probe endpoint `4`개.
 - 파일데이터 다운로드는 API 일일 트래픽을 소비하지 않는 `contentUrl` 직접 다운로드 경로를 우선 사용한다.
+- 사용자가 건축HUB 활용승인 완료를 확인했으며, 서울 열린데이터광장 키(`SEOUL_OPENAPI_KEY`)도 `.env`에 추가했다.
+- LOCALDATA는 API 페이지 접근 자체가 되지 않는 상태로 보고되어 현재 workstream에서는 보류한다.
 
 ## 2. 현재 ML 상태
 
@@ -24,21 +26,21 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 | --- | --- | ---: | --- | --- |
 | 한국산업단지공단_전국등록공장현황_등록공장현황자료 | sample_downloaded | 200 | 20241231 |  |
 | 한국산업단지공단_전국등록공장현황 | sample_downloaded | 200 | 20200229 |  |
-| 한국산업단지공단_공장등록생산정보조회서비스 | blocked | 0 | not_verified | <response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response> |
+| 한국산업단지공단_공장등록생산정보조회서비스 | blocked | 0 | not_verified | "<response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response>" |
 
 ## 5. 산업단지 조사 결과
 
 | source | access | rows | blocking issue |
 | --- | --- | ---: | --- |
 | 한국산업단지공단_국가산업단지 산업동향정보 | sample_downloaded | 200 |  |
-| 한국산업단지공단_산업동향조사 통계 조회 서비스 - 단지별 생산실적 | blocked | 0 | <response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response> |
+| 한국산업단지공단_산업동향조사 통계 조회 서비스 - 단지별 생산실적 | blocked | 0 | "<response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response>" |
 
 ## 6. 건축자료 조사 결과
 
 | source | access | rows | blocking issue |
 | --- | --- | ---: | --- |
 | 국토교통부_건축인허가 기본개요 | external_link_confirmed | 0 | external link; direct file download is outside data.go.kr contentUrl |
-| 국토교통부_건축HUB_건축인허가 기본개요 | blocked | 0 | empty_response_or_no_items |
+| 국토교통부_건축HUB_건축인허가 기본개요 | sample_downloaded | 1 | sample rows downloaded only; full historical inventory and gates not completed |
 
 ## 7. 사업체·고용 Source 평가
 
@@ -59,9 +61,8 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 | data_go_kr_molit_building_permit_basic_link | external_link_confirmed | blocked | blocked | Complete schema mapping, full historical inventory, region crosswalk, publication lag audit, and quality gates |
 | data_go_kr_factory_realtime_api | blocked | blocked | blocked | Complete historical inventory, regional coverage, publication lag, and quality gates before ML use |
 | data_go_kr_industrial_complex_prd_api | blocked | blocked | blocked | Complete historical inventory, regional coverage, publication lag, and quality gates before ML use |
-| data_go_kr_buildinghub_ap_basis | blocked | blocked | blocked | Complete historical inventory, regional coverage, publication lag, and quality gates before ML use |
+| data_go_kr_buildinghub_ap_basis | sample_downloaded | parser_development | blocked | Complete historical inventory, regional coverage, publication lag, and quality gates before ML use |
 | data_go_kr_small_shop_large_upjong_api | sample_downloaded | parser_development | blocked | Complete historical inventory, regional coverage, publication lag, and quality gates before ML use |
-| data_go_kr_arch_pms_hub_api | blocked | blocked | blocked | 개발단계 자동승인, 운영단계 자동승인. Base URL: apis.data.go.kr/1613000/ArchPmsHubService |
 | localdata_business_license_delta_api | blocked | blocked | blocked | 공공데이터포털 키가 아니라 LOCALDATA 개발용/운영용 API 신청이 필요하며 API는 변동분 중심이다. |
 
 ## 9. Coverage
@@ -96,12 +97,11 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 | data_go_kr_factory_full_snapshot_20200229_file | quality_validation |  |
 | data_go_kr_industrial_complex_trends_file | quality_validation |  |
 | data_go_kr_molit_building_permit_basic_link | blocked | external link; direct file download is outside data.go.kr contentUrl |
-| data_go_kr_factory_realtime_api | blocked | <response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response> |
-| data_go_kr_industrial_complex_prd_api | blocked | <response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response> |
-| data_go_kr_buildinghub_ap_basis | blocked | empty_response_or_no_items |
+| data_go_kr_factory_realtime_api | blocked | "<response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response>" |
+| data_go_kr_industrial_complex_prd_api | blocked | "<response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response>" |
+| data_go_kr_buildinghub_ap_basis | not_started | sample rows downloaded only; full historical inventory and gates not completed |
 | data_go_kr_small_shop_large_upjong_api | not_started | sample rows downloaded only; full historical inventory and gates not completed |
-| data_go_kr_arch_pms_hub_api | blocked | empty_response_or_no_items |
-| localdata_business_license_delta_api | blocked | not_probed |
+| localdata_business_license_delta_api | blocked | user_reported_api_page_unavailable_2026-07-17 |
 
 ## 14. ML-ready Gate
 
@@ -113,9 +113,8 @@ KEPCO 전력 pipeline은 유지하되 독립 residual correction으로 재개하
 | data_go_kr_molit_building_permit_basic_link | fail | hub_bulk_download | Y | no | blocked |
 | data_go_kr_factory_realtime_api | fail | not_verified | not_verified | no | blocked |
 | data_go_kr_industrial_complex_prd_api | fail | not_verified | not_verified | no | blocked |
-| data_go_kr_buildinghub_ap_basis | fail | not_verified | not_verified | no | blocked |
+| data_go_kr_buildinghub_ap_basis | pass | not_verified | not_verified | partial | blocked |
 | data_go_kr_small_shop_large_upjong_api | pass | not_verified | not_verified | partial | blocked |
-| data_go_kr_arch_pms_hub_api | fail | not_verified | not_verified | no | blocked |
 | localdata_business_license_delta_api | fail | not_verified | not_verified | no | blocked |
 
 ## 15. Blocking Issues
@@ -147,10 +146,10 @@ frozen structural challenger가 없으므로 2024 이후 official actual을 conf
 | --- | --- | --- | --- | --- |
 | 한국산업단지공단_전국등록공장현황_등록공장현황자료 | https://www.data.go.kr/data/15105482/fileData.do | 공공데이터포털 파일데이터 API 활용신청 또는 원문파일 다운로드 |  | N_file_or_external_download_route |
 | 한국산업단지공단_전국등록공장현황 | https://www.data.go.kr/data/15106170/fileData.do | 공공데이터포털 파일데이터 API 활용신청 또는 원문파일 다운로드 |  | N_file_or_external_download_route |
-| 한국산업단지공단_공장등록생산정보조회서비스 | https://www.data.go.kr/data/15087611/openapi.do | 공공데이터포털 활용신청 | <response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response> | N_api_reachable_parameter_required |
-| 한국산업단지공단_산업동향조사 통계 조회 서비스 | https://www.data.go.kr/data/15152884/openapi.do | 공공데이터포털 활용신청 | <response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response> | N_api_reachable_parameter_required |
+| 한국산업단지공단_공장등록생산정보조회서비스 | https://www.data.go.kr/data/15087611/openapi.do | 공공데이터포털 활용신청 | "<response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response>" | N_api_reachable_parameter_required |
+| 한국산업단지공단_산업동향조사 통계 조회 서비스 | https://www.data.go.kr/data/15152884/openapi.do | 공공데이터포털 활용신청 | "<response><header><resultCode>11</resultCode><resultMsg>NO_MANDATORY_REQUEST_PARAMETERS_ERROR</resultMsg></header></response>" | N_api_reachable_parameter_required |
 | 한국산업단지공단_국가산업단지 산업동향정보 | https://www.data.go.kr/data/3042071/fileData.do | 공공데이터포털 원문파일 다운로드 확인 |  | N_file_or_external_download_route |
-| 국토교통부_건축HUB_건축인허가정보 서비스 | https://www.data.go.kr/data/15136267/openapi.do | 공공데이터포털 활용신청 | empty_response_or_no_items | Y_or_confirm_existing_approval |
+| 국토교통부_건축HUB_건축인허가정보 서비스 | https://www.data.go.kr/data/15136267/openapi.do | 공공데이터포털 활용신청 | sample rows downloaded only; full historical inventory and gates not completed | N_api_sample_reachable |
 | 국토교통부_건축인허가 기본개요 | https://www.data.go.kr/data/15044695/fileData.do?recommendDataYn=Y | 건축HUB 대용량/공공데이터포털 경로 확인 | external link; direct file download is outside data.go.kr contentUrl | N_file_or_external_download_route |
-| 지방행정인허가데이터개방 Open API | https://www.localdata.go.kr/devcenter/applyGroupApi.do?menuNo=20002 | LOCALDATA 별도 API 신청 | not_probed | Y_or_confirm_existing_approval |
+| 지방행정인허가데이터개방 Open API | https://www.localdata.go.kr/devcenter/applyGroupApi.do?menuNo=20002 | LOCALDATA 별도 API 신청 | user_reported_api_page_unavailable_2026-07-17 | Y_or_confirm_existing_approval |
 | 소상공인시장진흥공단_상가(상권)정보 | https://www.data.go.kr/data/15012005/openapi.do | 공공데이터포털 활용신청 | sample rows downloaded only; full historical inventory and gates not completed | N_api_sample_reachable |

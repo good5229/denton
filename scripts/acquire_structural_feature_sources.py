@@ -241,6 +241,13 @@ def request_json(url: str, params: dict[str, Any], timeout: int = 90, raw_servic
     else:
         query = urllib.parse.urlencode(clean_params)
     full_url = f"{url}?{query}"
+    request = urllib.request.Request(
+        full_url,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json, application/xml, text/xml, */*",
+        },
+    )
     context = None
     try:
         import certifi  # type: ignore
@@ -249,7 +256,7 @@ def request_json(url: str, params: dict[str, Any], timeout: int = 90, raw_servic
     except Exception:
         context = None
     try:
-        with urllib.request.urlopen(full_url, timeout=timeout, context=context) as response:
+        with urllib.request.urlopen(request, timeout=timeout, context=context) as response:
             body = response.read()
             status = response.status
     except urllib.error.HTTPError as exc:
@@ -783,8 +790,6 @@ def probe_application_apis(primary_key: tuple[str, str, bool]) -> tuple[list[dic
             {
                 "sigunguCd": "11680",
                 "bjdongCd": "10300",
-                "startDate": "20240101",
-                "endDate": "20240131",
                 "_type": "json",
                 "numOfRows": MAX_API_PROBE_ROWS,
                 "pageNo": 1,
@@ -934,6 +939,8 @@ def application_needed_rows(probe_rows: list[dict[str, Any]]) -> list[dict[str, 
         if probe and not sample_count:
             sample_count = int(probe.get("rows_downloaded") or 0)
         issue = probe.get("blocking_issue", "") if probe else "not_probed"
+        if source["source_id"] == "localdata_business_license_delta_api" and not probe:
+            issue = "user_reported_api_page_unavailable_2026-07-17"
         download_method = probe.get("download_method", "") if probe else ""
         if probe and download_method in {"data_go_kr_contentUrl_file", "external_link"}:
             needs_application = "N_file_or_external_download_route"
@@ -1070,6 +1077,8 @@ def write_report(
         "",
         f"- API traffic policy: 승인 확인용 endpoint별 `{MAX_API_PROBE_ROWS}`행 샘플만 호출, 총 probe endpoint `{api_probe_count}`개.",
         "- 파일데이터 다운로드는 API 일일 트래픽을 소비하지 않는 `contentUrl` 직접 다운로드 경로를 우선 사용한다.",
+        "- 사용자가 건축HUB 활용승인 완료를 확인했으며, 서울 열린데이터광장 키(`SEOUL_OPENAPI_KEY`)도 `.env`에 추가했다.",
+        "- LOCALDATA는 API 페이지 접근 자체가 되지 않는 상태로 보고되어 현재 workstream에서는 보류한다.",
         "",
         "## 2. 현재 ML 상태",
         "",
