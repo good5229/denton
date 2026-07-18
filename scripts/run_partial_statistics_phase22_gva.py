@@ -78,6 +78,53 @@ OFFICIAL_RELEASES = [
     },
 ]
 
+REGION_META = {
+    "전국": ("00", "national"),
+    "수도권": ("R1", "supra_region"),
+    "충청권": ("R2", "supra_region"),
+    "호남권": ("R3", "supra_region"),
+    "대경권": ("R4", "supra_region"),
+    "동남권": ("R5", "supra_region"),
+    "서울": ("11", "sido"),
+    "부산": ("21", "sido"),
+    "대구": ("22", "sido"),
+    "인천": ("23", "sido"),
+    "광주": ("24", "sido"),
+    "대전": ("25", "sido"),
+    "울산": ("26", "sido"),
+    "세종": ("29", "sido"),
+    "경기": ("31", "sido"),
+    "강원": ("32", "sido"),
+    "충북": ("33", "sido"),
+    "충남": ("34", "sido"),
+    "전북": ("35", "sido"),
+    "전남": ("36", "sido"),
+    "경북": ("37", "sido"),
+    "경남": ("38", "sido"),
+    "제주": ("39", "sido"),
+}
+BROAD_INDUSTRIES = [
+    ("GRDP", "TOTAL", "all_industries"),
+    ("광업·제조업", "B00;C00", "official_broad"),
+    ("건설업", "F00", "official_broad"),
+    ("서비스업", "G00~S00", "official_broad"),
+]
+SERVICE_DETAIL_INDUSTRIES = [
+    ("서비스업", "G00~S00", "service_total"),
+    ("도소매", "G00", "service_detail"),
+    ("운수창고", "H00", "service_detail"),
+    ("숙박음식", "I00", "service_detail"),
+    ("정보통신", "J00", "service_detail"),
+    ("금융보험", "K00", "service_detail"),
+    ("부동산", "L00", "service_detail"),
+    ("사업서비스", "M00;N00", "service_detail"),
+    ("공공행정", "O00", "service_detail"),
+    ("교육", "P00", "service_detail"),
+    ("보건복지", "Q00", "service_detail"),
+    ("문화기타", "R00;S00", "service_detail"),
+]
+REGION_ORDER = sorted(REGION_META, key=len, reverse=True)
+
 
 def git_hash() -> str:
     try:
@@ -118,6 +165,135 @@ def file_sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def compact_text(value: str) -> str:
+    return value.replace(" ", "").replace("\u3000", "").replace("‧", "·")
+
+
+def extract_numbers(value: str) -> list[float]:
+    import re
+
+    return [float(match) for match in re.findall(r"[-+]?\d+(?:\.\d+)?", value)]
+
+
+def split_region_line(line: str) -> tuple[str, list[float]] | None:
+    import re
+
+    raw = line.strip()
+    compact = compact_text(raw)
+    for region in REGION_ORDER:
+        alias = compact_text(region)
+        if compact.startswith(alias):
+            spaced_alias = r"\s*".join(re.escape(ch) for ch in region)
+            rest = re.sub(rf"^\s*{spaced_alias}\s*", "", raw, count=1)
+            nums = extract_numbers(rest)
+            return region, nums
+    return None
+
+
+def pdf_pages(path: Path) -> list[str]:
+    try:
+        from pypdf import PdfReader
+    except Exception as exc:  # pragma: no cover - guarded by verifier in runtime env
+        raise RuntimeError("pypdf is required for official target extraction") from exc
+    reader = PdfReader(str(path))
+    return [page.extract_text() or "" for page in reader.pages]
+
+
+def current_service_page(pages: list[str], reference_period: str) -> str:
+    year = reference_period[:4]
+    quarter = reference_period[-1]
+    yy = year[2:]
+    marker = compact_text(f"{yy}년{quarter}/4분기p")
+    candidates = []
+    for text in pages:
+        ctext = compact_text(text)
+        if "서비스업경제활동별" in ctext and marker in ctext:
+            candidates.append(text)
+    return candidates[-1] if candidates else ""
+
+
+def parse_broad_targets(pages: list[str], release: dict[str, str], source_hash: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    page_text = pages[7] if len(pages) > 7 else "\n".join(pages)
+    for line in page_text.splitlines():
+        parsed = split_region_line(line)
+        if not parsed:
+            continue
+        region, nums = parsed
+        if region not in REGION_META or len(nums) < 12:
+            continue
+        current_values = nums[-4:]
+        region_code, region_level = REGION_META[region]
+        for (industry_name, project_code, mapping_status), value in zip(BROAD_INDUSTRIES, current_values):
+            rows.append(
+                {
+                    "release_date": release["posted_at"],
+                    "reference_period": release["reference_period"],
+                    "region_code": region_code,
+                    "region_name": region,
+                    "region_level": region_level,
+                    "official_industry_group": industry_name,
+                    "project_industry_code": project_code,
+                    "mapping_status": mapping_status,
+                    "measure_type": "yoy_growth",
+                    "price_basis": "real",
+                    "reference_year": "",
+                    "seasonal_adjustment_status": "unadjusted_original",
+                    "value": value,
+                    "unit": "percent",
+                    "provisional_status": "p",
+                    "revision_status": "first_release_or_current_release",
+                    "target_type": "official_direct_growth",
+                    "vintage_id": release["release_id"],
+                    "source_file_hash": source_hash,
+                    "extraction_method": "pypdf_text_table_current_quarter_last_four_values",
+                }
+            )
+    return rows
+
+
+def parse_service_detail_targets(pages: list[str], release: dict[str, str], source_hash: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    page_text = current_service_page(pages, release["reference_period"])
+    if not page_text:
+        return rows
+    for line in page_text.splitlines():
+        parsed = split_region_line(line)
+        if not parsed:
+            continue
+        region, nums = parsed
+        if region not in REGION_META or len(nums) < 12:
+            continue
+        current_values = nums[-12:]
+        region_code, region_level = REGION_META[region]
+        for (industry_name, project_code, mapping_status), value in zip(SERVICE_DETAIL_INDUSTRIES, current_values):
+            rows.append(
+                {
+                    "release_date": release["posted_at"],
+                    "reference_period": release["reference_period"],
+                    "region_code": region_code,
+                    "region_name": region,
+                    "region_level": region_level,
+                    "official_industry_group": industry_name,
+                    "project_industry_code": project_code,
+                    "mapping_status": mapping_status,
+                    "measure_type": "yoy_growth",
+                    "price_basis": "real",
+                    "reference_year": "",
+                    "seasonal_adjustment_status": "unadjusted_original",
+                    "value": value,
+                    "unit": "percent",
+                    "provisional_status": "p",
+                    "revision_status": "first_release_or_current_release",
+                    "target_type": "official_direct_service_detail_growth",
+                    "vintage_id": release["release_id"],
+                    "source_file_hash": source_hash,
+                    "extraction_method": "pypdf_text_service_detail_current_quarter",
+                }
+            )
+    return rows
+
+
 def add_audit_cols(frame: pd.DataFrame) -> pd.DataFrame:
     out = frame.copy()
     base_cols = [c for c in out.columns if c not in {"input_hash", "code_commit_hash", "run_id", "created_at"}]
@@ -143,6 +319,7 @@ def materialize_official_sources() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
     source_rows: list[dict[str, Any]] = []
     release_rows: list[dict[str, Any]] = []
     vintage_rows: list[dict[str, Any]] = []
+    target_rows: list[dict[str, Any]] = []
     for item in OFFICIAL_RELEASES:
         folder = RAW_OFFICIAL / item["release_id"]
         folder.mkdir(parents=True, exist_ok=True)
@@ -160,6 +337,12 @@ def materialize_official_sources() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
         write_json(folder / "page_metadata.json", metadata)
         write_json(folder / "attachment_metadata.json", metadata)
         (folder / "checksum.sha256").write_text((digest + "  source.pdf\n") if digest else "", encoding="utf-8")
+        extracted_rows = 0
+        if exists:
+            pages = pdf_pages(path)
+            parsed_rows = parse_broad_targets(pages, item, digest) + parse_service_detail_targets(pages, item, digest)
+            target_rows.extend(parsed_rows)
+            extracted_rows = len(parsed_rows)
         source_rows.append(
             {
                 "source_id": "OFFICIAL_EXPERIMENTAL_QUARTERLY_GRDP",
@@ -176,7 +359,8 @@ def materialize_official_sources() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
                 "release_date_exists": "pass",
                 "measure_definition_exists": "pass_release_text",
                 "direct_source_gate": "pass_source_only" if exists else "fail_missing_attachment",
-                "target_extraction_gate": "blocked_pdf_table_parser_not_implemented",
+                "target_extraction_gate": "pass" if extracted_rows > 0 else "fail_no_table_rows_extracted",
+                "extracted_target_rows": extracted_rows,
                 "official_page_url": item["official_page_url"],
                 "download_url": item["download_url"],
             }
@@ -204,24 +388,17 @@ def materialize_official_sources() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
                 "vintage_status": "first_release_source_materialized" if exists else "not_materialized",
             }
         )
-    target_cube = pd.DataFrame(
-        columns=[
-            "release_date",
+    target_cube = add_audit_cols(pd.DataFrame(target_rows))
+    if not target_cube.empty:
+        dedupe_key = [
             "reference_period",
             "region_code",
-            "region_name",
             "official_industry_group",
             "measure_type",
-            "price_basis",
-            "reference_year",
-            "seasonal_adjustment_status",
-            "value",
-            "provisional_status",
-            "revision_status",
             "target_type",
             "vintage_id",
         ]
-    )
+        target_cube = target_cube.drop_duplicates(dedupe_key, keep="last")
     target_cube.to_parquet(PROCESSED_DIR / "partial_stats_phase22_gva_official_target_cube.parquet", index=False)
     measure = add_audit_cols(
         pd.DataFrame(
@@ -231,10 +408,11 @@ def materialize_official_sources() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataF
                     "source_evidence": "downloaded_pdf_and_official_page",
                     "target_measure_observed": "real_value_added_growth_and_contribution",
                     "level_track_status": "not_extracted_from_pdf_tables",
-                    "growth_track_status": "source_materialized_extraction_pending",
+                    "growth_track_status": "extracted_from_pdf_text_tables",
                     "price_basis": "real",
                     "seasonal_adjustment_status": "original_yoy_growth",
                     "official_statistics_status": "experimental_statistics_not_approved_statistics",
+                    "official_target_rows": int(len(target_cube)),
                 }
             ]
         )
@@ -666,9 +844,10 @@ def main() -> int:
             ]
         )
     )
-    official_eval = add_audit_cols(pd.DataFrame([{"evaluation_target": "official_first_release", "status": "blocked_target_cube_extraction_pending", "rows": 0}]))
-    official_growth = add_audit_cols(pd.DataFrame([{"evaluation_target": "official_growth", "status": "blocked_pdf_table_parser_not_implemented", "rows": 0}]))
-    official_direction = add_audit_cols(pd.DataFrame([{"evaluation_target": "official_direction", "status": "blocked_pdf_table_parser_not_implemented", "rows": 0}]))
+    official_target_count = int(len(official_cube))
+    official_eval = add_audit_cols(pd.DataFrame([{"evaluation_target": "official_first_release", "status": "target_materialized_prediction_alignment_pending", "rows": official_target_count}]))
+    official_growth = add_audit_cols(pd.DataFrame([{"evaluation_target": "official_growth", "status": "direct_growth_target_materialized", "rows": official_target_count}]))
+    official_direction = add_audit_cols(pd.DataFrame([{"evaluation_target": "official_direction", "status": "target_materialized_direction_scoring_pending", "rows": official_target_count}]))
     official_revision = add_audit_cols(pd.DataFrame([{"evaluation_target": "official_revision", "status": "blocked_no_revision_cube", "rows": 0}]))
     temporal = add_audit_cols(pd.DataFrame([{"temporal_policy_id": "T2_indicator_proportional", "status": "activated_for_sigungu_annual_allocation"}, {"temporal_policy_id": "T3_proportional_denton", "status": "incumbent_parent_child_development"}]))
     distortion = add_audit_cols(
@@ -694,16 +873,16 @@ def main() -> int:
     archive = add_audit_cols(pd.DataFrame([{"target_quarter": "2026Q2_or_next_unreleased", "archive_status": "frozen_requires_current_release_check", "forecast_created_at": GENERATED_AT}]))
 
     final = {
-        "status": "official_source_materialized_target_extraction_pending;sigungu_annual_grdp_quarterly_allocation_activated;quarterly_child_development_retained",
+        "status": "official_growth_target_materialized;sigungu_annual_grdp_quarterly_allocation_activated;quarterly_child_development_retained",
         "target": "GVA",
         "target_unchanged": True,
         "official_quarterly_source_materialized": bool(source["source_body_exists"].eq("pass").all()),
         "official_source_file_count": int(source["source_body_exists"].eq("pass").sum()),
         "official_source_period_count": int(source["reference_period"].nunique()),
         "official_vintage_count": int(vintage["vintage_status"].str.contains("materialized", regex=False).sum()),
-        "official_first_release_target_count": int(len(official_cube)),
-        "official_quarterly_target_materialized": False,
-        "target_measure_type": "real_yoy_growth_source_materialized_extraction_pending",
+        "official_first_release_target_count": official_target_count,
+        "official_quarterly_target_materialized": official_target_count > 0,
+        "target_measure_type": "real_yoy_growth_direct_target",
         "growth_metric_integrity": "pass_on_development_proxy_population",
         "warmup_scored_rows": 0,
         "target_copy_scored_rows": 0,
@@ -765,7 +944,7 @@ def main() -> int:
         {
             "final": pd.DataFrame([final]),
             "goal": pd.DataFrame([{"PRIMARY_TARGET": "지역×업종×기간 GVA", "QUARTERLY_DIRECT_TARGET": "시도×광역산업×분기 official growth", "QUARTERLY_CHILD_TARGET": "시군구×산업×분기 development estimate"}]),
-            "phase21": "Phase 21의 공식 원문 미수집 상태를 Phase 22에서 보도자료 원문 수집과 해시 보존 상태로 전환했다. 단, PDF 표에서 구조화 Target Cube를 추출하는 parser는 아직 별도 구현이 필요하다.",
+            "phase21": "Phase 21의 공식 원문 미수집 상태를 Phase 22에서 보도자료 원문 수집, 해시 보존, PDF 텍스트 기반 공식 성장률 Target Cube 추출 상태로 전환했다.",
             "source": source,
             "vintage": vintage,
             "measure": measure,
@@ -802,12 +981,12 @@ def main() -> int:
             "nowcast": nowcast.head(20),
             "annual": annual.head(20),
             "monthly": pd.DataFrame([{"monthly_primary_status": "blocked_independent_gate"}]),
-            "uncertainty": pd.DataFrame([{"uncertainty_status": "scenario_only_until_official_target_cube"}]),
-            "risk": pd.DataFrame([{"risk": "PDF table parser and HWPX extraction not implemented", "severity": "high"}, {"risk": "structural weights for farmland/factory/business count are not yet materialized at sigungu level", "severity": "medium"}]),
+            "uncertainty": pd.DataFrame([{"uncertainty_status": "official_growth_target_available_level_target_unavailable"}]),
+            "risk": pd.DataFrame([{"risk": "official level target is not available from direct PDF growth tables", "severity": "medium"}, {"risk": "structural weights for farmland/factory/business count are not yet materialized at sigungu level", "severity": "medium"}]),
             "policy": pd.DataFrame([{"parent_policy": "QP0 retained", "child_policy": "annual benchmark + quarterly indicator profile", "production_use": False}]),
-            "limits": "공식 원문은 확보했지만 구조화된 공식 growth/level target cube는 아직 비어 있다. 따라서 공식 외부 정확도는 아직 주장하지 않는다.",
-            "conclusion": "Phase 22는 공식 분기 GRDP 원문 수집을 활성화하고, 시군구 연간 GRDP/GVA benchmark를 분기 산업지표 profile로 배분하는 산출 경로를 추가했다.",
-            "cannot_claim": "Official target accuracy, production deployment, official statistics equivalence, and direct sigungu quarterly actual accuracy.",
+            "limits": "공식 성장률 Target Cube는 확보했지만 수준값은 임의 복원하지 않았다. 기존 예측치와 공식 성장률 target의 가격기준·산업분류 정렬은 다음 scoring 단계에서 처리한다.",
+            "conclusion": "Phase 22는 공식 분기 GRDP 원문 수집, 공식 실질 YoY 성장률 target 추출, 시군구 연간 GRDP/GVA benchmark의 분기 산업지표 profile 배분 경로를 활성화했다.",
+            "cannot_claim": "Official level accuracy, production deployment, official statistics equivalence, and direct sigungu quarterly actual accuracy.",
         }
     )
     print(json.dumps(final, ensure_ascii=False, indent=2))

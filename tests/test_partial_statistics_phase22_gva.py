@@ -16,24 +16,30 @@ def read_csv(name: str) -> pd.DataFrame:
     return pd.read_csv(PROCESSED_DIR / name, encoding=CSV_ENCODING, dtype=str, keep_default_na=False, low_memory=False)
 
 
-def test_phase22_official_source_materialized_but_target_not_fabricated() -> None:
+def test_phase22_official_source_and_growth_target_materialized() -> None:
     final = json.loads((PROCESSED_DIR / "partial_stats_phase22_gva_final_status.json").read_text(encoding="utf-8"))
     assert final["target"] == "GVA"
     assert final["official_quarterly_source_materialized"] is True
     assert final["official_source_file_count"] >= 5
     assert final["official_source_period_count"] >= 5
-    assert final["official_quarterly_target_materialized"] is False
-    assert final["official_first_release_target_count"] == 0
+    assert final["official_quarterly_target_materialized"] is True
+    assert final["official_first_release_target_count"] > 0
     assert final["official_statistics_claim"] is False
     assert final["production_use"] is False
 
     source = read_csv("partial_stats_phase22_gva_official_source_manifest.csv")
     assert source["source_body_exists"].eq("pass").all()
     assert source["attachment_hash"].str.len().eq(64).all()
-    assert source["target_extraction_gate"].eq("blocked_pdf_table_parser_not_implemented").all()
+    assert source["target_extraction_gate"].eq("pass").all()
+    assert pd.to_numeric(source["extracted_target_rows"], errors="coerce").gt(0).all()
 
     cube = pd.read_parquet(PROCESSED_DIR / "partial_stats_phase22_gva_official_target_cube.parquet")
-    assert len(cube) == 0
+    assert len(cube) == final["official_first_release_target_count"]
+    assert cube["measure_type"].eq("yoy_growth").all()
+    assert cube["price_basis"].eq("real").all()
+    assert cube["value"].notna().all()
+    key = ["reference_period", "region_code", "official_industry_group", "measure_type", "target_type", "vintage_id"]
+    assert not cube.duplicated(key).any()
 
 
 def test_phase22_growth_warmup_and_origin_gates() -> None:
