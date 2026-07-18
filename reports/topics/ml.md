@@ -2,6 +2,7 @@
 
 | Report | Purpose |
 | --- | --- |
+| [partial_statistics_estimation_phase13_gva.md](../partial_statistics_estimation_phase13_gva.md) | Phase 13 true-origin audit, sensitivity multi-origin GVA models, monthly blocker, and interval diagnostics |
 | [partial_statistics_estimation_phase12_gva.md](../partial_statistics_estimation_phase12_gva.md) | Phase 12-GVA multi-year, multi-origin GVA target grid, leakage-aware availability, 2025 annual/quarter/month estimates, and baseline-dominant policy |
 | [partial_statistics_estimation_phase11.md](../partial_statistics_estimation_phase11.md) | Phase 11 holdout observation readiness, watcher health, failure classification, and pending-release validation protocol |
 | [partial_statistics_estimation_phase10.md](../partial_statistics_estimation_phase10.md) | Phase 10 gate separation, official raw stable cube activation, shadow challenger freeze, and pre-release future-vintage forecast archive |
