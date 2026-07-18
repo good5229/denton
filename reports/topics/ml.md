@@ -2,6 +2,7 @@
 
 | Report | Purpose |
 | --- | --- |
+| [partial_statistics_estimation_phase18_gva.md](../partial_statistics_estimation_phase18_gva.md) | Baseline error decomposition, dynamic share forecasting, and evidence-gated auxiliary data |
 | [partial_statistics_estimation_phase17_gva.md](../partial_statistics_estimation_phase17_gva.md) | As-of feature integrity, indicator certification, and sector-limited GVA nowcasting |
 | [partial_statistics_estimation_phase16_gva.md](../partial_statistics_estimation_phase16_gva.md) | Historical vintage reconstruction, high-frequency indicator qualification, and strict pseudo-real-time GVA nowcasting |
 | [partial_statistics_estimation_phase15_gva.md](../partial_statistics_estimation_phase15_gva.md) | Literature-grounded regional activity indicators, RIAF policy test, leakage audit, and current GVA estimates |
