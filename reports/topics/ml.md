@@ -2,6 +2,7 @@
 
 | Report | Purpose |
 | --- | --- |
+| [partial_statistics_estimation_phase5c.md](../partial_statistics_estimation_phase5c.md) | Constraint-safe partial-statistics reconstruction, nested support-aware policy selection, reconciliation firewall, stability, calibration, and frozen-holdout preparation |
 | [ml_baseline_experiment.md](../ml_baseline_experiment.md) | First ML baseline and residual correction test |
 | [sector_specific_model_experiment.md](../sector_specific_model_experiment.md) | A/B/D sector-specific ML test |
 | [model_improvement_final_report.md](../model_improvement_final_report.md) | Reconciled residual model final report |

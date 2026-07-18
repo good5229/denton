@@ -15,6 +15,8 @@ This directory contains generated research notes, validation reports, dashboard 
 
 ## Current Main Result
 
+The latest partial-statistics reconstruction decision is summarized in [partial_statistics_estimation_phase5c.md](partial_statistics_estimation_phase5c.md). Constraint-safe nested evaluation rejected the complex ML routers for both establishments and employees (Grade D); the development champion remains the transparent bidirectional temporal-share baseline, and no unpublished cells are released as estimates.
+
 The most recent ML decision is summarized in [municipality_oracle_upper_bound.md](municipality_oracle_upper_bound.md) and [municipality_ml_stop_decision.md](municipality_ml_stop_decision.md). The current practical conclusion is that even fine-grained municipality oracle policies improve WMAPE by less than 1%, so 시군구 operation should keep the Denton/indicator baseline and pause direct ML share correction.
 
 The follow-up data step is summarized in [municipality_new_feature_dataset.md](municipality_new_feature_dataset.md). It builds a new municipality feature mart from KOSIS structural business statistics, mining/manufacturing 시군구 KSIC statistics, and economic-census 읍면동 proxy data before any future ML restart.
