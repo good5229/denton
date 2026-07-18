@@ -2,6 +2,7 @@
 
 | Report | Purpose |
 | --- | --- |
+| [partial_statistics_estimation_phase8.md](../partial_statistics_estimation_phase8.md) | Phase 8 stable-cube evidence repair, KSIC 8→9 recovery, metric lineage reconciliation, and no-challenger qualification decision |
 | [partial_statistics_estimation_phase7.md](../partial_statistics_estimation_phase7.md) | Phase 7 implementation audit, historical target inventory, vintage firewall, frozen PB0/PB8 baseline policy, and one-shot holdout preparation |
 | [partial_statistics_estimation_phase6.md](../partial_statistics_estimation_phase6.md) | Prospective rolling-origin forecasting, cold-start diagnostics, one-sided baseline policy, leakage firewall, holdout preparation, and forecast archive |
 | [partial_statistics_estimation_phase5c.md](../partial_statistics_estimation_phase5c.md) | Constraint-safe partial-statistics reconstruction, nested support-aware policy selection, reconciliation firewall, stability, calibration, and frozen-holdout preparation |
