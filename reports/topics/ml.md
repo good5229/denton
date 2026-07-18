@@ -2,6 +2,7 @@
 
 | Report | Purpose |
 | --- | --- |
+| [partial_statistics_estimation_phase10.md](../partial_statistics_estimation_phase10.md) | Phase 10 gate separation, official raw stable cube activation, shadow challenger freeze, and pre-release future-vintage forecast archive |
 | [partial_statistics_estimation_phase9.md](../partial_statistics_estimation_phase9.md) | Phase 9 official KOSIS raw evidence activation, R4 reconciliation, forecast archive integrity, and release-evidence gate decision |
 | [partial_statistics_estimation_phase8.md](../partial_statistics_estimation_phase8.md) | Phase 8 stable-cube evidence repair, KSIC 8→9 recovery, metric lineage reconciliation, and no-challenger qualification decision |
 | [partial_statistics_estimation_phase7.md](../partial_statistics_estimation_phase7.md) | Phase 7 implementation audit, historical target inventory, vintage firewall, frozen PB0/PB8 baseline policy, and one-shot holdout preparation |
