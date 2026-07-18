@@ -78,3 +78,4 @@
 | [structural_phase2_long_running_data_discovery.md](../structural_phase2_long_running_data_discovery.md) | Phase 2 source discovery and ML restart block decision with no new model training |
 | [structural_phase3_data_native_ksic_and_spatial_readiness.md](../structural_phase3_data_native_ksic_and_spatial_readiness.md) | Phase 3 KSIC/spatial foundation gates; Spatial passes but model training remains prohibited pending structural history and mapping readiness |
 | [partial_statistics_estimation_phase23_gva.md](../partial_statistics_estimation_phase23_gva.md) | Official growth alignment, period-key integrity, and dual-track quarterly validation |
+| [partial_statistics_estimation_phase24_gva.md](../partial_statistics_estimation_phase24_gva.md) | Unique-policy verification, origin governance, and Phase 24 holdout controls |
