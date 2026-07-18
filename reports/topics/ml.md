@@ -2,6 +2,7 @@
 
 | Report | Purpose |
 | --- | --- |
+| [partial_statistics_estimation_phase11.md](../partial_statistics_estimation_phase11.md) | Phase 11 holdout observation readiness, watcher health, failure classification, and pending-release validation protocol |
 | [partial_statistics_estimation_phase10.md](../partial_statistics_estimation_phase10.md) | Phase 10 gate separation, official raw stable cube activation, shadow challenger freeze, and pre-release future-vintage forecast archive |
 | [partial_statistics_estimation_phase9.md](../partial_statistics_estimation_phase9.md) | Phase 9 official KOSIS raw evidence activation, R4 reconciliation, forecast archive integrity, and release-evidence gate decision |
 | [partial_statistics_estimation_phase8.md](../partial_statistics_estimation_phase8.md) | Phase 8 stable-cube evidence repair, KSIC 8→9 recovery, metric lineage reconciliation, and no-challenger qualification decision |
