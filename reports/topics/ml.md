@@ -81,3 +81,4 @@
 | [partial_statistics_estimation_phase24_gva.md](../partial_statistics_estimation_phase24_gva.md) | Unique-policy verification, origin governance, and Phase 24 holdout controls |
 | [partial_statistics_estimation_phase25_gva.md](../partial_statistics_estimation_phase25_gva.md) | Release-dated source qualification, join repair, and QP2-R gate evidence |
 | [partial_statistics_estimation_phase26_gva.md](../partial_statistics_estimation_phase26_gva.md) | Phase 26 semantic series recovery, release-event materialization attempt, and historical electricity spatial holdout |
+| [partial_statistics_estimation_phase27_gva.md](../partial_statistics_estimation_phase27_gva.md) | Phase 27 hierarchical fine-grained GVA modeling, guarded residual learning, and multi-level validation |
