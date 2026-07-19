@@ -84,3 +84,4 @@
 | [partial_statistics_estimation_phase27_gva.md](../partial_statistics_estimation_phase27_gva.md) | Phase 27 hierarchical fine-grained GVA modeling, guarded residual learning, and multi-level validation |
 | [partial_statistics_estimation_phase28_gva.md](../partial_statistics_estimation_phase28_gva.md) | Phase 28 forecastability audit, annual nominal anchor forecasting, and forward-only prospective system |
 | [partial_statistics_estimation_phase29_gva.md](../partial_statistics_estimation_phase29_gva.md) | Phase 29 GPT-recommended residual, router, and service temporal component experiments |
+| [partial_statistics_estimation_phase30_reci_local_fine.md](../partial_statistics_estimation_phase30_reci_local_fine.md) | Phase 30 RECI-LF local/fine commercial PoC claim, data-readiness, component validation, and shadow cube |
