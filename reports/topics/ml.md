@@ -85,3 +85,4 @@
 | [partial_statistics_estimation_phase28_gva.md](../partial_statistics_estimation_phase28_gva.md) | Phase 28 forecastability audit, annual nominal anchor forecasting, and forward-only prospective system |
 | [partial_statistics_estimation_phase29_gva.md](../partial_statistics_estimation_phase29_gva.md) | Phase 29 GPT-recommended residual, router, and service temporal component experiments |
 | [partial_statistics_estimation_phase30_reci_local_fine.md](../partial_statistics_estimation_phase30_reci_local_fine.md) | Phase 30 RECI-LF local/fine commercial PoC claim, data-readiness, component validation, and shadow cube |
+| [partial_statistics_estimation_phase31_reci_evidence.md](../partial_statistics_estimation_phase31_reci_evidence.md) | Phase 31 RECI-LF evidence upgrade, lineage audit, eligibility gates, normalized spatial validation, and empirical confidence |
