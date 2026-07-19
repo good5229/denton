@@ -1,0 +1,16 @@
+# Phase33 Sector Presence Modules
+
+## 1. Module decisions
+
+| sector_module | sector_name | source_family_id | local_source | source_available | source_row_count | presence_evidence | value_evidence | independent_presence_family_count | module_decision | known_limitation | production_use | official_statistics_claim | input_hash | code_commit_hash | run_id | created_at |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| A | 농림어업 | economic_census_2015 | emd_economic_census_2015.csv | Y | 182034 | historical EMD presence only | not_established_by_presence_source | 1 | Retained | current national EMD facility evidence missing | false | false | 1789b85b54b90def738f5098cc6aea4b5417f2b734ed2a507cd3bf80dc6d5e8e | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| B | 광업 | manufacturing_mining_sigungu_ksic | business_employment_feature_table.csv | Y | 29008 | 2021-2023 sigungu business/employment presence | not_established_by_presence_source | 1 | Retained | mine operation/location status not independently verified | false | false | 1789b85b54b90def738f5098cc6aea4b5417f2b734ed2a507cd3bf80dc6d5e8e | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| C | 제조업 | factory_admin_snapshot | factory_feature_table.csv | Y | 5535 | factory broad presence plus business/employment | not_established_by_presence_source | 1 | Retained | factory snapshot does not measure output or fine composition | false | false | 1789b85b54b90def738f5098cc6aea4b5417f2b734ed2a507cd3bf80dc6d5e8e | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| D | 전기·가스 | kepco_admin | municipality_electricity_feature_cube.csv | N | 0 | missing_local_artifact | not_established_by_presence_source | 0 | Blocked | generation facility/output attribution evidence incomplete | false | false | 1789b85b54b90def738f5098cc6aea4b5417f2b734ed2a507cd3bf80dc6d5e8e | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| F | 건설 | buildinghub_admin | buildinghub_feature_table.csv | Y | 846 | building permit/start/approval pilot | not_established_by_presence_source | 1 | Retained | publication lag and national historical coverage incomplete | false | false | 1789b85b54b90def738f5098cc6aea4b5417f2b734ed2a507cd3bf80dc6d5e8e | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| SERVICE | 서비스업 | service_production_index | partial_stats_phase27_gva_service_full_cube.parquet | Y | 9520 | official sido×service-series quarterly activity | not_established_by_presence_source | 1 | Retained | does not identify EMD or sigungu current presence | false | false | 1789b85b54b90def738f5098cc6aea4b5417f2b734ed2a507cd3bf80dc6d5e8e | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+
+## 2. Rule
+
+Presence and value evidence are separated. Facility existence never promotes GVA magnitude by itself.

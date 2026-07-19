@@ -1,0 +1,21 @@
+# Phase33 Industry Dimension Integrity
+
+## 1. Dataset summary
+
+| dataset_id | parent_count | median_pearson | median_spearman | median_cosine | exact_duplicate_rate | near_duplicate_rate | median_distinct_vectors | median_industry_variance | source_output_rank_agreement | source_output_correlation_interpretation | audit_type | decision | parent_region | region_count | industry_count | pair_count | pearson_median | spearman_median | cosine_median | distinct_vector_count | industry_conditioned_variance | common_vector_explained_variance | control_id | control_result | input_hash | code_commit_hash | run_id | created_at |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| phase32_current_expanded | 25.0 | 1.0 | 1.0 | 1.0 | 0.0 | 0.9446666666666667 | 15.0 | 0.0024762715890626506 | 0.6764705882352942 | 2015 industry source vs 2024 total-vector-expanded output | dataset_summary | retired_industry_dimension_collapsed |  |  |  |  |  |  |  |  |  |  |  |  | acb97a4d34be4119e91c4dfbafc9412621a5938d89cbea475953013a1df1daca | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| phase33_historical_observed | 252.0 | 0.5230992091883824 | 0.49240404838688956 | 0.7519206577285346 | 0.00022523629334774846 | 0.00022523629334774846 | 19.0 | 0.01226091777172294 | 1.0 | direct source-to-output reconstruction identity | dataset_summary | retained_historical_industry_dimension_preserved |  |  |  |  |  |  |  |  |  |  |  |  | acb97a4d34be4119e91c4dfbafc9412621a5938d89cbea475953013a1df1daca | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+
+## 2. Negative controls
+
+| dataset_id | parent_count | median_pearson | median_spearman | median_cosine | exact_duplicate_rate | near_duplicate_rate | median_distinct_vectors | median_industry_variance | source_output_rank_agreement | source_output_correlation_interpretation | audit_type | decision | parent_region | region_count | industry_count | pair_count | pearson_median | spearman_median | cosine_median | distinct_vector_count | industry_conditioned_variance | common_vector_explained_variance | control_id | control_result | input_hash | code_commit_hash | run_id | created_at |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| phase32_current_expanded |  |  |  |  |  |  |  |  |  |  | negative_control | fail | ALL |  |  |  |  |  |  |  |  |  | industry_permutation | labels change but common spatial vector remains invariant | acb97a4d34be4119e91c4dfbafc9412621a5938d89cbea475953013a1df1daca | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| phase32_current_expanded |  |  |  |  |  |  |  |  |  |  | negative_control | pass_guardrail | ALL |  |  |  |  |  |  |  |  |  | fake_industry | no source row; output prohibited | acb97a4d34be4119e91c4dfbafc9412621a5938d89cbea475953013a1df1daca | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| phase32_current_expanded |  |  |  |  |  |  |  |  |  |  | negative_control | retire_current_product | ALL |  |  |  |  |  |  |  |  |  | disable_common_fallback | 6529 current rows become unavailable | acb97a4d34be4119e91c4dfbafc9412621a5938d89cbea475953013a1df1daca | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+| phase33_historical_observed |  |  |  |  |  |  |  |  |  |  | negative_control | pass | ALL |  |  |  |  |  |  |  |  |  | source_industry_removal | removed industry yields no output while other industry vectors remain unchanged | acb97a4d34be4119e91c4dfbafc9412621a5938d89cbea475953013a1df1daca | 510c8c96d97b5bb0c1e409466478d006c49b0bd0 | partial_statistics_estimation_phase33_final | 2026-07-20T02:17:43+09:00 |
+
+## 3. Decision
+
+The Phase32 current A/C products are retired. The 2015 industry-specific source preserves a valid historical industry dimension and is retained as Product A1.
