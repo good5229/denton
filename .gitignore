@@ -22,3 +22,6 @@ reports/experiments/electricity_policy_predictions.csv
 
 # Local reference documents
 reference/*.pdf
+
+# Local Goyang contest submission workspace
+/goyang/
