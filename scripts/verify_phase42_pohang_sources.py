@@ -18,6 +18,8 @@ def main() -> int:
     population = read("partial_stats_phase42_pohang_emd_population.csv")
     proxy = read("partial_stats_phase42_pohang_emd_monthly_proxy.csv")
     audit = read("partial_stats_phase42_pohang_source_audit.csv")
+    gu_actual = read("partial_stats_phase42_pohang_gu_industry_actual.csv")
+    emd_actual = read("partial_stats_phase42_pohang_emd_industry_actual.csv")
     kosis = read("partial_stats_phase42_pohang_2015_all_ksic.csv", "cp949")
 
     assert len(registry) == registry.emd_code.nunique() == 29
@@ -30,6 +32,12 @@ def main() -> int:
     assert len(audit) == 20 and audit.match_rate.between(0, 1).all()
     assert audit.loc[audit.source == "포항시 공장등록현황", "raw_rows"].iat[0] == 1465
     assert proxy.emd_code.nunique() == 29
+    assert set(gu_actual.year) == {2024} and set(gu_actual.general_gu) == {"남구", "북구"}
+    assert not gu_actual.duplicated(["year", "general_gu", "division_code"]).any()
+    assert gu_actual[["establishments", "employees", "sales"]].notna().all().all()
+    assert set(emd_actual.general_gu) == {"남구", "북구"}
+    assert set(registry.emd_name) <= set(emd_actual.emd_name)
+    assert not emd_actual.duplicated(["year", "emd_name", "division_code"]).any()
     assert proxy.period.min() == "2021-01" and proxy.period.max() == "2026-06"
     expected = 29 * proxy.sector_code.nunique() * proxy.period.nunique()
     assert len(proxy) == expected and not proxy.duplicated(["emd_code", "sector_code", "period"]).any()
