@@ -25,3 +25,6 @@ reference/*.pdf
 
 # Local Goyang contest submission workspace
 /goyang/
+
+# Local Pohang contest/research deliverable workspace
+/pohang/
