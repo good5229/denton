@@ -168,17 +168,18 @@ def main() -> Path:
     OUT.mkdir(parents=True, exist_ok=True)
     status42 = json.loads((DATA / "partial_stats_phase42_pohang_status.json").read_text())
     status43 = json.loads((DATA / "partial_stats_phase43_pohang_status.json").read_text())
-    diagnostics = pd.read_csv(DATA / "partial_stats_phase42_pohang_industry_diagnostics.csv", encoding="utf-8-sig", dtype={"industry_code": str})
-    complete = diagnostics.dropna(subset=["city_industry_mae_pp", "emd_spatial_mae_pp", "next_year_gu_sales_mae_pp"])
-    good = complete.nsmallest(6, "combined_score_pp"); bad = complete.nlargest(6, "combined_score_pp")
-    cube = pd.read_parquet(DATA / "partial_stats_phase42_pohang_multiresolution_cube.parquet")
+    status45 = json.loads((DATA / "partial_stats_phase45_pohang_status.json").read_text())
+    diagnostics = pd.read_csv(DATA / "partial_stats_phase45_pohang_final_industry_diagnostics.csv", encoding="utf-8-sig", dtype={"industry_code": str})
+    complete = diagnostics.dropna(subset=["industry_cv_mae_pp", "spatial_cv_mae_pp", "gu_sales_cv_mae_pp"])
+    good = complete.nsmallest(6, "combined_cv_score_pp"); bad = complete.nlargest(6, "combined_cv_score_pp")
+    cube = pd.read_parquet(DATA / "partial_stats_phase45_pohang_final_multiresolution_cube.parquet")
     monthly = cube[(cube.geo_level.eq("시")) & (cube.time_level.eq("월")) & (cube.industry_level.eq("대분류"))].copy()
     totals = monthly[monthly.period.str.startswith("2023")].groupby(["industry_code", "industry_name"], as_index=False).estimated_gva.sum().nlargest(4, "estimated_gva")
     periods = sorted(monthly.period.unique()); trends = []
     for row in totals.itertuples():
         z = monthly[monthly.industry_code.eq(row.industry_code)].set_index("period").reindex(periods)
         base = z[z.index.str.startswith("2021")].estimated_gva.mean(); trends.append((str(row.industry_name).replace(" 서비스업", "").replace("업", ""), (z.estimated_gva / base * 100).tolist()))
-    base = pd.read_parquet(DATA / "partial_stats_phase42_pohang_emd_group_monthly.parquet")
+    base = pd.read_parquet(DATA / "partial_stats_phase45_pohang_final_emd_small_monthly.parquet")
     emd_gva = base[base.year.eq(2023)].groupby(["emd_code", "emd_name"], as_index=False).estimated_emd_group_monthly_gva.sum()
     population = pd.read_csv(DATA / "partial_stats_phase42_pohang_emd_population.csv", dtype={"emd_code": str})
     emd_gva = emd_gva.merge(population[["emd_code", "population"]], on="emd_code"); emd_gva["gva_per_capita"] = emd_gva.estimated_emd_group_monthly_gva / emd_gva.population
@@ -192,7 +193,7 @@ def main() -> Path:
     textbox(slide, M, 195, BODY_W, 30, "무료 공공데이터 기반 개발통계  |  공식 상위합계 보존  |  오차·한계 동시 공개", 18, MUTED, name="poster_meta")
     line(slide, M, 238, W - M, 238, NAVY, 2.5)
     rect(slide, M, 260, BODY_W, 142, WHITE, GRID)
-    metrics = [("29개", "행정 읍면동"), ("19·74·228", "KSIC 대·중·소"), ("36개월", "2021–2023"), ("10.29·6.16%p", "중·소 산업 MAE"), ("2.95%p", "읍면동 공간 CV"), ("8.81%p", "남·북구 매출 CV")]
+    metrics = [("29개", "행정 읍면동"), ("19·74·228", "KSIC 대·중·소"), ("36개월", "2021–2023"), ("8.49·4.98%p", "중·소 산업 CV"), ("2.95%p", "읍면동 공간 CV"), ("8.81%p", "남·북구 매출 CV")]
     each = BODY_W / 6
     for i, (value, label) in enumerate(metrics):
         if i: line(slide, M + i * each, 280, M + i * each, 383, GRID, .55)
@@ -240,7 +241,7 @@ def main() -> Path:
             rect(slide, x, y + 350, cw, 93, "E9F5F3", None); textbox(slide, x + 12, y + 350, 150, 93, "개선 폭", 18, TEAL, True); textbox(slide, x + 170, y + 350, cw - 182, 93, "공간 -0.433%p\n구 매출 -5.198%p", 21, INK, True)
             textbox(slide, x, y + 455, cw, 72, "74개 산업을 하나씩 제외한 중첩교차검증 결과", 16, MUTED, False, "center")
         else:
-            checks = [("상위합계", "최대 2.33×10⁻¹⁰", GREEN), ("공간 프로필", "전면복제 대분류 0개", GREEN), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 actual", "부재 · 개발통계", RED)]
+            checks = [("상위합계", "최대 2.33×10⁻¹⁰", GREEN), ("공간 프로필", "중분류 0 · 소분류 4/19", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 actual", "부재 · 개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
                 yy = y + i * 102; rect(slide, x, yy, cw, 86, PALE, GRID, .5); rect(slide, x + 12, yy + 22, 24, 24, color, None, rounded=True); textbox(slide, x + 50, yy, 155, 86, a, 17, NAVY, True); textbox(slide, x + 212, yy, cw - 224, 86, b, 16, color, True)
             rect(slide, x, y + 424, cw, 104, "FFF2E8", None); textbox(slide, x + 12, y + 424, cw - 24, 104, "판정: 중분류 공간분포는 검증 가능\n읍면동×소분류×월은 제약추정으로 제한", 17, INK, True, "center")
@@ -264,13 +265,13 @@ def main() -> Path:
 
     y4, h4 = 2720, 900
     x, y, cw, ch = panel(slide, M, y4, COL_W, h4, "08", "예측 양호 산업")
-    rows = [(r.industry_name, f"{r.combined_score_pp:.2f}%p") for r in good.itertuples()]
+    rows = [(r.industry_name, f"{r.combined_cv_score_pp:.2f}%p") for r in good.itertuples()]
     native_table(slide, x, y, cw, ["KSIC 실제 업종명", "종합오차"], rows, [.72, .28], 58, [15, 16])
     textbox(slide, x, y + 425, cw, 86, "산업·읍면동·차년도 구 매출의 세 오차 평균. 상대적으로 정책 모니터링에 우선 활용 가능.", 16, MUTED, False, "center")
     rect(slide, x, y + ch - 95, cw, 82, "E9F5F3", None); textbox(slide, x + 12, y + ch - 95, cw - 24, 82, "활용: 월 변화 경보 + 현장자료 확인", 18, TEAL, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y4, COL_W, h4, "09", "예측 취약 산업")
-    rows = [(r.industry_name, f"{r.combined_score_pp:.2f}%p") for r in bad.itertuples()]
+    rows = [(r.industry_name, f"{r.combined_cv_score_pp:.2f}%p") for r in bad.itertuples()]
     native_table(slide, x, y, cw, ["KSIC 실제 업종명", "종합오차"], rows, [.72, .28], 58, [15, 16])
     textbox(slide, x, y + 425, cw, 86, "소수 대형사업장·자본집약·거래액 차이로 사업체·고용 프록시가 매출·부가가치를 충분히 설명하지 못함.", 16, MUTED, False, "center")
     rect(slide, x, y + ch - 95, cw, 82, "FBEDEA", None); textbox(slide, x + 12, y + ch - 95, cw - 24, 82, "제한: 단독 정책판단 금지 · 산업 실적자료 병행", 18, RED, True, "center")
@@ -292,7 +293,7 @@ def main() -> Path:
     rect(slide, x, y + ch - 110, cw, 96, "FBEDEA", None); textbox(slide, x + 12, y + ch - 110, cw - 24, 96, "읍면동×소분류×월 수치는\n공식통계가 아닌 개발통계", 18, RED, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y5, 2 * COL_W + GAP, h5, "12", "결론 및 기대효과")
-    conclusion_cards = [("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 actual 교차검증", "상위합계 오차 2.33×10⁻¹⁰", "공통 프로필 전면복제 0개"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 현장자료 수집 우선순위", "무료 자료로 반복 갱신 가능한 구조"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능"])]
+    conclusion_cards = [("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 actual 교차검증", "상위합계 오차 2.33×10⁻¹⁰", "전면복제: 중분류 0·소분류 4/19"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 현장자료 수집 우선순위", "무료 자료로 반복 갱신 가능한 구조"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능"])]
     card_w = (cw - 36) / 3
     for i, (title, items) in enumerate(conclusion_cards):
         xx = x + i * (card_w + 18); rect(slide, xx, y, card_w, 510, PALE, GRID, .5); rect(slide, xx, y, card_w, 52, SKY, None); textbox(slide, xx + 12, y, card_w - 24, 52, title, 19, NAVY, True); bullets(slide, xx + 12, y + 70, card_w - 24, 410, items, 16)

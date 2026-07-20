@@ -21,7 +21,7 @@ def main() -> int:
         assert forbidden not in text, forbidden
     for required in (
         "포항시 산업활력 시공간 추정과 지역격차 진단", "29개 행정 읍면동", "KSIC 실제 업종명",
-        "예측 양호 산업", "예측 취약 산업", "활용 판정 및 검증", "제조업", "교육 서비스업", "종합 건설업",
+        "예측 양호 산업", "예측 취약 산업", "활용 판정 및 검증", "제조업", "창작 예술 및 여가관련 서비스업", "종합 건설업",
     ):
         assert required in text, required
     assert len(slide.shapes) >= 500
