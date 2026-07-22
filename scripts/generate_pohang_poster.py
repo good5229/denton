@@ -304,11 +304,13 @@ def main() -> Path:
     hv["error_rate_pct"] = hv.error_eok / hv.actual_eok.replace(0, pd.NA) * 100
     hv = hv[hv.actual_middle_share.between(0.001, 0.999)]
 
-    for xx0, num, title, frame, color, footer in [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "중분류 추정 취약 · 정확도 진단", hv.nlargest(6, "abs_error_pp"), RED, "Phase100 판정: strict 통과 0개 · 운영 참고 2묶음")]:
+    precise_frame = hv[hv.error_rate_pct.le(10)].nsmallest(6, ["error_rate_pct", "error_eok"])
+    gap_frame = hv.nlargest(6, "error_eok")
+    for xx0, num, title, frame, color, footer in [(M, "08", "격차 작은 중분류 · 오차율 10% 이하", precise_frame, TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "금액격차 큰 중분류 · 정확도 진단", gap_frame, RED, "Phase100 판정: strict 통과 0개 · 운영 참고 2묶음")]:
         x, y, cw, ch = panel(slide, xx0, y4, COL_W, h4, num, title)
         rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
         native_table(slide, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
-        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "포항 취약묶음 7개 중 2개는 운영 참고 후보, 5개는 자료보강 대상. 대외 주장은 strict 통과 기준으로 제한한다."
+        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율). 10% 초과는 정밀판정 제외." if color == TEAL else "포항 취약묶음 7개 중 2개는 운영 참고 후보, 5개는 자료보강 대상. 대외 주장은 strict 통과 기준으로 제한한다."
         textbox(slide, x, y + 445, cw, 115, desc, 16, MUTED, False, "center")
         rows = [("중분류 추정", "실제값과 직접 비교"), ("격차진단", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
         native_table(slide, x, y + 560, cw, ["항목", "판정"], rows, [.30, .70], 38, [12, 12])
