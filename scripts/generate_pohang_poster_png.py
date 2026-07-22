@@ -381,16 +381,19 @@ def main() -> None:
     hv = hv[hv.city.eq("포항시")].copy()
     hv["middle_label"] = hv.middle_label.fillna(hv.middle_code.astype(str))
     hv["actual_eok"] = hv.actual_gva_eok
-    hv["pred_eok"] = hv.protected_predicted_gva_eok
-    hv["error_eok"] = hv.protected_error_gva_eok
-    hv["error_rate_pct"] = hv.protected_error_rate_pct
-    precise_frame = hv[hv.error_rate_pct.le(10)].nsmallest(6, ["error_rate_pct", "error_eok"])
-    gap_frame = hv.nlargest(6, "error_eok")
+    hv["flash_eok"] = hv.initial_predicted_gva_eok
+    hv["refined_eok"] = hv.protected_predicted_gva_eok
+    hv["flash_error_eok"] = hv.initial_error_gva_eok
+    hv["flash_error_rate_pct"] = hv.initial_error_rate_pct
+    hv["refined_error_eok"] = hv.protected_error_gva_eok
+    hv["refined_error_rate_pct"] = hv.protected_error_rate_pct
+    precise_frame = hv[hv.refined_error_rate_pct.le(10)].nsmallest(5, ["refined_error_rate_pct", "refined_error_eok"])
+    gap_frame = hv.nlargest(5, "refined_error_eok")
     sections = [(M, "08", "공표 후 정밀화: 격차 작은 중분류", precise_frame, TEAL, "속보: 월 변화 경보 · 정밀화: 공표 후 재산출"), (x2, "09", "공표 후 정밀화: 금액격차 큰 중분류", gap_frame, RED, "10% 초과 산업은 주의·자료보강")]
     for xx0, num, title_, rows_df, color, footer in sections:
         x, y, cw, ch = panel(draw, xx0, y4, COL_W, h4, num, title_)
-        rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in rows_df.itertuples()]
-        table(draw, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [15, 15, 15, 13])
+        rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.flash_eok:,.0f}", f"{r.refined_eok:,.0f}", f"{r.flash_error_eok:,.0f}\n({r.flash_error_rate_pct:.1f}%)", f"{r.refined_error_eok:,.0f}\n({r.refined_error_rate_pct:.1f}%)") for r in rows_df.itertuples()]
+        table(draw, x, y, cw, ["중분류", "실제", "속보성", "정밀화", "속보오차", "정밀오차"], rows, [.30, .13, .13, .13, .155, .155], 58, [12, 12, 12, 12, 10, 10])
         explanation = "단위: 억원. 사후 집계검증 기준이며 전월·전분기 속보 성능이 아니다. 속보 단계는 공표 전 월 변화·경보로만 사용한다." if color == TEAL else "정확성 개선 후에도 남은 금액격차다. 속보 단계에서는 주의·자료보강으로 표시하고 공표 후 직접 활동자료로 재산출한다."
         box_paragraph(draw, (x, y + 445, x + cw, y + 560), explanation, 18, MUTED, False, 5, align="center")
         checks = [("속보성", "공표 전 월 변화·경보"), ("정밀화", "공표 후 실제-추정 격차"), ("단위", "억원 · 상대오차 병기")]
