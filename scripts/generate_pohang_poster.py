@@ -228,11 +228,11 @@ def main() -> Path:
     x2 = M + COL_W + GAP
     x, y, cw, ch = panel(slide, x2, y1, 2 * COL_W + GAP, h1, "02", "활용 데이터와 시공간 배분 절차")
     table_w = cw * .48
-    rows = [("KOSIS 경제총조사", "소분류 매출·사업체·종사자"), ("포항시 사업체조사", "읍면동·구 산업 실제값"), ("포항시 공장등록 1,465건", "제조업 공간분포"), ("LOCALDATA 19종", "월 인허가·폐업 변화"), ("읍면동 인구·경계", "규모·공간 결합"), ("시 산업별 부가가치", "연·분기 상위통제")]
+    rows = [("KOSIS 경제총조사", "소분류 매출·사업체·종사자"), ("포항시 사업체조사", "읍면동·구 산업 실제값"), ("포항시 공장등록 1,465건", "제조업 공간분포"), ("LOCALDATA 19종", "월 인허가·폐업 변화"), ("읍면동 인구·경계", "규모·공간 결합"), ("시 산업별 부가가치", "연·분기 기준값")]
     native_table(slide, x, y, table_w, ["무료 공식자료", "모형 역할"], rows, [.50, .50], 46, [15, 15])
     flow_x = x + table_w + 28; flow_w = cw - table_w - 28
     textbox(slide, flow_x, y, flow_w, 30, "배분·검증 프로세스", 20, NAVY, True)
-    steps = [("1", "상위통제", "시×산업×연·분기"), ("2", "산업배분", "대→중→소"), ("3", "공간배분", "시→구→읍면동"), ("4", "시간배분", "분기→월"), ("5", "독립검증", "매출·공간·차년도"), ("6", "회계검증", "하위합→상위 실제값")]
+    steps = [("1", "상위 기준", "시×산업×연·분기"), ("2", "산업배분", "대→중→소"), ("3", "공간배분", "시→구→읍면동"), ("4", "시간배분", "분기→월"), ("5", "독립검증", "매출·공간·차년도"), ("6", "집계검증", "하위합→상위 실제값")]
     step_w = (flow_w - 30) / 3
     for i, (n, title, desc) in enumerate(steps):
         col, row = i % 3, i // 3; xx = flow_x + col * (step_w + 15); yy2 = y + 50 + row * 152
@@ -269,10 +269,10 @@ def main() -> Path:
             rect(slide, x, y + 338, cw, 112, "FFF2E8", None); textbox(slide, x + 12, y + 338, 123, 112, "집계검증", 17, ORANGE, True); textbox(slide, x + 145, y + 338, cw - 157, 112, "소분류 배분값을 중분류로 합산해 실제값과 비교: MAE 10.29%p, 66개 중 17개가 1%p 이하.", 16, INK, True)
             rect(slide, x, y + 474, cw, 116, "E9F5F3", None); textbox(slide, x + 12, y + 474, 123, 116, "사용", 18, TEAL, True); textbox(slide, x + 145, y + 474, cw - 157, 116, "소분류 추정값을 중분류 단위로 다시 합산한 뒤, 실제 중분류 GVA와 직접 비교해 산업별 오차를 산출.", 16, INK, True)
         else:
-            checks = [("상위합계", "최대 2.33e-10", GREEN), ("소→중 집계", "17/66개 1%p 이하", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 실제값", "부재 · 개발통계", RED)]
+            checks = [("집계검증", "최대 2.33e-10", GREEN), ("소→중 집계", "17/66개 1%p 이하", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 추정값", "개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
                 yy = y + i * 102; rect(slide, x, yy, cw, 86, PALE, GRID, .5); rect(slide, x + 12, yy + 22, 24, 24, color, None, rounded=True); textbox(slide, x + 50, yy, 155, 86, a, 17, NAVY, True); textbox(slide, x + 212, yy, cw - 224, 86, b, 16, color, True)
-            rect(slide, x, y + 424, cw, 104, "FFF2E8", None); textbox(slide, x + 12, y + 424, cw - 24, 104, "판정: 중분류 공간분포는 검증 가능\n읍면동×소분류×월은 상위합계 보존 추정으로 제한", 17, INK, True, "center")
+            rect(slide, x, y + 424, cw, 104, "FFF2E8", None); textbox(slide, x + 12, y + 424, cw - 24, 104, "판정: 중분류 실제 GVA로 산업별 격차 확인\n읍면동×소분류×월은 신뢰등급과 함께 활용", 17, INK, True, "center")
 
     y3, h3 = 1810, 880
     x, y, cw, ch = panel(slide, M, y3, COL_W, h3, "06", "2023년 읍면동 산업활력 분포")
@@ -284,7 +284,7 @@ def main() -> Path:
     x, y, cw, ch = panel(slide, x2, y3, 2 * COL_W + GAP, h3, "07", "전 산업 월 변화와 산업구조")
     textbox(slide, x, y, cw, 30, "2021년 월평균=100 · 2023년 부가가치 상위 4개 대분류", 18, NAVY, True)
     line_chart(slide, x + 52, y + 86, cw - 80, 250, trends, periods)
-    textbox(slide, x, y + 380, cw, 62, "월 경로는 상위 분기총량을 보존한 추정지수이며 월 실제 부가가치가 아니다. 산업 간 변동 방향 비교와 경보 후보 선별에만 사용한다.", 16, MUTED, False, "center")
+    textbox(slide, x, y + 380, cw, 62, "월 경로는 연·분기 기준값을 월별 활동 변화로 나눈 추정지수다. 산업 간 변동 방향 비교와 경보 후보 선별에 사용한다.", 16, MUTED, False, "center")
     yy = subhead(slide, x, y + 456, cw, "경보 산출")
     items = [("산업규모", "시 산업 부가가치"), ("공간집중", "읍면동 산업비중"), ("월 변화", "인허가 영업재고"), ("신뢰등급", "산업별 검증오차")]
     for i, (a, b) in enumerate(items):

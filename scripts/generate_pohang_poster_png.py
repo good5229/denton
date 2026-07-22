@@ -288,12 +288,12 @@ def main() -> None:
     x2 = M + COL_W + GAP
     x, y, cw, ch = panel(draw, x2, y1, 2 * COL_W + GAP, h1, "02", "활용 데이터와 시공간 배분 절차")
     table_w = cw * .48
-    rows = [("KOSIS 경제총조사", "소분류 매출·사업체·종사자"), ("포항시 사업체조사", "읍면동·구 산업 실제값"), ("포항시 공장등록 1,465건", "제조업 공간분포"), ("LOCALDATA 19종", "월 인허가·폐업 변화"), ("읍면동 인구·경계", "규모·공간 결합"), ("시 산업별 부가가치", "연·분기 상위통제")]
+    rows = [("KOSIS 경제총조사", "소분류 매출·사업체·종사자"), ("포항시 사업체조사", "읍면동·구 산업 실제값"), ("포항시 공장등록 1,465건", "제조업 공간분포"), ("LOCALDATA 19종", "월 인허가·폐업 변화"), ("읍면동 인구·경계", "규모·공간 결합"), ("시 산업별 부가가치", "연·분기 기준값")]
     table(draw, x, y, table_w, ["무료 공식자료", "모형 역할"], rows, [.50, .50], 46, [16, 16])
     flow_x = x + table_w + 28
     flow_w = cw - table_w - 28
     text(draw, (flow_x, y), "배분·검증 프로세스", 21, NAVY, bold=True)
-    steps = [("1", "상위통제", "시×산업×연·분기"), ("2", "산업배분", "대→중→소"), ("3", "공간배분", "시→구→읍면동"), ("4", "시간배분", "분기→월"), ("5", "독립검증", "매출·공간·차년도"), ("6", "회계검증", "하위합→상위 실제값")]
+    steps = [("1", "상위 기준", "시×산업×연·분기"), ("2", "산업배분", "대→중→소"), ("3", "공간배분", "시→구→읍면동"), ("4", "시간배분", "분기→월"), ("5", "독립검증", "매출·공간·차년도"), ("6", "집계검증", "하위합→상위 실제값")]
     step_w = (flow_w - 30) / 3
     for i, (n, title, desc) in enumerate(steps):
         col, row = i % 3, i // 3
@@ -344,7 +344,7 @@ def main() -> None:
             box_text(draw, (x + 12, y + 470, x + 135, y + 590), "사용", 19, TEAL, bold=True)
             box_paragraph(draw, (x + 145, y + 470, x + cw - 12, y + 590), "소분류 추정값을 중분류 단위로 다시 합산한 뒤, 실제 중분류 GVA와 직접 비교해 산업별 오차를 산출.", 18, INK, True, 5)
         else:
-            checks = [("상위합계", "최대 2.33e-10", GREEN), ("소→중 집계", "17/66개 1%p 이하", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 실제값", "부재 · 개발통계", RED)]
+            checks = [("집계검증", "최대 2.33e-10", GREEN), ("소→중 집계", "17/66개 1%p 이하", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 추정값", "개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
                 yy = y + i * 102
                 rect(draw, (x, yy, x + cw, yy + 86), PALE, GRID, 1)
@@ -352,7 +352,7 @@ def main() -> None:
                 box_text(draw, (x + 50, yy, x + 205, yy + 86), a, 18, NAVY, bold=True)
                 box_text(draw, (x + 212, yy, x + cw - 12, yy + 86), b, 17, color, bold=True)
             rect(draw, (x, y + 424, x + cw, y + 528), "#FFF2E8", "#FFF2E8", 1)
-            box_paragraph(draw, (x + 12, y + 424, x + cw - 12, y + 528), "판정: 중분류 공간분포는 검증 가능\n읍면동×소분류×월은 상위합계 보존 추정으로 제한", 18, INK, True, 5, align="center")
+            box_paragraph(draw, (x + 12, y + 424, x + cw - 12, y + 528), "판정: 중분류 실제 GVA로 산업별 격차 확인\n읍면동×소분류×월은 신뢰등급과 함께 활용", 18, INK, True, 5, align="center")
 
     y3, h3 = 1810, 880
     x, y, cw, ch = panel(draw, M, y3, COL_W, h3, "06", "2023년 읍면동 산업활력 분포")
@@ -365,7 +365,7 @@ def main() -> None:
     x, y, cw, ch = panel(draw, x2, y3, 2 * COL_W + GAP, h3, "07", "전 산업 월 변화와 산업구조")
     text(draw, (x, y), "2021년 월평균=100 · 2023년 부가가치 상위 4개 대분류", 19, NAVY, bold=True)
     line_chart(draw, x + 52, y + 86, cw - 80, 250, trends, periods)
-    box_paragraph(draw, (x, y + 380, x + cw, y + 442), "월 경로는 상위 분기총량을 보존한 추정지수이며 월 실제 부가가치가 아니다. 산업 간 변동 방향 비교와 경보 후보 선별에만 사용한다.", 17, MUTED, False, 5, align="center")
+    box_paragraph(draw, (x, y + 380, x + cw, y + 442), "월 경로는 연·분기 기준값을 월별 활동 변화로 나눈 추정지수다. 산업 간 변동 방향 비교와 경보 후보 선별에 사용한다.", 17, MUTED, False, 5, align="center")
     yy = subhead(draw, x, y + 456, "경보 산출", cw)
     for i, (a, b) in enumerate([("산업규모", "시 산업 부가가치"), ("공간집중", "읍면동 산업비중"), ("월 변화", "인허가 영업재고"), ("신뢰등급", "산업별 검증오차")]):
         xx = x + i * cw / 4
