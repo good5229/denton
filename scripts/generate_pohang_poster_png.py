@@ -12,6 +12,7 @@ OUT = ROOT / "pohang"
 DATA = ROOT / "data" / "processed"
 RAW = ROOT / "data" / "raw" / "phase42_pohang"
 HIERARCHICAL_VALIDATION = DATA / "phase64_hierarchical_aggregate_validation" / "phase64_small_to_middle_aggregate_validation_detail.csv"
+FINAL_ACCURACY_REGISTRY = DATA / "phase98_final_middle_industry_accuracy_registry" / "phase98_final_middle_industry_accuracy_registry.csv"
 
 W, H = 3508, 4967
 M, GAP = 72, 20
@@ -376,20 +377,16 @@ def main() -> None:
     box_text(draw, (x + 12, y + ch - 80, x + cw - 12, y + ch - 12), "경보 = 변동 악화 × 공간집중 × 검증신뢰도  →  현장확인 후보", 19, ORANGE, bold=True, align="center")
 
     y4, h4 = 2720, 900
-    hv = hierarchical[hierarchical.city.eq("포항시")].copy()
-    hv["middle_label"] = hv.middle_name.fillna(hv.middle_code.astype(str))
-    hv["actual_pct"] = hv.actual_middle_share * 100
-    hv["pred_pct"] = hv.predicted_small_aggregated_share * 100
-    hv["error_pct"] = hv.abs_error_pp
-    hv["parent_gva_eok"] = hv.parent_section.map(lambda code: sum(large_gva_by_code.get(letter, 0.0) for letter in parent_letters(code)) / 100)
-    hv["actual_eok"] = hv.actual_middle_share * hv.parent_gva_eok
-    hv["pred_eok"] = hv.predicted_small_aggregated_share * hv.parent_gva_eok
-    hv["error_eok"] = (hv.pred_eok - hv.actual_eok).abs()
-    hv["error_rate_pct"] = hv.error_eok / hv.actual_eok.replace(0, pd.NA) * 100
-    hv = hv[hv.actual_middle_share.between(0.001, 0.999)]
+    hv = pd.read_csv(FINAL_ACCURACY_REGISTRY, dtype={"middle_code": str})
+    hv = hv[hv.city.eq("포항시")].copy()
+    hv["middle_label"] = hv.middle_label.fillna(hv.middle_code.astype(str))
+    hv["actual_eok"] = hv.actual_gva_eok
+    hv["pred_eok"] = hv.protected_predicted_gva_eok
+    hv["error_eok"] = hv.protected_error_gva_eok
+    hv["error_rate_pct"] = hv.protected_error_rate_pct
     precise_frame = hv[hv.error_rate_pct.le(10)].nsmallest(6, ["error_rate_pct", "error_eok"])
     gap_frame = hv.nlargest(6, "error_eok")
-    sections = [(M, "08", "격차 작은 중분류 · 오차율 10% 이하", precise_frame, TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "금액격차 큰 중분류 · 정확도 진단", gap_frame, RED, "Phase100 판정: strict 통과 0개 · 운영 참고 2묶음")]
+    sections = [(M, "08", "최종 기준 격차 작은 중분류", precise_frame, TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "최종 기준 금액격차 큰 중분류", gap_frame, RED, "Phase100 판정: strict 통과 0개 · 운영 참고 2묶음")]
     for xx0, num, title_, rows_df, color, footer in sections:
         x, y, cw, ch = panel(draw, xx0, y4, COL_W, h4, num, title_)
         rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in rows_df.itertuples()]
