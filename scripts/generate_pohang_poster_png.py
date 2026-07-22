@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "pohang"
 DATA = ROOT / "data" / "processed"
 RAW = ROOT / "data" / "raw" / "phase42_pohang"
+HIERARCHICAL_VALIDATION = DATA / "phase64_hierarchical_aggregate_validation" / "phase64_small_to_middle_aggregate_validation_detail.csv"
 
 W, H = 3508, 4967
 M, GAP = 72, 20
@@ -39,9 +40,9 @@ FONT_TITLE = "/Library/Fonts/NanumSquareExtraBold.ttf"
 
 def display_size(size: int) -> int:
     if size <= 15:
-        return size + 7
+        return size + 8
     if size <= 18:
-        return size + 6
+        return size + 7
     if size <= 23:
         return size + 4
     if size <= 34:
@@ -221,6 +222,7 @@ def main() -> None:
     status43 = json.loads((DATA / "partial_stats_phase43_pohang_status.json").read_text())
     status45 = json.loads((DATA / "partial_stats_phase45_pohang_status.json").read_text())
     diagnostics = pd.read_csv(DATA / "partial_stats_phase45_pohang_final_industry_diagnostics.csv", encoding="utf-8-sig", dtype={"industry_code": str})
+    hierarchical = pd.read_csv(HIERARCHICAL_VALIDATION)
     complete = diagnostics.dropna(subset=["industry_cv_mae_pp", "spatial_cv_mae_pp", "gu_sales_cv_mae_pp"])
     good = complete.nsmallest(6, "combined_cv_score_pp")
     bad = complete.nlargest(6, "combined_cv_score_pp")
@@ -250,7 +252,7 @@ def main() -> None:
     text(draw, (M, 204), "29개 행정 읍면동 × 산업 대·중·소분류 × 연·분기·월  |  무료 공공데이터 기반 개발통계", 22, MUTED)
     draw.line((M, 248, W - M, 248), fill=NAVY, width=7)
     rect(draw, (M, 270, W - M, 410), WHITE, GRID, 2)
-    metrics = [("29개", "행정 읍면동"), ("19·74·228", "산업 대·중·소"), ("27조합", "시공간산업 해상도"), ("8.49·4.98%p", "중·소 산업 검증오차"), ("81.9%", "농림어업 시군구 개선"), ("8.81%p", "남·북구 매출 검증오차")]
+    metrics = [("29개", "행정 읍면동"), ("19·74·228", "산업 대·중·소"), ("27조합", "시공간산업 해상도"), ("10.29%p", "소→중 집계 MAE"), ("17/66", "집계오차 1pp 이하"), ("D등급", "월·동 GVA actual 부재")]
     each = BODY_W / 6
     for i, (value, label) in enumerate(metrics):
         xx = M + i * each
@@ -303,7 +305,7 @@ def main() -> None:
     box_paragraph(draw, (flow_x + 20, matrix_y + 44, flow_x + flow_w - 20, matrix_y + 102), "매출 실제값은 학습에서 제외 · 하위합 일치는 성능점수가 아닌 회계검사", 17, INK, True, 5, align="center")
 
     y2, h2 = 1110, 670
-    titles = [("03", "독립 검증 설계"), ("04", "성능개선 결과"), ("05", "활용 판정 및 검증")]
+    titles = [("03", "독립 검증 설계"), ("04", "GVA 신뢰도 판정"), ("05", "활용 판정 및 검증")]
     for col, (number, title_) in enumerate(titles):
         xx = M + col * (COL_W + GAP)
         x, y, cw, ch = panel(draw, xx, y2, COL_W, h2, number, title_)
@@ -316,16 +318,22 @@ def main() -> None:
                 box_paragraph(draw, (x + 138, yy, x + cw - 12, yy + 96), b, 17, INK, False, 5)
             table(draw, x, y + 452, cw, ["순서", "엄격 검증 원칙"], [("1", "실제값 분리"), ("2", "목표 산업 제외"), ("3", "상위합계 사후검사")], [.20, .80], 34, [14, 14])
         elif col == 1:
-            text(draw, (x, y), "실제값 숨김검증 평균오차", 19, NAVY, bold=True)
-            hbars(draw, x, y + 42, cw, ["공간 기존", "공간 개선", "구 매출 기존", "구 매출 개선"], [3.380, 2.947, 14.007, 8.809], [MUTED, TEAL, MUTED, ORANGE], 15, 70)
-            rect(draw, (x, y + 350, x + cw, y + 466), "#E9F5F3", "#E9F5F3", 1)
-            box_text(draw, (x + 12, y + 350, x + 162, y + 466), "개선 폭", 19, TEAL, bold=True)
-            box_paragraph(draw, (x + 170, y + 350, x + cw - 12, y + 466), "공간 -0.433%p\n구 매출 -5.198%p\n농림어업 시군구 -81.9%", 20, INK, True, 5)
-            box_text(draw, (x, y + 478, x + cw, y + 527), "농림어업은 비공개 하위셀을 표시하고 별도 배분기준으로 분리", 16, MUTED, align="center")
-            rect(draw, (x, y + 532, x + cw, y + 566), "#E8F2F5", "#E8F2F5", 1)
-            box_text(draw, (x + 12, y + 532, x + cw - 12, y + 566), "채택: 공간 혼합모형 · 구 매출 보정 · 농림어업 분리 · 건설 생산시점 전환", 15, NAVY, bold=True, align="center")
+            text(draw, (x, y), "예측 대상과 검증축 분리", 19, NAVY, bold=True)
+            rows = [
+                ("A", "연×시 GVA", "공식 지역 부가가치 직접 대조"),
+                ("B/C", "소→중 집계", "소분류 배분값을 중분류 actual과 비교"),
+                ("C/D", "읍면동 GVA", "읍면동 산업분포 검증"),
+                ("D", "월 GVA", "상위합계 보존, 실제값 부재"),
+            ]
+            table(draw, x, y + 42, cw, ["등급", "해상도", "검증근거"], rows, [.16, .32, .52], 56, [15, 14, 13])
+            rect(draw, (x, y + 318, x + cw, y + 450), "#FFF2E8", "#FFF2E8", 1)
+            box_text(draw, (x + 12, y + 318, x + 135, y + 450), "집계검증", 18, ORANGE, bold=True)
+            box_paragraph(draw, (x + 145, y + 318, x + cw - 12, y + 450), "소분류 배분값을 중분류로 합산해 actual과 비교: MAE 10.29%p, 66개 중 17개가 1%p 이하.", 18, INK, True, 5)
+            rect(draw, (x, y + 470, x + cw, y + 590), "#E9F5F3", "#E9F5F3", 1)
+            box_text(draw, (x + 12, y + 470, x + 135, y + 590), "사용", 19, TEAL, bold=True)
+            box_paragraph(draw, (x + 145, y + 470, x + cw - 12, y + 590), "하위합=상위합은 회계검사, 소→중 actual 비교는 성능검증. 두 검증을 분리해 과대해석을 막음.", 18, INK, True, 5)
         else:
-            checks = [("상위합계", "최대 2.33e-10", GREEN), ("공간 패턴", "중분류 0 · 소분류 4/19", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 실제값", "부재 · 개발통계", RED)]
+            checks = [("상위합계", "최대 2.33e-10", GREEN), ("소→중 집계", "17/66개 1%p 이하", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 실제값", "부재 · 개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
                 yy = y + i * 102
                 rect(draw, (x, yy, x + cw, yy + 86), PALE, GRID, 1)
@@ -357,17 +365,21 @@ def main() -> None:
     box_text(draw, (x + 12, y + ch - 80, x + cw - 12, y + ch - 12), "경보 = 변동 악화 × 공간집중 × 검증신뢰도  →  현장확인 후보", 19, ORANGE, bold=True, align="center")
 
     y4, h4 = 2720, 900
-    sections = [(M, "08", "예측 양호 산업", good, TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "예측 취약 산업", bad, RED, "보완: 농림어업 하위 비공개셀 표시 · 건설은 수주→생산시점 전환")]
+    hv = hierarchical[hierarchical.city.eq("포항시")].copy()
+    hv["middle_label"] = hv.middle_name.fillna(hv.middle_code.astype(str))
+    hv["actual_pct"] = hv.actual_middle_share * 100
+    hv["pred_pct"] = hv.predicted_small_aggregated_share * 100
+    hv["error_pct"] = hv.abs_error_pp
+    hv = hv[hv.actual_middle_share.between(0.001, 0.999)]
+    sections = [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "집계검증 취약 중분류", hv.nlargest(6, "abs_error_pp"), RED, "보완: 추가 활동지표 확보 전 활용 보류")]
     for xx0, num, title_, rows_df, color, footer in sections:
         x, y, cw, ch = panel(draw, xx0, y4, COL_W, h4, num, title_)
-        rows = [(r.industry_name, f"{r.combined_cv_score_pp:.2f}%p") for r in rows_df.itertuples()]
-        table(draw, x, y, cw, ["산업명", "종합오차"], rows, [.72, .28], 58, [16, 17])
-        explanation = "산업·읍면동·차년도 구 매출의 세 오차 평균. 상대적으로 정책 모니터링에 우선 활용 가능." if color == TEAL else "소수 대형사업장·자본집약·거래액 차이로 사업체·고용 기준값이 매출·부가가치를 충분히 설명하지 못함."
-        box_paragraph(draw, (x, y + 425, x + cw, y + 511), explanation, 17, MUTED, False, 5, align="center")
-        component_rows = [(r.industry_name, f"{r.industry_cv_mae_pp:.1f}", f"{r.spatial_cv_mae_pp:.1f}", f"{r.gu_sales_cv_mae_pp:.1f}") for r in rows_df.head(3).itertuples()]
-        table(draw, x, y + 520, cw, ["대표 업종", "산업", "공간", "구매출"], component_rows, [.46, .18, .18, .18], 38, [13, 14, 14, 14])
-        note = "단위: %p · 낮을수록 활용 신뢰도 높음" if color == TEAL else "오차가 큰 축을 먼저 보완자료 수집 대상으로 지정"
-        box_text(draw, (x, y + 676, x + cw, y + 700), note, 13, MUTED, align="center")
+        rows = [(r.middle_label, f"{r.actual_pct:.1f}", f"{r.pred_pct:.1f}", f"{r.error_pct:.2f}") for r in rows_df.itertuples()]
+        table(draw, x, y, cw, ["중분류", "실제", "집계", "오차"], rows, [.48, .17, .17, .18], 58, [15, 15, 15, 15])
+        explanation = "소분류 배분값을 중분류 actual로 집계 검증한 결과. 낮은 오차 업종은 경보지표로 우선 활용." if color == TEAL else "하위 배분이 중분류 actual 구조를 충분히 복원하지 못한 업종. 원자료 보강 전 정책판단 제한."
+        box_paragraph(draw, (x, y + 445, x + cw, y + 560), explanation, 18, MUTED, False, 5, align="center")
+        checks = [("검증축", "소→중 집계 actual 비교"), ("활용", "양호=경보 · 취약=보류"), ("단위", "% · %p 혼용 방지")]
+        table(draw, x, y + 575, cw, ["항목", "판정"], checks, [.30, .70], 44, [14, 14])
         footer_fill = "#E9F5F3" if color == TEAL else "#FFF2E8"
         footer_color = color if color == TEAL else ORANGE
         rect(draw, (x, y + ch - 95, x + cw, y + ch - 13), footer_fill, footer_fill, 1)
@@ -403,7 +415,7 @@ def main() -> None:
 
     x, y, cw, ch = panel(draw, x2, y5, 2 * COL_W + GAP, h5, "12", "결론 및 기대효과")
     card_w = (cw - 36) / 3
-    for i, (title_, items) in enumerate([("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 실제값 교차검증", "농림어업 하위 비공개셀 명시", "건설 생산시점 전환: 1.29→0.96%p", "양호·보통·취약 각 22개 산업", "27개 해상도 조합 산출"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업도 전용 배분기준으로 개선", "무료 자료 기반 반복 갱신", "산업별 활용강도 차등화", "현장확인 후보 목록화"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능", "공식통계 공백 보완", "과대해석 방지 체계"])]):
+    for i, (title_, items) in enumerate([("분석 성과", ["29개 읍면동·전 산업 GVA 추정", "소분류 배분값의 중분류 actual 집계검증", "소→중 집계 MAE 10.29%p", "17/66개 중분류 1%p 이하", "농업·임업 집계오차 40.45%p 취약", "월·동 GVA actual 부재 명시"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 검증된 활동지표만 채택", "악화 조합은 자료보완 대상으로 분리", "무료 자료 기반 반복 갱신", "현장확인 후보 목록화"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능", "공식통계 공백 보완", "과대해석 방지 체계"])]):
         xx = x + i * (card_w + 18)
         rect(draw, (xx, y, xx + card_w, y + 510), PALE, GRID, 1)
         rect(draw, (xx, y, xx + card_w, y + 52), SKY, SKY, 1)
