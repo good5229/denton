@@ -218,7 +218,7 @@ def main() -> Path:
     yy = subhead(slide, x, y, cw, "정책 문제")
     textbox(slide, x, yy, cw, 88, "시·구 연간 총량만으로는 산업 충격이 어느 읍면동에 집중되고 언제 시작됐는지 판별하기 어렵다.", 20, INK, valign="top")
     yy += 98; yy = subhead(slide, x, yy, cw, "분석 목표")
-    bullets(slide, x, yy, cw, 96, ["전 산업을 동일 기준으로 29개 읍면동까지 배분", "월·분기·연 및 읍면동·구·시 합계를 동시 보존", "예측 양호·취약 산업을 구분해 활용 강도 차등화"], 16)
+    bullets(slide, x, yy, cw, 96, ["전 산업을 동일 기준으로 29개 읍면동까지 배분", "월·분기·연 및 읍면동·구·시 합계를 동시 보존", "산업별 실제-추정 격차로 활용 등급을 구분"], 16)
     rows = [("시간", "연·분기·월"), ("공간", "시·구·29개 읍면동"), ("산업", "산업 대·중·소분류")]
     native_table(slide, x, y + 350, cw, ["축", "분석 범위"], rows, [.25, .75], 26, [12, 12])
     rect(slide, x, y + ch - 92, cw, 84, "FFF2E8", None)
@@ -304,19 +304,19 @@ def main() -> Path:
     hv["error_rate_pct"] = hv.error_eok / hv.actual_eok.replace(0, pd.NA) * 100
     hv = hv[hv.actual_middle_share.between(0.001, 0.999)]
 
-    for xx0, num, title, frame, color, footer in [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "중분류 추정 취약 · 정확도 진단", hv.nlargest(6, "abs_error_pp"), RED, "핵심 취약: 1차 금속 제조업 31,237억 오차(66.4%)")]:
+    for xx0, num, title, frame, color, footer in [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "중분류 추정 취약 · 정확도 진단", hv.nlargest(6, "abs_error_pp"), RED, "Phase100 판정: strict 통과 0개 · 운영 참고 2묶음")]:
         x, y, cw, ch = panel(slide, xx0, y4, COL_W, h4, num, title)
         rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
         native_table(slide, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
-        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "금액오차가 큰 핵심산업부터 특화자료를 보강한다. 포항은 철강·건설·보건복지·전문서비스가 우선 대상이다."
+        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "포항 취약묶음 7개 중 2개는 운영 참고 후보, 5개는 자료보강 대상. 대외 주장은 strict 통과 기준으로 제한한다."
         textbox(slide, x, y + 445, cw, 115, desc, 16, MUTED, False, "center")
-        rows = [("중분류 추정", "실제값과 직접 비교"), ("오차축소", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
+        rows = [("중분류 추정", "실제값과 직접 비교"), ("격차진단", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
         native_table(slide, x, y + 560, cw, ["항목", "판정"], rows, [.30, .70], 38, [12, 12])
         fill = "E9F5F3" if color == TEAL else "FFF2E8"
         rect(slide, x, y + ch - 52, cw, 40, fill, None); textbox(slide, x + 12, y + ch - 52, cw - 24, 40, footer, 13, color if color == TEAL else ORANGE, True, "center")
 
     x3 = M + 2 * (COL_W + GAP); x, y, cw, ch = panel(slide, x3, y4, COL_W, h4, "10", "정책 운영 산출물")
-    stages = [("1 갱신", "연·분기 부가가치와 월 인허가"), ("2 판정", "산업별 양호·보통·취약"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]
+    stages = [("1 갱신", "연·분기 부가가치와 월 인허가"), ("2 판정", "산업별 실제-추정 격차"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]
     for i, (a, b) in enumerate(stages):
         yy = y + i * 105; rect(slide, x, yy, cw, 90, PALE, GRID, .5); textbox(slide, x + 12, yy, 125, 90, a, 17, NAVY, True); textbox(slide, x + 145, yy, cw - 157, 90, b, 16, INK, True)
     rows = [("지도", "29개 읍면동×산업"), ("목록", "신뢰등급·현장확인"), ("대시보드", "월 변화·공간집중"), ("보고서", "오차·비추정 사유")]
@@ -326,7 +326,7 @@ def main() -> Path:
 
     y5, h5 = 3650, 1200
     x, y, cw, ch = panel(slide, M, y5, COL_W, h5, "11", "자료 확보성 검토")
-    source_rows = [("공식 실제값", "2023 읍면동×중분류\n2024 구×중분류 매출"), ("월 변동", "LOCALDATA 19종\n2021–2026 인허가"), ("제조업 보강", "공장 1,465건\n동·업종 결합 76.5%"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]
+    source_rows = [("공식 실제값", "2023 읍면동×중분류\n2024 구×중분류 매출"), ("월 변동", "LOCALDATA 19종\n2021–2026 인허가"), ("취약묶음 판정", "strict 0개\n운영참고 2개"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]
     for i, (a, b) in enumerate(source_rows):
         yy = y + i * 128
         rect(slide, x, yy, cw, 108, PALE, GRID, .5)
@@ -344,18 +344,18 @@ def main() -> Path:
     textbox(slide, x + 12, y + ch - 98, cw - 24, 84, "산업별 실제-추정 격차와\n정책 후보 선별 기준", 18, RED, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y5, 2 * COL_W + GAP, h5, "12", "핵심 기여 및 기대효과")
-    conclusion_cards = [("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "동·월·산업별 신뢰등급 동시 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 실제값과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "양호·주의·보강 산업을 명확히 분리", "오차 공개로 개선 우선순위 도출"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 산업은 활동지표 보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]
+    conclusion_cards = [("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "동·월·산업별 신뢰등급 동시 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 실제값과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "strict 통과 0개를 명시", "운영 참고·자료보강 묶음 분리"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 묶음은 자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]
     card_w = (cw - 36) / 3
     for i, (title, items) in enumerate(conclusion_cards):
         xx = x + i * (card_w + 18); rect(slide, xx, y, card_w, 510, PALE, GRID, .5); rect(slide, xx, y, card_w, 52, SKY, None); textbox(slide, xx + 12, y, card_w - 24, 52, title, 19, NAVY, True); bullets(slide, xx + 12, y + 70, card_w - 24, 410, items, 16)
     rect(slide, x, y + 535, cw, 170, "E9F5F3", GRID, .6)
     textbox(slide, x + 18, y + 535, 150, 170, "최종 제안", 21, TEAL, True, "center")
-    textbox(slide, x + 185, y + 535, cw - 203, 170, "포항시 산업활력 정밀지도\n공식통계가 닿지 않는 읍면동×월×세부산업 영역을\n총부가가치 기준으로 연결하는 검증형 정책지도", 23, INK, True, "center")
+    textbox(slide, x + 185, y + 535, cw - 203, 170, "최종 판정: 포항 취약묶음 7개 중 strict 통과 0개\n운영 참고 2개·자료보강 5개로 구분\n총부가가치 실제-추정 격차를 공개하는 검증형 정책지도", 23, INK, True, "center")
     yy = subhead(slide, x, y + 735, cw, "기대효과")
     effects = [("정밀성", "시·구 평균에 가린 동 격차 발견"), ("적시성", "연간 통계 사이 월 변화 후보 탐지"), ("실현성", "기존 무료 자료·반복 실행"), ("검증성", "실제·추정·오차 공개")]
     for i, (a, b) in enumerate(effects):
         xx = x + i * cw / 4; rect(slide, xx, yy, cw / 4 - 10, 132, WHITE, GRID, .5); textbox(slide, xx + 8, yy + 8, cw / 4 - 26, 42, a, 18, NAVY, True, "center"); textbox(slide, xx + 8, yy + 54, cw / 4 - 26, 68, b, 15, INK, False, "center")
-    rect(slide, x, y + ch - 115, cw, 102, "FFF2E8", None); textbox(slide, x + 14, y + ch - 115, cw - 28, 102, "수상 경쟁력: 전 산업 범위 + 읍면동 정책단위 + 실제값 숨김검증 개선 + 편집·재현 가능한 산출물", 19, ORANGE, True, "center")
+    rect(slide, x, y + ch - 115, cw, 102, "FFF2E8", None); textbox(slide, x + 14, y + ch - 115, cw - 28, 102, "수상 경쟁력: 전 산업 범위 + 읍면동 정책단위 + 실제-추정 격차 공개 + 편집·재현 가능한 산출물", 19, ORANGE, True, "center")
 
     line(slide, M, H - 83, W - M, H - 83, NAVY, 1.2)
     textbox(slide, M, H - 73, BODY_W, 42, "자료: 포항시 사업체조사·공장등록·인구, 지방행정 인허가, KOSIS 지역계정·경제총조사  |  분석 기준: 2026년 7월", 15, MUTED, False, "center")

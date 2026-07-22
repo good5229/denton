@@ -279,7 +279,7 @@ def main() -> None:
     yy = subhead(draw, x, yy, "분석 목표", cw)
     yy = bullet(draw, x, yy, "전 산업을 동일 기준으로 29개 읍면동까지 배분", cw, 18)
     yy = bullet(draw, x, yy + 5, "월·분기·연 및 읍면동·구·시 합계를 동시 보존", cw, 18)
-    yy = bullet(draw, x, yy + 5, "예측 양호·취약 산업을 구분해 활용 강도 차등화", cw, 18)
+    yy = bullet(draw, x, yy + 5, "산업별 실제-추정 격차로 활용 등급을 구분", cw, 18)
     table(draw, x, y + 350, cw, ["축", "분석 범위"], [("시간", "연·분기·월"), ("공간", "시·구·29개 읍면동"), ("산업", "산업 대·중·소분류")], [.25, .75], 26, [12, 12])
     rect(draw, (x, y + ch - 92, x + cw, y + ch - 8), "#FFF2E8", "#FFF2E8", 1)
     box_text(draw, (x + 12, y + ch - 92, x + 132, y + ch - 8), "핵심 질문", 18, ORANGE, bold=True)
@@ -387,14 +387,14 @@ def main() -> None:
     hv["error_eok"] = (hv.pred_eok - hv.actual_eok).abs()
     hv["error_rate_pct"] = hv.error_eok / hv.actual_eok.replace(0, pd.NA) * 100
     hv = hv[hv.actual_middle_share.between(0.001, 0.999)]
-    sections = [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "중분류 추정 취약 · 정확도 진단", hv.nlargest(6, "abs_error_pp"), RED, "핵심 취약: 1차 금속 제조업 31,237억 오차(66.4%)")]
+    sections = [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "중분류 추정 취약 · 정확도 진단", hv.nlargest(6, "abs_error_pp"), RED, "Phase100 판정: strict 통과 0개 · 운영 참고 2묶음")]
     for xx0, num, title_, rows_df, color, footer in sections:
         x, y, cw, ch = panel(draw, xx0, y4, COL_W, h4, num, title_)
         rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in rows_df.itertuples()]
         table(draw, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [15, 15, 15, 13])
-        explanation = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "금액오차가 큰 핵심산업부터 특화자료를 보강한다. 포항은 철강·건설·보건복지·전문서비스가 우선 대상이다."
+        explanation = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "포항 취약묶음 7개 중 2개는 운영 참고 후보, 5개는 자료보강 대상. 대외 주장은 strict 통과 기준으로 제한한다."
         box_paragraph(draw, (x, y + 445, x + cw, y + 560), explanation, 18, MUTED, False, 5, align="center")
-        checks = [("중분류 추정", "실제값과 직접 비교"), ("오차축소", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
+        checks = [("중분류 추정", "실제값과 직접 비교"), ("격차진단", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
         table(draw, x, y + 575, cw, ["항목", "판정"], checks, [.30, .70], 44, [14, 14])
         footer_fill = "#E9F5F3" if color == TEAL else "#FFF2E8"
         footer_color = color if color == TEAL else ORANGE
@@ -402,7 +402,7 @@ def main() -> None:
         box_text(draw, (x + 12, y + ch - 95, x + cw - 12, y + ch - 13), footer, 18, footer_color, bold=True, align="center")
     x3 = M + 2 * (COL_W + GAP)
     x, y, cw, ch = panel(draw, x3, y4, COL_W, h4, "10", "정책 운영 산출물")
-    for i, (a, b) in enumerate([("1 갱신", "연·분기 부가가치와 월 인허가"), ("2 판정", "산업별 양호·보통·취약"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]):
+    for i, (a, b) in enumerate([("1 갱신", "연·분기 부가가치와 월 인허가"), ("2 판정", "산업별 실제-추정 격차"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]):
         yy = y + i * 105
         rect(draw, (x, yy, x + cw, yy + 90), PALE, GRID, 1)
         box_text(draw, (x + 12, yy, x + 137, yy + 90), a, 18, NAVY, bold=True)
@@ -415,7 +415,7 @@ def main() -> None:
 
     y5, h5 = 3650, 1200
     x, y, cw, ch = panel(draw, M, y5, COL_W, h5, "11", "자료 확보성 검토")
-    for i, (a, b) in enumerate([("공식 실제값", "2023 읍면동×중분류\n2024 구×중분류 매출"), ("월 변동", "LOCALDATA 19종\n2021–2026 인허가"), ("제조업 보강", "공장 1,465건\n동·업종 결합 76.5%"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]):
+    for i, (a, b) in enumerate([("공식 실제값", "2023 읍면동×중분류\n2024 구×중분류 매출"), ("월 변동", "LOCALDATA 19종\n2021–2026 인허가"), ("취약묶음 판정", "strict 0개\n운영참고 2개"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]):
         yy = y + i * 128
         rect(draw, (x, yy, x + cw, yy + 108), PALE, GRID, 1)
         box_text(draw, (x + 14, yy, x + 162, yy + 108), a, 18, NAVY, bold=True)
@@ -431,7 +431,7 @@ def main() -> None:
 
     x, y, cw, ch = panel(draw, x2, y5, 2 * COL_W + GAP, h5, "12", "핵심 기여 및 기대효과")
     card_w = (cw - 36) / 3
-    for i, (title_, items) in enumerate([("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "동·월·산업별 신뢰등급 동시 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 실제값과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "양호·주의·보강 산업을 명확히 분리", "오차 공개로 개선 우선순위 도출"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 산업은 활동지표 보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]):
+    for i, (title_, items) in enumerate([("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "동·월·산업별 신뢰등급 동시 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 실제값과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "strict 통과 0개를 명시", "운영 참고·자료보강 묶음 분리"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 묶음은 자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]):
         xx = x + i * (card_w + 18)
         rect(draw, (xx, y, xx + card_w, y + 510), PALE, GRID, 1)
         rect(draw, (xx, y, xx + card_w, y + 52), SKY, SKY, 1)
@@ -441,7 +441,7 @@ def main() -> None:
             yy = bullet(draw, xx + 12, yy, item, card_w - 24, 17) + 8
     rect(draw, (x, y + 535, x + cw, y + 705), "#E9F5F3", GRID, 1)
     box_text(draw, (x + 18, y + 535, x + 168, y + 705), "최종 제안", 22, TEAL, bold=True, align="center")
-    box_paragraph(draw, (x + 185, y + 535, x + cw - 18, y + 705), "포항시 산업활력 정밀지도\n공식통계가 닿지 않는 읍면동×월×세부산업 영역을\n총부가가치 기준으로 연결하는 검증형 정책지도", 24, INK, True, 6, align="center")
+    box_paragraph(draw, (x + 185, y + 535, x + cw - 18, y + 705), "최종 판정: 포항 취약묶음 7개 중 strict 통과 0개\n운영 참고 2개·자료보강 5개로 구분\n총부가가치 실제-추정 격차를 공개하는 검증형 정책지도", 24, INK, True, 6, align="center")
     yy = subhead(draw, x, y + 735, "기대효과", cw)
     for i, (a, b) in enumerate([("정밀성", "시·구 평균에 가린 동 격차 발견"), ("적시성", "연간 통계 사이 월 변화 후보 탐지"), ("실현성", "기존 무료 자료·반복 실행"), ("검증성", "실제·추정·오차 공개")]):
         xx = x + i * cw / 4
@@ -449,7 +449,7 @@ def main() -> None:
         box_text(draw, (xx + 8, yy + 8, xx + cw / 4 - 18, yy + 50), a, 19, NAVY, bold=True, align="center")
         box_paragraph(draw, (xx + 8, yy + 54, xx + cw / 4 - 18, yy + 122), b, 16, INK, False, 5, align="center")
     rect(draw, (x, y + ch - 115, x + cw, y + ch - 13), "#FFF2E8", "#FFF2E8", 1)
-    box_text(draw, (x + 14, y + ch - 115, x + cw - 14, y + ch - 13), "수상 경쟁력: 전 산업 범위 + 읍면동 정책단위 + 실제값 숨김검증 개선 + 편집·재현 가능한 산출물", 20, ORANGE, bold=True, align="center")
+    box_text(draw, (x + 14, y + ch - 115, x + cw - 14, y + ch - 13), "수상 경쟁력: 전 산업 범위 + 읍면동 정책단위 + 실제-추정 격차 공개 + 편집·재현 가능한 산출물", 20, ORANGE, bold=True, align="center")
 
     draw.line((M, H - 83, W - M, H - 83), fill=NAVY, width=3)
     box_text(draw, (M, H - 73, W - M, H - 31), "자료: 포항시 사업체조사·공장등록·인구, 지방행정 인허가, KOSIS 지역계정·경제총조사  |  분석 기준: 2026년 7월", 16, MUTED, align="center")
