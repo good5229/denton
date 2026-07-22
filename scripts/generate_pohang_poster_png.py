@@ -250,7 +250,7 @@ def main() -> None:
     text(draw, (M, 204), "29개 행정 읍면동 × KSIC 대·중·소분류 × 연·분기·월  |  무료 공공데이터 기반 개발통계", 22, MUTED)
     draw.line((M, 248, W - M, 248), fill=NAVY, width=7)
     rect(draw, (M, 270, W - M, 410), WHITE, GRID, 2)
-    metrics = [("29개", "행정 읍면동"), ("19·74·228", "KSIC 대·중·소"), ("27조합", "시공간산업 해상도"), ("8.49·4.98%p", "중·소 산업 CV"), ("2.95%p", "읍면동 공간 CV"), ("8.81%p", "남·북구 매출 CV")]
+    metrics = [("29개", "행정 읍면동"), ("19·74·228", "KSIC 대·중·소"), ("27조합", "시공간산업 해상도"), ("8.49·4.98%p", "중·소 산업 CV"), ("81.9%", "농림어업 시군구 개선"), ("8.81%p", "남·북구 매출 CV")]
     each = BODY_W / 6
     for i, (value, label) in enumerate(metrics):
         xx = M + i * each
@@ -318,12 +318,12 @@ def main() -> None:
         elif col == 1:
             text(draw, (x, y), "실제 홀드아웃 평균절대오차", 19, NAVY, bold=True)
             hbars(draw, x, y + 42, cw, ["공간 기존", "공간 개선", "구 매출 기존", "구 매출 개선"], [3.380, 2.947, 14.007, 8.809], [MUTED, TEAL, MUTED, ORANGE], 15, 70)
-            rect(draw, (x, y + 350, x + cw, y + 443), "#E9F5F3", "#E9F5F3", 1)
-            box_text(draw, (x + 12, y + 350, x + 162, y + 443), "개선 폭", 19, TEAL, bold=True)
-            box_paragraph(draw, (x + 170, y + 350, x + cw - 12, y + 443), "공간 -0.433%p\n구 매출 -5.198%p", 22, INK, True, 5)
-            box_text(draw, (x, y + 455, x + cw, y + 527), "74개 산업을 하나씩 제외한 중첩교차검증 결과", 17, MUTED, align="center")
+            rect(draw, (x, y + 350, x + cw, y + 466), "#E9F5F3", "#E9F5F3", 1)
+            box_text(draw, (x + 12, y + 350, x + 162, y + 466), "개선 폭", 19, TEAL, bold=True)
+            box_paragraph(draw, (x + 170, y + 350, x + cw - 12, y + 466), "공간 -0.433%p\n구 매출 -5.198%p\n농림어업 시군구 -81.9%", 20, INK, True, 5)
+            box_text(draw, (x, y + 478, x + cw, y + 527), "농림어업은 일반 프록시에서 분리해 직전 관측 비중으로 검증", 16, MUTED, align="center")
             rect(draw, (x, y + 532, x + cw, y + 566), "#E8F2F5", "#E8F2F5", 1)
-            box_text(draw, (x + 12, y + 532, x + cw - 12, y + 566), "채택: 공간 혼합모형 · 구 매출 로짓 보정", 15, NAVY, bold=True, align="center")
+            box_text(draw, (x + 12, y + 532, x + cw - 12, y + 566), "채택: 공간 혼합모형 · 구 매출 보정 · 농림어업 특화배분", 15, NAVY, bold=True, align="center")
         else:
             checks = [("상위합계", "최대 2.33e-10", GREEN), ("공간 프로필", "중분류 0 · 소분류 4/19", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 actual", "부재 · 개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
@@ -357,7 +357,7 @@ def main() -> None:
     box_text(draw, (x + 12, y + ch - 80, x + cw - 12, y + ch - 12), "경보 = 변동 악화 × 공간집중 × 검증신뢰도  →  현장확인 후보", 19, ORANGE, bold=True, align="center")
 
     y4, h4 = 2720, 900
-    sections = [(M, "08", "예측 양호 산업", good, TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "예측 취약 산업", bad, RED, "제한: 단독 정책판단 금지 · 산업 실적자료 병행")]
+    sections = [(M, "08", "예측 양호 산업", good, TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "예측 취약 산업", bad, RED, "보완: 농림어업은 특화배분 적용 · 나머지는 실적자료 병행")]
     for xx0, num, title_, rows_df, color, footer in sections:
         x, y, cw, ch = panel(draw, xx0, y4, COL_W, h4, num, title_)
         rows = [(r.industry_name, f"{r.combined_cv_score_pp:.2f}%p") for r in rows_df.itertuples()]
@@ -368,8 +368,10 @@ def main() -> None:
         table(draw, x, y + 520, cw, ["대표 업종", "산업", "공간", "구매출"], component_rows, [.46, .18, .18, .18], 38, [13, 14, 14, 14])
         note = "단위: %p · 낮을수록 활용 신뢰도 높음" if color == TEAL else "오차가 큰 축을 먼저 보완자료 수집 대상으로 지정"
         box_text(draw, (x, y + 676, x + cw, y + 700), note, 13, MUTED, align="center")
-        rect(draw, (x, y + ch - 95, x + cw, y + ch - 13), "#E9F5F3" if color == TEAL else "#FBEDEA", "#E9F5F3" if color == TEAL else "#FBEDEA", 1)
-        box_text(draw, (x + 12, y + ch - 95, x + cw - 12, y + ch - 13), footer, 18, color, bold=True, align="center")
+        footer_fill = "#E9F5F3" if color == TEAL else "#FFF2E8"
+        footer_color = color if color == TEAL else ORANGE
+        rect(draw, (x, y + ch - 95, x + cw, y + ch - 13), footer_fill, footer_fill, 1)
+        box_text(draw, (x + 12, y + ch - 95, x + cw - 12, y + ch - 13), footer, 18, footer_color, bold=True, align="center")
     x3 = M + 2 * (COL_W + GAP)
     x, y, cw, ch = panel(draw, x3, y4, COL_W, h4, "10", "정책 운영 산출물")
     for i, (a, b) in enumerate([("1 갱신", "연·분기 GVA와 월 인허가"), ("2 판정", "산업별 양호·보통·취약"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]):
@@ -401,7 +403,7 @@ def main() -> None:
 
     x, y, cw, ch = panel(draw, x2, y5, 2 * COL_W + GAP, h5, "12", "결론 및 기대효과")
     card_w = (cw - 36) / 3
-    for i, (title_, items) in enumerate([("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 actual 교차검증", "상위합계 오차 2.33e-10", "전면복제: 중분류 0·소분류 4/19", "양호·보통·취약 각 22개 산업", "27개 해상도 조합 산출"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 현장자료 수집 우선순위", "무료 자료로 반복 갱신 가능한 구조", "산업별 활용강도 차등화", "현장확인 후보 목록화"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능", "공식통계 공백 보완", "과대해석 방지 체계"])]):
+    for i, (title_, items) in enumerate([("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 actual 교차검증", "농림어업 특화: 시군구 오차 81.9% 개선", "상위합계 오차 2.33e-10", "양호·보통·취약 각 22개 산업", "27개 해상도 조합 산출"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업도 전용 프록시로 개선", "무료 자료로 반복 갱신 가능한 구조", "산업별 활용강도 차등화", "현장확인 후보 목록화"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능", "공식통계 공백 보완", "과대해석 방지 체계"])]):
         xx = x + i * (card_w + 18)
         rect(draw, (xx, y, xx + card_w, y + 510), PALE, GRID, 1)
         rect(draw, (xx, y, xx + card_w, y + 52), SKY, SKY, 1)
