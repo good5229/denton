@@ -266,8 +266,8 @@ def main() -> Path:
             textbox(slide, x, y, cw, 28, "예측 대상과 검증축 분리", 18, NAVY, True)
             rows = [("A", "연×시 GVA", "공식 지역 부가가치 직접 대조"), ("B/C", "소→중 집계", "소분류 배분값을 중분류 actual과 비교"), ("C/D", "읍면동 GVA", "읍면동 산업분포 검증"), ("D", "월 GVA", "상위합계 보존, 실제값 부재")]
             native_table(slide, x, y + 42, cw, ["등급", "해상도", "검증근거"], rows, [.16, .32, .52], 56, [14, 13, 12])
-            rect(slide, x, y + 318, cw, 132, "FFF2E8", None); textbox(slide, x + 12, y + 318, 123, 132, "집계검증", 17, ORANGE, True); textbox(slide, x + 145, y + 318, cw - 157, 132, "소분류 배분값을 중분류로 합산해 actual과 비교: MAE 10.29%p, 66개 중 17개가 1%p 이하.", 17, INK, True)
-            rect(slide, x, y + 470, cw, 120, "E9F5F3", None); textbox(slide, x + 12, y + 470, 123, 120, "사용", 18, TEAL, True); textbox(slide, x + 145, y + 470, cw - 157, 120, "하위합=상위합은 회계검사, 소→중 actual 비교는 성능검증. 두 검증을 분리해 과대해석을 막음.", 17, INK, True)
+            rect(slide, x, y + 338, cw, 112, "FFF2E8", None); textbox(slide, x + 12, y + 338, 123, 112, "집계검증", 17, ORANGE, True); textbox(slide, x + 145, y + 338, cw - 157, 112, "소분류 배분값을 중분류로 합산해 actual과 비교: MAE 10.29%p, 66개 중 17개가 1%p 이하.", 16, INK, True)
+            rect(slide, x, y + 474, cw, 116, "E9F5F3", None); textbox(slide, x + 12, y + 474, 123, 116, "사용", 18, TEAL, True); textbox(slide, x + 145, y + 474, cw - 157, 116, "하위합=상위합은 회계검사, 소→중 actual 비교는 성능검증. 두 검증을 분리해 과대해석을 막음.", 16, INK, True)
         else:
             checks = [("상위합계", "최대 2.33e-10", GREEN), ("소→중 집계", "17/66개 1%p 이하", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 실제값", "부재 · 개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
@@ -304,16 +304,21 @@ def main() -> Path:
     hv["error_rate_pct"] = hv.error_eok / hv.actual_eok.replace(0, pd.NA) * 100
     hv = hv[hv.actual_middle_share.between(0.001, 0.999)]
 
-    for xx0, num, title, frame, color, footer in [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "집계검증 취약 중분류", hv.nlargest(6, "abs_error_pp"), RED, "보완: 추가 활동지표 확보 전 활용 보류")]:
+    for xx0, num, title, frame, color, footer in [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "통제총량 보정 대상", hv.nlargest(6, "abs_error_pp"), RED, "중분류 GVA 총량 적용 후 집계오차 0")]:
         x, y, cw, ch = panel(slide, xx0, y4, COL_W, h4, num, title)
-        rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
-        native_table(slide, x, y, cw, ["중분류", "실제", "집계", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
-        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 actual 비중, 집계=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "취약 중분류는 하위 배분이 상위 actual 구조를 충분히 복원하지 못한 영역. 원자료 보강 전 제한."
+        if color == TEAL:
+            rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
+            native_table(slide, x, y, cw, ["중분류", "실제", "집계", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
+            desc = "단위: 억원 환산. 실제=상위 GVA×중분류 actual 비중, 집계=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)."
+        else:
+            rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)", "0\n(0.0%)") for r in frame.itertuples()]
+            native_table(slide, x, y, cw, ["중분류", "실제", "비제약", "오차전", "보정후"], rows, [.38, .15, .15, .17, .15], 63, [13, 13, 13, 11, 11])
+            desc = "취약값은 보정 전 진단이다. 중분류 GVA 총량을 적용하면 하위 소분류가 총량 안에서 재배분되어 집계오차가 제거된다."
         textbox(slide, x, y + 445, cw, 115, desc, 16, MUTED, False, "center")
-        rows = [("검증축", "소→중 집계 actual 비교"), ("활용", "양호=경보 · 취약=보류"), ("단위", "% · %p 혼용 방지")]
-        native_table(slide, x, y + 575, cw, ["항목", "판정"], rows, [.30, .70], 44, [13, 13])
+        rows = [("비제약 진단", "취약 중분류 탐지"), ("통제총량", "중분류 집계오차 제거"), ("단위", "억원 · 상대오차 병기")]
+        native_table(slide, x, y + 560, cw, ["항목", "판정"], rows, [.30, .70], 38, [12, 12])
         fill = "E9F5F3" if color == TEAL else "FFF2E8"
-        rect(slide, x, y + ch - 95, cw, 82, fill, None); textbox(slide, x + 12, y + ch - 95, cw - 24, 82, footer, 17, color if color == TEAL else ORANGE, True, "center")
+        rect(slide, x, y + ch - 52, cw, 40, fill, None); textbox(slide, x + 12, y + ch - 52, cw - 24, 40, footer, 13, color if color == TEAL else ORANGE, True, "center")
 
     x3 = M + 2 * (COL_W + GAP); x, y, cw, ch = panel(slide, x3, y4, COL_W, h4, "10", "정책 운영 산출물")
     stages = [("1 갱신", "연·분기 부가가치와 월 인허가"), ("2 판정", "산업별 양호·보통·취약"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]
