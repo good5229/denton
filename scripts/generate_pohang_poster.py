@@ -308,9 +308,9 @@ def main() -> Path:
         x, y, cw, ch = panel(slide, xx0, y4, COL_W, h4, num, title)
         rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
         native_table(slide, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
-        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 actual 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "이 표가 중분류 예측 정확도다. 통제총량 보정은 회계정합화일 뿐 성능으로 해석하지 않는다."
+        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 actual 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "금액오차가 큰 핵심산업부터 특화자료를 보강한다. 포항은 철강·건설·보건복지·전문서비스가 우선 대상이다."
         textbox(slide, x, y + 445, cw, 115, desc, 16, MUTED, False, "center")
-        rows = [("중분류 추정", "actual과 직접 비교"), ("통제총량", "회계정합화 절차"), ("단위", "억원 · 상대오차 병기")]
+        rows = [("중분류 추정", "actual과 직접 비교"), ("오차축소", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
         native_table(slide, x, y + 560, cw, ["항목", "판정"], rows, [.30, .70], 38, [12, 12])
         fill = "E9F5F3" if color == TEAL else "FFF2E8"
         rect(slide, x, y + ch - 52, cw, 40, fill, None); textbox(slide, x + 12, y + ch - 52, cw - 24, 40, footer, 13, color if color == TEAL else ORANGE, True, "center")

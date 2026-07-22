@@ -229,8 +229,6 @@ def main() -> None:
 - 오차율: `오차 / 실제 × 100`
 - 단위: 억원
 
-통제총량 보정은 배포 산출물의 상위합계를 맞추는 회계정합화 절차이며, 예측 정확도 성과로 해석하지 않는다.
-
 ## 전체 요약
 
 {md_table(summary, [("city", "지역"), ("middle_cells", "중분류 셀"), ("actual_sum_eok", "실제합계 억원"), ("error_sum_eok", "오차합계 억원"), ("wape_pct", "가중오차 %"), ("median_error_rate_pct", "중앙오차 %"), ("within_10pct_cells", "10% 이하"), ("over_50pct_cells", "50% 초과"), ("largest_error_industry", "최대오차 산업"), ("largest_error_eok", "최대오차 억원")])}
