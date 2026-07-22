@@ -263,14 +263,14 @@ def main() -> None:
     text(draw, (M, 204), "29개 행정 읍면동 × 산업 대·중·소분류 × 연·분기·월  |  무료 공공데이터 기반 개발통계", 22, MUTED)
     draw.line((M, 248, W - M, 248), fill=NAVY, width=7)
     rect(draw, (M, 270, W - M, 410), WHITE, GRID, 2)
-    metrics = [("29개", "행정 읍면동"), ("19·74·228", "산업 대·중·소"), ("27조합", "시공간산업 해상도"), ("10.29%p", "소→중 집계 MAE"), ("17/66", "집계오차 1pp 이하"), ("D등급", "월·동 GVA actual 부재")]
+    metrics = [("GVA→읍면동·월", "시 총량을 정책단위로 전환"), ("19·74·228", "전 산업 대·중·소분류"), ("통제총량 보정", "취약 집계오차 제거"), ("무료 공공자료", "반복 갱신 가능"), ("공간격차 지도", "동별 산업활력 비교"), ("신뢰도 차등", "활용·주의·보류 구분")]
     each = BODY_W / 6
     for i, (value, label) in enumerate(metrics):
         xx = M + i * each
         if i:
             draw.line((xx, 290, xx, 392), fill=GRID, width=2)
-        box_text(draw, (xx + 10, 282, xx + each - 10, 340), value, 32, TEAL if i >= 4 else NAVY, bold=True, align="center")
-        box_text(draw, (xx + 10, 340, xx + each - 10, 392), label, 17, MUTED, align="center")
+        box_text(draw, (xx + 10, 282, xx + each - 10, 340), value, 24, TEAL if i >= 4 else NAVY, bold=True, align="center")
+        box_text(draw, (xx + 10, 340, xx + each - 10, 392), label, 16, MUTED, align="center")
 
     y1, h1 = 435, 650
     x, y, cw, ch = panel(draw, M, y1, COL_W, h1, "01", "문제 정의와 분석 목표")
@@ -434,9 +434,9 @@ def main() -> None:
     rect(draw, (x, y + ch - 98, x + cw, y + ch - 14), "#FBEDEA", "#FBEDEA", 1)
     box_paragraph(draw, (x + 12, y + ch - 98, x + cw - 12, y + ch - 14), "공식통계 승격이 아닌\n정책 후보 선별용 개발통계", 18, RED, True, 5, align="center")
 
-    x, y, cw, ch = panel(draw, x2, y5, 2 * COL_W + GAP, h5, "12", "결론 및 기대효과")
+    x, y, cw, ch = panel(draw, x2, y5, 2 * COL_W + GAP, h5, "12", "핵심 기여 및 기대효과")
     card_w = (cw - 36) / 3
-    for i, (title_, items) in enumerate([("분석 성과", ["29개 읍면동·전 산업 GVA 추정", "소분류 배분값의 중분류 actual 집계검증", "소→중 집계 MAE 10.29%p", "17/66개 중분류 1%p 이하", "농업·임업 집계오차 40.45%p 취약", "월·동 GVA actual 부재 명시"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 검증된 활동지표만 채택", "악화 조합은 자료보완 대상으로 분리", "무료 자료 기반 반복 갱신", "현장확인 후보 목록화"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능", "공식통계 공백 보완", "과대해석 방지 체계"])]):
+    for i, (title_, items) in enumerate([("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 통제총량으로 큰 집계오차 제거", "개별 월·동 값은 개발통계 등급 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 actual과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "양호·보정·보류 산업을 명확히 분리", "오차 공개로 과잉해석 방지"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 산업은 현장확인·자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]):
         xx = x + i * (card_w + 18)
         rect(draw, (xx, y, xx + card_w, y + 510), PALE, GRID, 1)
         rect(draw, (xx, y, xx + card_w, y + 52), SKY, SKY, 1)
@@ -446,7 +446,7 @@ def main() -> None:
             yy = bullet(draw, xx + 12, yy, item, card_w - 24, 17) + 8
     rect(draw, (x, y + 535, x + cw, y + 705), "#E9F5F3", GRID, 1)
     box_text(draw, (x + 18, y + 535, x + 168, y + 705), "최종 제안", 22, TEAL, bold=True, align="center")
-    box_paragraph(draw, (x + 185, y + 535, x + cw - 18, y + 705), "포항시 산업활력 정밀지도\n검증 신뢰도에 따라 산업별 활용 강도를 달리하는\n읍면동 경제경보·현장점검 지원체계", 24, INK, True, 6, align="center")
+    box_paragraph(draw, (x + 185, y + 535, x + cw - 18, y + 705), "포항시 산업활력 정밀지도\n공식통계가 닿지 않는 읍면동×월×세부산업 영역을\n총부가가치 기준으로 연결하는 검증형 정책지도", 24, INK, True, 6, align="center")
     yy = subhead(draw, x, y + 735, "기대효과", cw)
     for i, (a, b) in enumerate([("정밀성", "시·구 평균에 가린 동 격차 발견"), ("적시성", "연간 통계 사이 월 변화 후보 탐지"), ("실현성", "기존 무료 자료·반복 실행"), ("책임성", "오차·비추정·한계 공개")]):
         xx = x + i * cw / 4
