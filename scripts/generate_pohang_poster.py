@@ -304,18 +304,13 @@ def main() -> Path:
     hv["error_rate_pct"] = hv.error_eok / hv.actual_eok.replace(0, pd.NA) * 100
     hv = hv[hv.actual_middle_share.between(0.001, 0.999)]
 
-    for xx0, num, title, frame, color, footer in [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "통제총량 보정 대상", hv.nlargest(6, "abs_error_pp"), RED, "중분류 GVA 총량 적용 후 집계오차 0")]:
+    for xx0, num, title, frame, color, footer in [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "중분류 추정 취약 · 정확도 진단", hv.nlargest(6, "abs_error_pp"), RED, "핵심 취약: 1차 금속 제조업 31,237억 오차(66.4%)")]:
         x, y, cw, ch = panel(slide, xx0, y4, COL_W, h4, num, title)
-        if color == TEAL:
-            rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
-            native_table(slide, x, y, cw, ["중분류", "실제", "집계", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
-            desc = "단위: 억원 환산. 실제=상위 GVA×중분류 actual 비중, 집계=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)."
-        else:
-            rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)", "0\n(0.0%)") for r in frame.itertuples()]
-            native_table(slide, x, y, cw, ["중분류", "실제", "비제약", "오차전", "보정후"], rows, [.38, .15, .15, .17, .15], 63, [13, 13, 13, 11, 11])
-            desc = "취약값은 보정 전 진단이다. 중분류 GVA 총량을 적용하면 하위 소분류가 총량 안에서 재배분되어 집계오차가 제거된다."
+        rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
+        native_table(slide, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
+        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 actual 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "이 표가 중분류 예측 정확도다. 통제총량 보정은 회계정합화일 뿐 성능으로 해석하지 않는다."
         textbox(slide, x, y + 445, cw, 115, desc, 16, MUTED, False, "center")
-        rows = [("비제약 진단", "취약 중분류 탐지"), ("통제총량", "중분류 집계오차 제거"), ("단위", "억원 · 상대오차 병기")]
+        rows = [("중분류 추정", "actual과 직접 비교"), ("통제총량", "회계정합화 절차"), ("단위", "억원 · 상대오차 병기")]
         native_table(slide, x, y + 560, cw, ["항목", "판정"], rows, [.30, .70], 38, [12, 12])
         fill = "E9F5F3" if color == TEAL else "FFF2E8"
         rect(slide, x, y + ch - 52, cw, 40, fill, None); textbox(slide, x + 12, y + ch - 52, cw - 24, 40, footer, 13, color if color == TEAL else ORANGE, True, "center")

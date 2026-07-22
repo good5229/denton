@@ -240,11 +240,11 @@ def main() -> None:
     pohang_v = vulnerable[vulnerable.city.eq("포항시")].head(8)
 
     metric_view = metrics.copy()
-    report = f"""# 중분류 통제총량 적용에 따른 집계검증 오차 개선
+    report = f"""# 중분류 통제총량 적용에 따른 회계정합화 참고
 
 ## 목적
 
-예측 대상은 총부가가치(GVA)다. 소분류 actual GVA가 공개되지 않는 경우에도 중분류 또는 대분류 actual/검증총량이 있으면, 하위 추정치를 그대로 방치하지 않고 상위 총량에 맞춰 재배분해야 한다. 이 보고서는 기존 `소분류 추정값 단순합산`과 `중분류 통제총량 적용`의 차이를 검증한다.
+예측 대상은 총부가가치(GVA)다. 소분류 actual GVA가 공개되지 않는 경우에도 중분류 또는 대분류 actual/검증총량이 있으면, 배포용 하위 추정치는 상위 총량에 맞춰 재배분할 수 있다. 다만 이 절차는 회계정합화이지 예측 정확도 평가가 아니다. 산업별 예측 정확도는 Phase68의 `실제 중분류 GVA 환산액 vs 추정 중분류 GVA`로 판단한다.
 
 ## 방법
 
@@ -253,22 +253,23 @@ def main() -> None:
 - 통제총량 적용: 중분류 실제 환산액을 총량으로 고정하고, 그 안에서 소분류 추정 비중만 재스케일
 - 오차: `|예측액 - 실제액|`, 단위는 억원이며 괄호 안 비율은 `오차 / 실제액 × 100`
 
-## 전체 개선 결과
+## 회계정합화 참고 결과
 
 {md_table(metric_view, [("city", "지역"), ("mode", "방식"), ("cells", "셀"), ("actual_sum_eok", "실제합계 억원"), ("error_sum_eok", "오차합계 억원"), ("wape_pct", "가중오차 %"), ("median_error_rate_pct", "중앙오차 %"), ("p90_error_rate_pct", "p90오차 %"), ("over_10pct_cells", "10%초과"), ("over_20pct_cells", "20%초과")])}
 
-## 고양시 취약 중분류: 통제총량 적용 전
+## 고양시 중분류 추정오차: 통제총량 적용 전
 
-{md_table(goyang_v, [("middle_label", "중분류"), ("actual_eok", "실제 억원"), ("unconstrained_pred_eok", "비제약 집계 억원"), ("unconstrained_error_eok", "오차 억원"), ("unconstrained_error_rate_pct", "오차 %"), ("control_policy", "개선 방식")], 8)}
+{md_table(goyang_v, [("middle_label", "중분류"), ("actual_eok", "실제 억원"), ("unconstrained_pred_eok", "추정 억원"), ("unconstrained_error_eok", "오차 억원"), ("unconstrained_error_rate_pct", "오차 %"), ("control_policy", "회계정합 방식")], 8)}
 
-## 포항시 취약 중분류: 통제총량 적용 전
+## 포항시 중분류 추정오차: 통제총량 적용 전
 
-{md_table(pohang_v, [("middle_label", "중분류"), ("actual_eok", "실제 억원"), ("unconstrained_pred_eok", "비제약 집계 억원"), ("unconstrained_error_eok", "오차 억원"), ("unconstrained_error_rate_pct", "오차 %"), ("control_policy", "개선 방식")], 8)}
+{md_table(pohang_v, [("middle_label", "중분류"), ("actual_eok", "실제 억원"), ("unconstrained_pred_eok", "추정 억원"), ("unconstrained_error_eok", "오차 억원"), ("unconstrained_error_rate_pct", "오차 %"), ("control_policy", "회계정합 방식")], 8)}
 
 ## 판정
 
-- 중분류 actual 또는 그에 준하는 검증총량이 존재하는 항목은 `중분류 통제총량 적용`이 맞다. 이 경우 중분류 집계오차는 구조적으로 0이 되며, 공모전 포스터의 취약표도 “비제약 진단”과 “통제총량 적용 후 활용 가능”을 구분해야 한다.
-- 통제총량을 쓰지 않는 비제약 집계는 취약 업종 탐지용이다. 성능 수치로 그대로 홍보하면 안 된다.
+- 중분류 actual 또는 그에 준하는 검증총량이 존재하는 항목은 배포 단계에서 `중분류 통제총량 적용`을 할 수 있다. 그러나 이때 사라지는 잔차는 회계상 잔차이며, 예측 정확도 성과가 아니다.
+- 포스터와 성능 보고서에는 통제총량 적용 후 0%를 쓰지 않는다. 반드시 `실제 중분류 GVA 환산액`, `추정 중분류 GVA`, `오차(억원·%)`를 제시한다.
+- 통제총량을 쓰지 않는 집계값은 산업별 예측오차를 드러내는 성능 진단값이다.
 - 중분류 actual이 없는 항목은 여전히 별도 개선이 필요하다. 이때는 농림어업의 경지·생산량, 건설의 착공·허가·기성, 부동산의 공시가격·연면적·거래량, 운수·창고의 승하차·물동량·창고면적처럼 업종별 활동자료를 사용해야 한다.
 - 상대오차가 큰 일부 항목은 실제액이 작아 분모 효과가 커진다. 포스터에는 억원과 %를 병기하되, 활용 판정은 가중오차와 절대금액을 함께 보아야 한다.
 """

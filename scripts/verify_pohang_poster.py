@@ -23,11 +23,13 @@ def main() -> int:
         assert forbidden not in text, forbidden
     for required in (
         "포항시 산업활력 정밀지도", "29개 행정 읍면동", "중분류",
-        "집계검증 양호 중분류", "통제총량 보정 대상", "활용 판정 및 검증", "자료 확보성 검토",
+        "집계검증 양호 중분류", "중분류 추정 취약", "활용 판정 및 검증", "자료 확보성 검토",
         "연·분기·월", "시·구·읍면동", "대·중·소분류",
-        "제조업", "중분류 GVA 총량 적용", "종합 건설업",
+        "제조업", "1차 금속 제조업", "31,237억", "종합 건설업",
     ):
         assert required in text, required
+    for forbidden_phrase in ("보정후", "집계오차 0"):
+        assert forbidden_phrase not in text, forbidden_phrase
     assert len(slide.shapes) >= 540
     cube = pd.read_parquet(DATA / "partial_stats_phase45_pohang_final_multiresolution_cube.parquet")
     expected = {
