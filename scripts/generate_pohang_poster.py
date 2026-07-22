@@ -207,7 +207,7 @@ def main() -> Path:
     textbox(slide, M, 194, BODY_W, 32, "29개 행정 읍면동 × 산업 대·중·소분류 × 연·분기·월  |  무료 공공데이터 기반 개발통계", 20, MUTED, name="poster_meta")
     line(slide, M, 238, W - M, 238, NAVY, 2.5)
     rect(slide, M, 260, BODY_W, 142, WHITE, GRID)
-    metrics = [("GVA→읍면동·월", "시 총량을 정책단위로 전환"), ("19·74·228", "전 산업 대·중·소분류"), ("통제총량 보정", "취약 집계오차 제거"), ("무료 공공자료", "반복 갱신 가능"), ("공간격차 지도", "동별 산업활력 비교"), ("신뢰도 차등", "활용·주의·보류 구분")]
+    metrics = [("GVA→읍면동·월", "시 총량을 정책단위로 전환"), ("19·74·228", "전 산업 대·중·소분류"), ("집계검증", "실제-추정 격차 확인"), ("무료 공공자료", "반복 갱신 가능"), ("공간격차 지도", "동별 산업활력 비교"), ("신뢰도 차등", "활용·주의·보류 구분")]
     each = BODY_W / 6
     for i, (value, label) in enumerate(metrics):
         if i: line(slide, M + i * each, 280, M + i * each, 383, GRID, .55)
@@ -251,7 +251,7 @@ def main() -> Path:
         textbox(slide, xx, matrix_y + 74, (table_w - 46) / 3, 28, b, 16, TEAL, True, "center")
     rect(slide, flow_x, matrix_y, flow_w, 112, "FFF2E8", GRID, .5)
     textbox(slide, flow_x + 12, matrix_y + 10, flow_w - 24, 28, "검증 원칙", 18, ORANGE, True, "center")
-    textbox(slide, flow_x + 20, matrix_y + 46, flow_w - 40, 54, "매출 실제값은 학습에서 제외 · 하위합 일치는 성능점수가 아닌 회계검사", 16, INK, True, "center")
+    textbox(slide, flow_x + 20, matrix_y + 46, flow_w - 40, 54, "소분류 추정값을 중분류로 재집계해 실제 GVA와 비교", 16, INK, True, "center")
 
     y2, h2 = 1110, 670
     for col, number, title in [(0, "03", "독립 검증 설계"), (1, "04", "GVA 신뢰도 판정"), (2, "05", "활용 판정 및 검증")]:
@@ -264,10 +264,10 @@ def main() -> Path:
             native_table(slide, x, y + 452, cw, ["순서", "엄격 검증 원칙"], rows, [.20, .80], 34, [13, 13])
         elif col == 1:
             textbox(slide, x, y, cw, 28, "예측 대상과 검증축 분리", 18, NAVY, True)
-            rows = [("A", "연×시 GVA", "공식 지역 부가가치 직접 대조"), ("B/C", "소→중 집계", "소분류 배분값을 중분류 actual과 비교"), ("C/D", "읍면동 GVA", "읍면동 산업분포 검증"), ("D", "월 GVA", "상위합계 보존, 실제값 부재")]
+            rows = [("A", "연×시 GVA", "공식 지역 부가가치 직접 대조"), ("B/C", "소→중 집계", "소분류 배분값을 중분류 실제값과 비교"), ("C/D", "읍면동 GVA", "읍면동 산업분포 검증"), ("D", "월 GVA", "상위합계 보존, 실제값 부재")]
             native_table(slide, x, y + 42, cw, ["등급", "해상도", "검증근거"], rows, [.16, .32, .52], 56, [14, 13, 12])
-            rect(slide, x, y + 338, cw, 112, "FFF2E8", None); textbox(slide, x + 12, y + 338, 123, 112, "집계검증", 17, ORANGE, True); textbox(slide, x + 145, y + 338, cw - 157, 112, "소분류 배분값을 중분류로 합산해 actual과 비교: MAE 10.29%p, 66개 중 17개가 1%p 이하.", 16, INK, True)
-            rect(slide, x, y + 474, cw, 116, "E9F5F3", None); textbox(slide, x + 12, y + 474, 123, 116, "사용", 18, TEAL, True); textbox(slide, x + 145, y + 474, cw - 157, 116, "하위합=상위합은 회계검사, 소→중 actual 비교는 성능검증. 두 검증을 분리해 과대해석을 막음.", 16, INK, True)
+            rect(slide, x, y + 338, cw, 112, "FFF2E8", None); textbox(slide, x + 12, y + 338, 123, 112, "집계검증", 17, ORANGE, True); textbox(slide, x + 145, y + 338, cw - 157, 112, "소분류 배분값을 중분류로 합산해 실제값과 비교: MAE 10.29%p, 66개 중 17개가 1%p 이하.", 16, INK, True)
+            rect(slide, x, y + 474, cw, 116, "E9F5F3", None); textbox(slide, x + 12, y + 474, 123, 116, "사용", 18, TEAL, True); textbox(slide, x + 145, y + 474, cw - 157, 116, "소분류 추정값을 중분류 단위로 다시 합산한 뒤, 실제 중분류 GVA와 직접 비교해 산업별 오차를 산출.", 16, INK, True)
         else:
             checks = [("상위합계", "최대 2.33e-10", GREEN), ("소→중 집계", "17/66개 1%p 이하", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 실제값", "부재 · 개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
@@ -308,9 +308,9 @@ def main() -> Path:
         x, y, cw, ch = panel(slide, xx0, y4, COL_W, h4, num, title)
         rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
         native_table(slide, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
-        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 actual 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "금액오차가 큰 핵심산업부터 특화자료를 보강한다. 포항은 철강·건설·보건복지·전문서비스가 우선 대상이다."
+        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "금액오차가 큰 핵심산업부터 특화자료를 보강한다. 포항은 철강·건설·보건복지·전문서비스가 우선 대상이다."
         textbox(slide, x, y + 445, cw, 115, desc, 16, MUTED, False, "center")
-        rows = [("중분류 추정", "actual과 직접 비교"), ("오차축소", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
+        rows = [("중분류 추정", "실제값과 직접 비교"), ("오차축소", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
         native_table(slide, x, y + 560, cw, ["항목", "판정"], rows, [.30, .70], 38, [12, 12])
         fill = "E9F5F3" if color == TEAL else "FFF2E8"
         rect(slide, x, y + ch - 52, cw, 40, fill, None); textbox(slide, x + 12, y + ch - 52, cw - 24, 40, footer, 13, color if color == TEAL else ORANGE, True, "center")
@@ -341,10 +341,10 @@ def main() -> Path:
         textbox(slide, x + 12, yy2, 88, 74, a, 17, color, True, "center")
         textbox(slide, x + 112, yy2, cw - 124, 74, b, 15, INK, True)
     rect(slide, x, y + ch - 98, cw, 84, "FBEDEA", None)
-    textbox(slide, x + 12, y + ch - 98, cw - 24, 84, "공식통계 승격이 아닌\n정책 후보 선별용 개발통계", 18, RED, True, "center")
+    textbox(slide, x + 12, y + ch - 98, cw - 24, 84, "산업별 격차 진단과\n정책 후보 선별용 개발통계", 18, RED, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y5, 2 * COL_W + GAP, h5, "12", "핵심 기여 및 기대효과")
-    conclusion_cards = [("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 통제총량으로 큰 집계오차 제거", "개별 월·동 값은 개발통계 등급 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 actual과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "양호·보정·보류 산업을 명확히 분리", "오차 공개로 과잉해석 방지"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 산업은 현장확인·자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]
+    conclusion_cards = [("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "개별 월·동 값은 개발통계 등급 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 실제값과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "양호·주의·보류 산업을 명확히 분리", "오차 공개로 개선 우선순위 도출"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 산업은 현장확인·자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]
     card_w = (cw - 36) / 3
     for i, (title, items) in enumerate(conclusion_cards):
         xx = x + i * (card_w + 18); rect(slide, xx, y, card_w, 510, PALE, GRID, .5); rect(slide, xx, y, card_w, 52, SKY, None); textbox(slide, xx + 12, y, card_w - 24, 52, title, 19, NAVY, True); bullets(slide, xx + 12, y + 70, card_w - 24, 410, items, 16)
