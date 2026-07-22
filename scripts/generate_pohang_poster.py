@@ -17,6 +17,8 @@ DATA = ROOT / "data" / "processed"
 RAW = ROOT / "data" / "raw" / "phase42_pohang"
 HIERARCHICAL_VALIDATION = DATA / "phase64_hierarchical_aggregate_validation" / "phase64_small_to_middle_aggregate_validation_detail.csv"
 FINAL_ACCURACY_REGISTRY = DATA / "phase98_final_middle_industry_accuracy_registry" / "phase98_final_middle_industry_accuracy_registry.csv"
+NO_WORSE_REFINEMENT = DATA / "phase105_no_worse_refinement_guardrail" / "phase105_no_worse_refinement_registry.csv"
+PHASE114_REFINEMENT = DATA / "phase114_block_routed_refinement_audit" / "phase114_refined_registry.csv"
 W, H = 3508, 4967
 M, GAP = 72, 20
 BODY_W = W - 2 * M
@@ -43,6 +45,21 @@ def parent_letters(parent_section: str) -> list[str]:
     if parent_section == "MN0":
         return ["M", "N"]
     return [parent_section[0]]
+
+
+def table_label(value: str, max_chars: int = 12) -> str:
+    value = str(value)
+    if "\n" in value or len(value) <= max_chars:
+        return value
+    pivots = [" 및 ", "·", " ", ";"]
+    for pivot in pivots:
+        positions = [i + len(pivot) for i in range(len(value)) if value.startswith(pivot, i)]
+        if not positions:
+            continue
+        cut = min(positions, key=lambda p: abs(p - len(value) / 2))
+        if 4 <= cut <= len(value) - 4:
+            return value[:cut].strip() + "\n" + value[cut:].strip()
+    return value[:max_chars].rstrip() + "\n" + value[max_chars:].lstrip()
 
 
 def xin(value: float): return Inches(value * SX)
@@ -293,23 +310,25 @@ def main() -> Path:
     rect(slide, x, y + ch - 80, cw, 68, "FFF2E8", None); textbox(slide, x + 12, y + ch - 80, cw - 24, 68, "경보 = 변동 악화 × 공간집중 × 검증신뢰도  →  현장확인 후보", 18, ORANGE, True, "center")
 
     y4, h4 = 2720, 900
-    hv = pd.read_csv(FINAL_ACCURACY_REGISTRY, dtype={"middle_code": str})
+    hv_source = PHASE114_REFINEMENT if PHASE114_REFINEMENT.exists() else NO_WORSE_REFINEMENT if NO_WORSE_REFINEMENT.exists() else FINAL_ACCURACY_REGISTRY
+    hv = pd.read_csv(hv_source, dtype={"middle_code": str})
     hv = hv[hv.city.eq("포항시")].copy()
     hv["middle_label"] = hv.middle_label.fillna(hv.middle_code.astype(str))
     hv["actual_eok"] = hv.actual_gva_eok
     hv["flash_eok"] = hv.initial_predicted_gva_eok
-    hv["refined_eok"] = hv.protected_predicted_gva_eok
+    hv["refined_eok"] = hv["phase114_predicted_gva_eok"] if "phase114_predicted_gva_eok" in hv.columns else hv["no_worse_refined_predicted_gva_eok"] if "no_worse_refined_predicted_gva_eok" in hv.columns else hv.protected_predicted_gva_eok
     hv["flash_error_eok"] = hv.initial_error_gva_eok
     hv["flash_error_rate_pct"] = hv.initial_error_rate_pct
-    hv["refined_error_eok"] = hv.protected_error_gva_eok
-    hv["refined_error_rate_pct"] = hv.protected_error_rate_pct
+    hv["refined_error_eok"] = hv["phase114_error_gva_eok"] if "phase114_error_gva_eok" in hv.columns else hv["no_worse_refined_error_gva_eok"] if "no_worse_refined_error_gva_eok" in hv.columns else hv.protected_error_gva_eok
+    hv["refined_error_rate_pct"] = hv["phase114_error_rate_pct"] if "phase114_error_rate_pct" in hv.columns else hv["no_worse_refined_error_rate_pct"] if "no_worse_refined_error_rate_pct" in hv.columns else hv.protected_error_rate_pct
 
     precise_frame = hv[hv.refined_error_rate_pct.le(10)].nsmallest(5, ["refined_error_rate_pct", "refined_error_eok"])
     gap_frame = hv.nlargest(5, "refined_error_eok")
     for xx0, num, title, frame, color, footer in [(M, "08", "공표 후 정밀화: 격차 작은 중분류", precise_frame, TEAL, "속보: 월 변화 경보 · 정밀화: 공표 후 재산출"), (x2, "09", "공표 후 정밀화: 금액격차 큰 중분류", gap_frame, RED, "10% 초과 산업은 주의·자료보강")]:
         x, y, cw, ch = panel(slide, xx0, y4, COL_W, h4, num, title)
-        rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.flash_eok:,.0f}", f"{r.refined_eok:,.0f}", f"{r.flash_error_eok:,.0f}\n({r.flash_error_rate_pct:.1f}%)", f"{r.refined_error_eok:,.0f}\n({r.refined_error_rate_pct:.1f}%)") for r in frame.itertuples()]
-        native_table(slide, x, y, cw, ["중분류", "실제", "속보성", "정밀화", "속보오차", "정밀오차"], rows, [.30, .13, .13, .13, .155, .155], 58, [11, 11, 11, 11, 9, 9])
+        textbox(slide, x + cw - 330, y - 70, 322, 32, "기준: 2023년 연간 · 단위: 억원", 12, WHITE, True, "right")
+        rows = [(table_label(r.middle_label), f"{r.actual_eok:,.0f}", f"{r.flash_eok:,.0f}", f"{r.refined_eok:,.0f}", f"{r.flash_error_eok:,.0f}\n({r.flash_error_rate_pct:.1f}%)", f"{r.refined_error_eok:,.0f}\n({r.refined_error_rate_pct:.1f}%)") for r in frame.itertuples()]
+        native_table(slide, x, y, cw, ["중분류", "실제", "속보성", "정밀화", "속보오차", "정밀오차"], rows, [.30, .13, .13, .13, .155, .155], 62, [12, 12, 12, 12, 10, 10])
         desc = "단위: 억원. 사후 집계검증 기준이며 전월·전분기 속보 성능이 아니다. 속보 단계는 공표 전 월 변화·경보로만 사용한다." if color == TEAL else "정확성 개선 후에도 남은 금액격차다. 속보 단계에서는 주의·자료보강으로 표시하고 공표 후 직접 활동자료로 재산출한다."
         textbox(slide, x, y + 445, cw, 115, desc, 16, MUTED, False, "center")
         rows = [("속보성", "공표 전 월 변화·경보"), ("정밀화", "공표 후 실제-추정 격차"), ("단위", "억원 · 상대오차 병기")]
