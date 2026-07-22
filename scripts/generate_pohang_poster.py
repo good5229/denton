@@ -205,7 +205,9 @@ def main() -> Path:
     yy = subhead(slide, x, y, cw, "정책 문제")
     textbox(slide, x, yy, cw, 88, "시·구 연간 총량만으로는 산업 충격이 어느 읍면동에 집중되고 언제 시작됐는지 판별하기 어렵다.", 20, INK, valign="top")
     yy += 98; yy = subhead(slide, x, yy, cw, "분석 목표")
-    bullets(slide, x, yy, cw, 142, ["전 산업을 동일 기준으로 29개 읍면동까지 배분", "월·분기·연 및 읍면동·구·시 합계를 동시 보존", "예측 양호·취약 산업을 구분해 활용 강도 차등화"], 16)
+    bullets(slide, x, yy, cw, 96, ["전 산업을 동일 기준으로 29개 읍면동까지 배분", "월·분기·연 및 읍면동·구·시 합계를 동시 보존", "예측 양호·취약 산업을 구분해 활용 강도 차등화"], 16)
+    rows = [("시간", "연·분기·월"), ("공간", "시·구·29개 읍면동"), ("산업", "KSIC 대·중·소분류")]
+    native_table(slide, x, y + 350, cw, ["축", "분석 범위"], rows, [.25, .75], 26, [12, 12])
     rect(slide, x, y + ch - 92, cw, 84, "FFF2E8", None)
     textbox(slide, x + 12, y + ch - 92, 120, 84, "핵심 질문", 17, ORANGE, True)
     textbox(slide, x + 140, y + ch - 92, cw - 152, 84, "어느 동·산업을 먼저 확인하고 지원할 것인가?", 19, INK, True)
@@ -245,11 +247,14 @@ def main() -> Path:
             cards = [("산업축", "2015 매출 비공개\n사업체·종사자→매출"), ("공간축", "2023 읍면동×중분류\n인구·공장·인허가 검증"), ("외삽축", "2024 남·북구 매출\n목표 산업 제외 검증"), ("회계축", "소→중→대·월→분기\n읍면동→시 재집계")]
             for i, (a, b) in enumerate(cards):
                 yy = y + i * 113; rect(slide, x, yy, cw, 96, PALE, GRID, .5); textbox(slide, x + 12, yy, 115, 96, a, 17, NAVY, True); textbox(slide, x + 138, yy, cw - 150, 96, b, 16, INK)
+            rows = [("1", "actual 분리"), ("2", "목표 산업 제외"), ("3", "상위합계 사후검사")]
+            native_table(slide, x, y + 452, cw, ["순서", "엄격 검증 원칙"], rows, [.20, .80], 34, [13, 13])
         elif col == 1:
             textbox(slide, x, y, cw, 28, "실제 홀드아웃 평균절대오차", 18, NAVY, True)
             hbars(slide, x, y + 42, cw, ["공간 기존", "공간 개선", "구 매출 기존", "구 매출 개선"], [3.380, 2.947, 14.007, 8.809], [MUTED, TEAL, MUTED, ORANGE], 15, 70)
             rect(slide, x, y + 350, cw, 93, "E9F5F3", None); textbox(slide, x + 12, y + 350, 150, 93, "개선 폭", 18, TEAL, True); textbox(slide, x + 170, y + 350, cw - 182, 93, "공간 -0.433%p\n구 매출 -5.198%p", 21, INK, True)
             textbox(slide, x, y + 455, cw, 72, "74개 산업을 하나씩 제외한 중첩교차검증 결과", 16, MUTED, False, "center")
+            rect(slide, x, y + 532, cw, 34, "E8F2F5", None); textbox(slide, x + 12, y + 532, cw - 24, 34, "채택: 공간 혼합모형 · 구 매출 로짓 보정", 14, NAVY, True, "center")
         else:
             checks = [("상위합계", "최대 2.33e-10", GREEN), ("공간 프로필", "중분류 0 · 소분류 4/19", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 actual", "부재 · 개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
@@ -278,19 +283,27 @@ def main() -> Path:
     rows = [(r.industry_name, f"{r.combined_cv_score_pp:.2f}%p") for r in good.itertuples()]
     native_table(slide, x, y, cw, ["KSIC 실제 업종명", "종합오차"], rows, [.72, .28], 58, [15, 16])
     textbox(slide, x, y + 425, cw, 86, "산업·읍면동·차년도 구 매출의 세 오차 평균. 상대적으로 정책 모니터링에 우선 활용 가능.", 16, MUTED, False, "center")
+    rows = [(r.industry_name, f"{r.industry_cv_mae_pp:.1f}", f"{r.spatial_cv_mae_pp:.1f}", f"{r.gu_sales_cv_mae_pp:.1f}") for r in good.head(3).itertuples()]
+    native_table(slide, x, y + 520, cw, ["대표 업종", "산업", "공간", "구매출"], rows, [.46, .18, .18, .18], 38, [12, 13, 13, 13])
+    textbox(slide, x, y + 676, cw, 24, "단위: %p · 낮을수록 활용 신뢰도 높음", 13, MUTED, False, "center")
     rect(slide, x, y + ch - 95, cw, 82, "E9F5F3", None); textbox(slide, x + 12, y + ch - 95, cw - 24, 82, "활용: 월 변화 경보 + 현장자료 확인", 18, TEAL, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y4, COL_W, h4, "09", "예측 취약 산업")
     rows = [(r.industry_name, f"{r.combined_cv_score_pp:.2f}%p") for r in bad.itertuples()]
     native_table(slide, x, y, cw, ["KSIC 실제 업종명", "종합오차"], rows, [.72, .28], 58, [15, 16])
     textbox(slide, x, y + 425, cw, 86, "소수 대형사업장·자본집약·거래액 차이로 사업체·고용 프록시가 매출·부가가치를 충분히 설명하지 못함.", 16, MUTED, False, "center")
+    rows = [(r.industry_name, f"{r.industry_cv_mae_pp:.1f}", f"{r.spatial_cv_mae_pp:.1f}", f"{r.gu_sales_cv_mae_pp:.1f}") for r in bad.head(3).itertuples()]
+    native_table(slide, x, y + 520, cw, ["대표 업종", "산업", "공간", "구매출"], rows, [.46, .18, .18, .18], 38, [12, 13, 13, 13])
+    textbox(slide, x, y + 676, cw, 24, "오차가 큰 축을 먼저 보완자료 수집 대상으로 지정", 13, MUTED, False, "center")
     rect(slide, x, y + ch - 95, cw, 82, "FBEDEA", None); textbox(slide, x + 12, y + ch - 95, cw - 24, 82, "제한: 단독 정책판단 금지 · 산업 실적자료 병행", 18, RED, True, "center")
 
     x3 = M + 2 * (COL_W + GAP); x, y, cw, ch = panel(slide, x3, y4, COL_W, h4, "10", "정책 운영 산출물")
     stages = [("1 갱신", "연·분기 GVA와 월 인허가"), ("2 판정", "산업별 양호·보통·취약"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]
     for i, (a, b) in enumerate(stages):
         yy = y + i * 105; rect(slide, x, yy, cw, 90, PALE, GRID, .5); textbox(slide, x + 12, yy, 125, 90, a, 17, NAVY, True); textbox(slide, x + 145, yy, cw - 157, 90, b, 16, INK, True)
-    rect(slide, x, y + 545, cw, 120, "E8F2F5", None); textbox(slide, x + 12, y + 545, cw - 24, 120, "산출물\n29개 읍면동 산업활력 지도\n산업별 신뢰등급·현장확인 목록", 17, NAVY, True, "center")
+    rows = [("지도", "29개 읍면동×산업"), ("목록", "신뢰등급·현장확인"), ("대시보드", "월 변화·공간집중"), ("보고서", "오차·비추정 사유")]
+    native_table(slide, x, y + 520, cw, ["산출물", "내용"], rows, [.28, .72], 34, [12, 12])
+    textbox(slide, x, y + 692, cw, 16, "높은 신뢰=경보 · 중간=보조지표 · 낮은 신뢰=자료수집", 12, MUTED, False, "center")
     rect(slide, x, y + ch - 95, cw, 82, "FFF2E8", None); textbox(slide, x + 12, y + ch - 95, cw - 24, 82, "정책 연결: 산단·상권·고용·창업 지원 우선순위", 17, ORANGE, True, "center")
 
     y5, h5 = 3650, 1200
@@ -313,7 +326,7 @@ def main() -> Path:
     textbox(slide, x + 12, y + ch - 98, cw - 24, 84, "공식통계 승격이 아닌\n정책 후보 선별용 개발통계", 18, RED, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y5, 2 * COL_W + GAP, h5, "12", "결론 및 기대효과")
-    conclusion_cards = [("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 actual 교차검증", "상위합계 오차 2.33e-10", "전면복제: 중분류 0·소분류 4/19"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 현장자료 수집 우선순위", "무료 자료로 반복 갱신 가능한 구조"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능"])]
+    conclusion_cards = [("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 actual 교차검증", "상위합계 오차 2.33e-10", "전면복제: 중분류 0·소분류 4/19", "양호·보통·취약 각 22개 산업", "27개 해상도 조합 산출"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 현장자료 수집 우선순위", "무료 자료로 반복 갱신 가능한 구조", "산업별 활용강도 차등화", "현장확인 후보 목록화"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능", "공식통계 공백 보완", "과대해석 방지 체계"])]
     card_w = (cw - 36) / 3
     for i, (title, items) in enumerate(conclusion_cards):
         xx = x + i * (card_w + 18); rect(slide, xx, y, card_w, 510, PALE, GRID, .5); rect(slide, xx, y, card_w, 52, SKY, None); textbox(slide, xx + 12, y, card_w - 24, 52, title, 19, NAVY, True); bullets(slide, xx + 12, y + 70, card_w - 24, 410, items, 16)
