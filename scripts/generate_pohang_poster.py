@@ -253,8 +253,8 @@ def main() -> Path:
             textbox(slide, x, y, cw, 28, "실제값 숨김검증 평균오차", 18, NAVY, True)
             hbars(slide, x, y + 42, cw, ["공간 기존", "공간 개선", "구 매출 기존", "구 매출 개선"], [3.380, 2.947, 14.007, 8.809], [MUTED, TEAL, MUTED, ORANGE], 15, 70)
             rect(slide, x, y + 350, cw, 116, "E9F5F3", None); textbox(slide, x + 12, y + 350, 150, 116, "개선 폭", 18, TEAL, True); textbox(slide, x + 170, y + 350, cw - 182, 116, "공간 -0.433%p\n구 매출 -5.198%p\n농림어업 시군구 -81.9%", 19, INK, True)
-            textbox(slide, x, y + 478, cw, 48, "농림어업은 일반 배분기준에서 분리해 직전 관측 비중으로 검증", 15, MUTED, False, "center")
-            rect(slide, x, y + 532, cw, 34, "E8F2F5", None); textbox(slide, x + 12, y + 532, cw - 24, 34, "채택: 공간 혼합모형 · 구 매출 보정 · 농림어업 특화배분", 14, NAVY, True, "center")
+            textbox(slide, x, y + 478, cw, 48, "농림어업은 비공개 하위셀을 표시하고 별도 배분기준으로 분리", 15, MUTED, False, "center")
+            rect(slide, x, y + 532, cw, 34, "E8F2F5", None); textbox(slide, x + 12, y + 532, cw - 24, 34, "채택: 공간 혼합모형 · 구 매출 보정 · 농림어업 분리 · 건설 생산시점 전환", 14, NAVY, True, "center")
         else:
             checks = [("상위합계", "최대 2.33e-10", GREEN), ("공간 패턴", "중분류 0 · 소분류 4/19", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 실제값", "부재 · 개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
@@ -295,7 +295,7 @@ def main() -> Path:
     rows = [(r.industry_name, f"{r.industry_cv_mae_pp:.1f}", f"{r.spatial_cv_mae_pp:.1f}", f"{r.gu_sales_cv_mae_pp:.1f}") for r in bad.head(3).itertuples()]
     native_table(slide, x, y + 520, cw, ["대표 업종", "산업", "공간", "구매출"], rows, [.46, .18, .18, .18], 38, [12, 13, 13, 13])
     textbox(slide, x, y + 676, cw, 24, "오차가 큰 축을 먼저 보완자료 수집 대상으로 지정", 13, MUTED, False, "center")
-    rect(slide, x, y + ch - 95, cw, 82, "FFF2E8", None); textbox(slide, x + 12, y + ch - 95, cw - 24, 82, "보완: 농림어업은 특화배분 적용 · 나머지는 실적자료 병행", 17, ORANGE, True, "center")
+    rect(slide, x, y + ch - 95, cw, 82, "FFF2E8", None); textbox(slide, x + 12, y + ch - 95, cw - 24, 82, "보완: 농림어업 하위 비공개셀 표시 · 건설은 수주→생산시점 전환", 17, ORANGE, True, "center")
 
     x3 = M + 2 * (COL_W + GAP); x, y, cw, ch = panel(slide, x3, y4, COL_W, h4, "10", "정책 운영 산출물")
     stages = [("1 갱신", "연·분기 부가가치와 월 인허가"), ("2 판정", "산업별 양호·보통·취약"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]
@@ -326,7 +326,7 @@ def main() -> Path:
     textbox(slide, x + 12, y + ch - 98, cw - 24, 84, "공식통계 승격이 아닌\n정책 후보 선별용 개발통계", 18, RED, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y5, 2 * COL_W + GAP, h5, "12", "결론 및 기대효과")
-    conclusion_cards = [("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 실제값 교차검증", "농림어업 특화: 시군구 오차 81.9% 개선", "상위합계 오차 2.33e-10", "양호·보통·취약 각 22개 산업", "27개 해상도 조합 산출"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업도 전용 배분기준으로 개선", "무료 자료로 반복 갱신 가능한 구조", "산업별 활용강도 차등화", "현장확인 후보 목록화"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능", "공식통계 공백 보완", "과대해석 방지 체계"])]
+    conclusion_cards = [("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 실제값 교차검증", "농림어업 하위 비공개셀 명시", "건설 생산시점 전환: 1.29→0.96%p", "양호·보통·취약 각 22개 산업", "27개 해상도 조합 산출"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업도 전용 배분기준으로 개선", "무료 자료 기반 반복 갱신", "산업별 활용강도 차등화", "현장확인 후보 목록화"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능", "공식통계 공백 보완", "과대해석 방지 체계"])]
     card_w = (cw - 36) / 3
     for i, (title, items) in enumerate(conclusion_cards):
         xx = x + i * (card_w + 18); rect(slide, xx, y, card_w, 510, PALE, GRID, .5); rect(slide, xx, y, card_w, 52, SKY, None); textbox(slide, xx + 12, y, card_w - 24, 52, title, 19, NAVY, True); bullets(slide, xx + 12, y + 70, card_w - 24, 410, items, 16)
