@@ -50,6 +50,15 @@ def display_size(size: int) -> int:
     return size
 
 
+def parent_letters(parent_section: str) -> list[str]:
+    parent_section = str(parent_section)
+    if parent_section == "ERS":
+        return ["E", "R", "S"]
+    if parent_section == "MN0":
+        return ["M", "N"]
+    return [parent_section[0]]
+
+
 def font(size: int, bold: bool = False, title: bool = False):
     return ImageFont.truetype(FONT_TITLE if title else FONT_BOLD if bold else FONT_BODY, display_size(size))
 
@@ -228,6 +237,8 @@ def main() -> None:
     bad = complete.nlargest(6, "combined_cv_score_pp")
     cube = pd.read_parquet(DATA / "partial_stats_phase45_pohang_final_multiresolution_cube.parquet")
     monthly = cube[(cube.geo_level.eq("시")) & (cube.time_level.eq("월")) & (cube.industry_level.eq("대분류"))].copy()
+    annual_large = cube[(cube.geo_level.eq("시")) & (cube.time_level.eq("연")) & (cube.industry_level.eq("대분류")) & (cube.period.astype(str).eq("2023"))].copy()
+    large_gva_by_code = annual_large.groupby("industry_code").estimated_gva.sum().to_dict()
     totals = monthly[monthly.period.str.startswith("2023")].groupby(["industry_code", "industry_name"], as_index=False).estimated_gva.sum().nlargest(4, "estimated_gva")
     periods = sorted(monthly.period.unique())
     trends = []
@@ -370,13 +381,18 @@ def main() -> None:
     hv["actual_pct"] = hv.actual_middle_share * 100
     hv["pred_pct"] = hv.predicted_small_aggregated_share * 100
     hv["error_pct"] = hv.abs_error_pp
+    hv["parent_gva_eok"] = hv.parent_section.map(lambda code: sum(large_gva_by_code.get(letter, 0.0) for letter in parent_letters(code)) / 100)
+    hv["actual_eok"] = hv.actual_middle_share * hv.parent_gva_eok
+    hv["pred_eok"] = hv.predicted_small_aggregated_share * hv.parent_gva_eok
+    hv["error_eok"] = (hv.pred_eok - hv.actual_eok).abs()
+    hv["error_rate_pct"] = hv.error_eok / hv.actual_eok.replace(0, pd.NA) * 100
     hv = hv[hv.actual_middle_share.between(0.001, 0.999)]
     sections = [(M, "08", "집계검증 양호 중분류", hv.nsmallest(6, "abs_error_pp"), TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "집계검증 취약 중분류", hv.nlargest(6, "abs_error_pp"), RED, "보완: 추가 활동지표 확보 전 활용 보류")]
     for xx0, num, title_, rows_df, color, footer in sections:
         x, y, cw, ch = panel(draw, xx0, y4, COL_W, h4, num, title_)
-        rows = [(r.middle_label, f"{r.actual_pct:.1f}", f"{r.pred_pct:.1f}", f"{r.error_pct:.2f}") for r in rows_df.itertuples()]
-        table(draw, x, y, cw, ["중분류", "실제", "집계", "오차"], rows, [.48, .17, .17, .18], 58, [15, 15, 15, 15])
-        explanation = "소분류 배분값을 중분류 actual로 집계 검증한 결과. 낮은 오차 업종은 경보지표로 우선 활용." if color == TEAL else "하위 배분이 중분류 actual 구조를 충분히 복원하지 못한 업종. 원자료 보강 전 정책판단 제한."
+        rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in rows_df.itertuples()]
+        table(draw, x, y, cw, ["중분류", "실제", "집계", "오차"], rows, [.48, .17, .17, .18], 63, [15, 15, 15, 13])
+        explanation = "단위: 억원 환산. 실제=상위 GVA×중분류 actual 비중, 집계=상위 GVA×소분류 합산비중, 오차=억원(상대오차율)." if color == TEAL else "취약 중분류는 하위 배분이 상위 actual 구조를 충분히 복원하지 못한 영역. 원자료 보강 전 제한."
         box_paragraph(draw, (x, y + 445, x + cw, y + 560), explanation, 18, MUTED, False, 5, align="center")
         checks = [("검증축", "소→중 집계 actual 비교"), ("활용", "양호=경보 · 취약=보류"), ("단위", "% · %p 혼용 방지")]
         table(draw, x, y + 575, cw, ["항목", "판정"], checks, [.30, .70], 44, [14, 14])
