@@ -386,14 +386,14 @@ def main() -> None:
     hv["error_rate_pct"] = hv.protected_error_rate_pct
     precise_frame = hv[hv.error_rate_pct.le(10)].nsmallest(6, ["error_rate_pct", "error_eok"])
     gap_frame = hv.nlargest(6, "error_eok")
-    sections = [(M, "08", "최종 기준 격차 작은 중분류", precise_frame, TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "최종 기준 금액격차 큰 중분류", gap_frame, RED, "Phase100 판정: strict 통과 0개 · 운영 참고 2묶음")]
+    sections = [(M, "08", "공표 후 정밀화: 격차 작은 중분류", precise_frame, TEAL, "속보: 월 변화 경보 · 정밀화: 공표 후 재산출"), (x2, "09", "공표 후 정밀화: 금액격차 큰 중분류", gap_frame, RED, "10% 초과 산업은 주의·자료보강")]
     for xx0, num, title_, rows_df, color, footer in sections:
         x, y, cw, ch = panel(draw, xx0, y4, COL_W, h4, num, title_)
         rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in rows_df.itertuples()]
         table(draw, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [15, 15, 15, 13])
-        explanation = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율). 10% 초과는 정밀판정 제외." if color == TEAL else "포항 취약묶음 7개 중 2개는 운영 참고 후보, 5개는 자료보강 대상. 대외 주장은 strict 통과 기준으로 제한한다."
+        explanation = "단위: 억원. 사후 집계검증 기준이며 전월·전분기 속보 성능이 아니다. 속보 단계는 공표 전 월 변화·경보로만 사용한다." if color == TEAL else "정확성 개선 후에도 남은 금액격차다. 속보 단계에서는 주의·자료보강으로 표시하고 공표 후 직접 활동자료로 재산출한다."
         box_paragraph(draw, (x, y + 445, x + cw, y + 560), explanation, 18, MUTED, False, 5, align="center")
-        checks = [("중분류 추정", "실제값과 직접 비교"), ("격차진단", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
+        checks = [("속보성", "공표 전 월 변화·경보"), ("정밀화", "공표 후 실제-추정 격차"), ("단위", "억원 · 상대오차 병기")]
         table(draw, x, y + 575, cw, ["항목", "판정"], checks, [.30, .70], 44, [14, 14])
         footer_fill = "#E9F5F3" if color == TEAL else "#FFF2E8"
         footer_color = color if color == TEAL else ORANGE
@@ -401,7 +401,7 @@ def main() -> None:
         box_text(draw, (x + 12, y + ch - 95, x + cw - 12, y + ch - 13), footer, 18, footer_color, bold=True, align="center")
     x3 = M + 2 * (COL_W + GAP)
     x, y, cw, ch = panel(draw, x3, y4, COL_W, h4, "10", "정책 운영 산출물")
-    for i, (a, b) in enumerate([("1 갱신", "연·분기 부가가치와 월 인허가"), ("2 판정", "산업별 실제-추정 격차"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]):
+    for i, (a, b) in enumerate([("1 속보", "전월·전분기 월 활동자료"), ("2 경보", "읍면동 집중·월 악화"), ("3 정밀화", "공표 후 상위 GVA 반영"), ("4 검증", "산업별 실제-추정 격차"), ("5 지원", "산업·지역 맞춤사업 연결")]):
         yy = y + i * 105
         rect(draw, (x, yy, x + cw, yy + 90), PALE, GRID, 1)
         box_text(draw, (x + 12, yy, x + 137, yy + 90), a, 18, NAVY, bold=True)
@@ -414,23 +414,23 @@ def main() -> None:
 
     y5, h5 = 3650, 1200
     x, y, cw, ch = panel(draw, M, y5, COL_W, h5, "11", "자료 확보성 검토")
-    for i, (a, b) in enumerate([("공식 실제값", "2023 읍면동×중분류\n2024 구×중분류 매출"), ("월 변동", "LOCALDATA 19종\n2021–2026 인허가"), ("취약묶음 판정", "strict 0개\n운영참고 2개"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]):
+    for i, (a, b) in enumerate([("속보 자료", "월 인허가·교통·전력\n공표 전 경보"), ("정밀화 자료", "공식 GVA·사업체조사\n공표 후 재산출"), ("누수 차단", "당해연도 실제값\n속보 입력 금지"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]):
         yy = y + i * 128
         rect(draw, (x, yy, x + cw, yy + 108), PALE, GRID, 1)
         box_text(draw, (x + 14, yy, x + 162, yy + 108), a, 18, NAVY, bold=True)
         box_paragraph(draw, (x + 174, yy, x + cw - 14, yy + 108), b, 17, INK, True, 5)
     yy = subhead(draw, x, y + 535, "판정", cw)
-    for i, (a, b, color) in enumerate([("가능", "연·분기·월 × 시·구·읍면동 × 산업 대·중·소", TEAL), ("검증", "산업 매출·읍면동 분포·차년도 구 매출", ORANGE), ("보강", "취약 중분류 직접 활동자료 확대", RED)]):
+    for i, (a, b, color) in enumerate([("속보", "월 변화·위험 신호", TEAL), ("정밀화", "공표 후 GVA 격차 검증", ORANGE), ("보강", "10% 초과 산업 직접 활동자료 확대", RED)]):
         yy2 = yy + i * 92
         rect(draw, (x, yy2, x + cw, yy2 + 74), WHITE, GRID, 1)
         box_text(draw, (x + 12, yy2, x + 100, yy2 + 74), a, 18, color, bold=True, align="center")
         box_text(draw, (x + 112, yy2, x + cw - 12, yy2 + 74), b, 16, INK, bold=True)
     rect(draw, (x, y + ch - 98, x + cw, y + ch - 14), "#FBEDEA", "#FBEDEA", 1)
-    box_paragraph(draw, (x + 12, y + ch - 98, x + cw - 12, y + ch - 14), "산업별 실제-추정 격차와\n정책 후보 선별 기준", 18, RED, True, 5, align="center")
+    box_paragraph(draw, (x + 12, y + ch - 98, x + cw - 12, y + ch - 14), "속보성 지표와\n정확성 개선 지표 분리", 18, RED, True, 5, align="center")
 
     x, y, cw, ch = panel(draw, x2, y5, 2 * COL_W + GAP, h5, "12", "핵심 기여 및 기대효과")
     card_w = (cw - 36) / 3
-    for i, (title_, items) in enumerate([("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "동·월·산업별 신뢰등급 동시 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 실제값과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "strict 통과 0개를 명시", "운영 참고·자료보강 묶음 분리"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 묶음은 자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]):
+    for i, (title_, items) in enumerate([("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "속보성 지표와 정확성 개선 지표 분리", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["속보 단계: 공표 전 월 변화·경보", "정밀화 단계: 공표 후 GVA 격차 검증", "소분류 합산값을 중분류 실제값과 대조", "억원·상대오차를 함께 표기", "당해연도 실제값 속보 입력 금지", "주의·자료보강 산업 분리"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "10% 초과 산업은 자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]):
         xx = x + i * (card_w + 18)
         rect(draw, (xx, y, xx + card_w, y + 510), PALE, GRID, 1)
         rect(draw, (xx, y, xx + card_w, y + 52), SKY, SKY, 1)
@@ -440,7 +440,7 @@ def main() -> None:
             yy = bullet(draw, xx + 12, yy, item, card_w - 24, 17) + 8
     rect(draw, (x, y + 535, x + cw, y + 705), "#E9F5F3", GRID, 1)
     box_text(draw, (x + 18, y + 535, x + 168, y + 705), "최종 제안", 22, TEAL, bold=True, align="center")
-    box_paragraph(draw, (x + 185, y + 535, x + cw - 18, y + 705), "최종 판정: 포항 취약묶음 7개 중 strict 통과 0개\n운영 참고 2개·자료보강 5개로 구분\n총부가가치 실제-추정 격차를 공개하는 검증형 정책지도", 24, INK, True, 6, align="center")
+    box_paragraph(draw, (x + 185, y + 535, x + cw - 18, y + 705), "최종 제안: 속보성 경보와 공표 후 정밀화를 분리\n전월·전분기는 위험 신호, 연간 공표 후에는 GVA 격차 재검증\n총부가가치 실제-추정 격차를 공개하는 검증형 정책지도", 24, INK, True, 6, align="center")
     yy = subhead(draw, x, y + 735, "기대효과", cw)
     for i, (a, b) in enumerate([("정밀성", "시·구 평균에 가린 동 격차 발견"), ("적시성", "연간 통계 사이 월 변화 후보 탐지"), ("실현성", "기존 무료 자료·반복 실행"), ("검증성", "실제·추정·오차 공개")]):
         xx = x + i * cw / 4

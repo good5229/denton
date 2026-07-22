@@ -303,19 +303,19 @@ def main() -> Path:
 
     precise_frame = hv[hv.error_rate_pct.le(10)].nsmallest(6, ["error_rate_pct", "error_eok"])
     gap_frame = hv.nlargest(6, "error_eok")
-    for xx0, num, title, frame, color, footer in [(M, "08", "최종 기준 격차 작은 중분류", precise_frame, TEAL, "활용: 월 변화 경보 + 현장자료 확인"), (x2, "09", "최종 기준 금액격차 큰 중분류", gap_frame, RED, "Phase100 판정: strict 통과 0개 · 운영 참고 2묶음")]:
+    for xx0, num, title, frame, color, footer in [(M, "08", "공표 후 정밀화: 격차 작은 중분류", precise_frame, TEAL, "속보: 월 변화 경보 · 정밀화: 공표 후 재산출"), (x2, "09", "공표 후 정밀화: 금액격차 큰 중분류", gap_frame, RED, "10% 초과 산업은 주의·자료보강")]:
         x, y, cw, ch = panel(slide, xx0, y4, COL_W, h4, num, title)
         rows = [(r.middle_label, f"{r.actual_eok:,.0f}", f"{r.pred_eok:,.0f}", f"{r.error_eok:,.0f}\n({r.error_rate_pct:.1f}%)") for r in frame.itertuples()]
         native_table(slide, x, y, cw, ["중분류", "실제", "추정", "오차"], rows, [.48, .17, .17, .18], 63, [14, 14, 14, 12])
-        desc = "단위: 억원 환산. 실제=상위 GVA×중분류 실제 비중, 추정=상위 GVA×소분류 합산비중, 오차=억원(상대오차율). 10% 초과는 정밀판정 제외." if color == TEAL else "포항 취약묶음 7개 중 2개는 운영 참고 후보, 5개는 자료보강 대상. 대외 주장은 strict 통과 기준으로 제한한다."
+        desc = "단위: 억원. 사후 집계검증 기준이며 전월·전분기 속보 성능이 아니다. 속보 단계는 공표 전 월 변화·경보로만 사용한다." if color == TEAL else "정확성 개선 후에도 남은 금액격차다. 속보 단계에서는 주의·자료보강으로 표시하고 공표 후 직접 활동자료로 재산출한다."
         textbox(slide, x, y + 445, cw, 115, desc, 16, MUTED, False, "center")
-        rows = [("중분류 추정", "실제값과 직접 비교"), ("격차진단", "금액오차 상위 산업 우선"), ("단위", "억원 · 상대오차 병기")]
+        rows = [("속보성", "공표 전 월 변화·경보"), ("정밀화", "공표 후 실제-추정 격차"), ("단위", "억원 · 상대오차 병기")]
         native_table(slide, x, y + 560, cw, ["항목", "판정"], rows, [.30, .70], 38, [12, 12])
         fill = "E9F5F3" if color == TEAL else "FFF2E8"
         rect(slide, x, y + ch - 52, cw, 40, fill, None); textbox(slide, x + 12, y + ch - 52, cw - 24, 40, footer, 13, color if color == TEAL else ORANGE, True, "center")
 
     x3 = M + 2 * (COL_W + GAP); x, y, cw, ch = panel(slide, x3, y4, COL_W, h4, "10", "정책 운영 산출물")
-    stages = [("1 갱신", "연·분기 부가가치와 월 인허가"), ("2 판정", "산업별 실제-추정 격차"), ("3 탐지", "읍면동 집중·월 악화"), ("4 확인", "기업·상권·산단 현장자료"), ("5 지원", "산업·지역 맞춤사업 연결")]
+    stages = [("1 속보", "전월·전분기 월 활동자료"), ("2 경보", "읍면동 집중·월 악화"), ("3 정밀화", "공표 후 상위 GVA 반영"), ("4 검증", "산업별 실제-추정 격차"), ("5 지원", "산업·지역 맞춤사업 연결")]
     for i, (a, b) in enumerate(stages):
         yy = y + i * 105; rect(slide, x, yy, cw, 90, PALE, GRID, .5); textbox(slide, x + 12, yy, 125, 90, a, 17, NAVY, True); textbox(slide, x + 145, yy, cw - 157, 90, b, 16, INK, True)
     rows = [("지도", "29개 읍면동×산업"), ("목록", "신뢰등급·현장확인"), ("대시보드", "월 변화·공간집중"), ("보고서", "오차·비추정 사유")]
@@ -325,14 +325,14 @@ def main() -> Path:
 
     y5, h5 = 3650, 1200
     x, y, cw, ch = panel(slide, M, y5, COL_W, h5, "11", "자료 확보성 검토")
-    source_rows = [("공식 실제값", "2023 읍면동×중분류\n2024 구×중분류 매출"), ("월 변동", "LOCALDATA 19종\n2021–2026 인허가"), ("취약묶음 판정", "strict 0개\n운영참고 2개"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]
+    source_rows = [("속보 자료", "월 인허가·교통·전력\n공표 전 경보"), ("정밀화 자료", "공식 GVA·사업체조사\n공표 후 재산출"), ("누수 차단", "당해연도 실제값\n속보 입력 금지"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]
     for i, (a, b) in enumerate(source_rows):
         yy = y + i * 128
         rect(slide, x, yy, cw, 108, PALE, GRID, .5)
         textbox(slide, x + 14, yy, 148, 108, a, 17, NAVY, True)
         textbox(slide, x + 174, yy, cw - 188, 108, b, 16, INK, True)
     yy = subhead(slide, x, y + 535, cw, "판정")
-    verdicts = [("가능", "연·분기·월 × 시·구·읍면동 × 산업 대·중·소"), ("검증", "산업 매출·읍면동 분포·차년도 구 매출"), ("보강", "취약 중분류 직접 활동자료 확대")]
+    verdicts = [("속보", "월 변화·위험 신호"), ("정밀화", "공표 후 GVA 격차 검증"), ("보강", "10% 초과 산업 직접 활동자료 확대")]
     for i, (a, b) in enumerate(verdicts):
         yy2 = yy + i * 92
         color = TEAL if a == "가능" else ORANGE if a == "검증" else RED
@@ -340,16 +340,16 @@ def main() -> Path:
         textbox(slide, x + 12, yy2, 88, 74, a, 17, color, True, "center")
         textbox(slide, x + 112, yy2, cw - 124, 74, b, 15, INK, True)
     rect(slide, x, y + ch - 98, cw, 84, "FBEDEA", None)
-    textbox(slide, x + 12, y + ch - 98, cw - 24, 84, "산업별 실제-추정 격차와\n정책 후보 선별 기준", 18, RED, True, "center")
+    textbox(slide, x + 12, y + ch - 98, cw - 24, 84, "속보성 지표와\n정확성 개선 지표 분리", 18, RED, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y5, 2 * COL_W + GAP, h5, "12", "핵심 기여 및 기대효과")
-    conclusion_cards = [("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "동·월·산업별 신뢰등급 동시 표시", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["소분류 합산값을 중분류 실제값과 대조", "소→중 집계 MAE 10.29%p 공개", "17/66개 중분류 집계오차 1%p 이하", "억원·상대오차를 함께 표기", "strict 통과 0개를 명시", "운영 참고·자료보강 묶음 분리"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "취약 묶음은 자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]
+    conclusion_cards = [("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "속보성 지표와 정확성 개선 지표 분리", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["속보 단계: 공표 전 월 변화·경보", "정밀화 단계: 공표 후 GVA 격차 검증", "소분류 합산값을 중분류 실제값과 대조", "억원·상대오차를 함께 표기", "당해연도 실제값 속보 입력 금지", "주의·자료보강 산업 분리"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "10% 초과 산업은 자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]
     card_w = (cw - 36) / 3
     for i, (title, items) in enumerate(conclusion_cards):
         xx = x + i * (card_w + 18); rect(slide, xx, y, card_w, 510, PALE, GRID, .5); rect(slide, xx, y, card_w, 52, SKY, None); textbox(slide, xx + 12, y, card_w - 24, 52, title, 19, NAVY, True); bullets(slide, xx + 12, y + 70, card_w - 24, 410, items, 16)
     rect(slide, x, y + 535, cw, 170, "E9F5F3", GRID, .6)
     textbox(slide, x + 18, y + 535, 150, 170, "최종 제안", 21, TEAL, True, "center")
-    textbox(slide, x + 185, y + 535, cw - 203, 170, "최종 판정: 포항 취약묶음 7개 중 strict 통과 0개\n운영 참고 2개·자료보강 5개로 구분\n총부가가치 실제-추정 격차를 공개하는 검증형 정책지도", 23, INK, True, "center")
+    textbox(slide, x + 185, y + 535, cw - 203, 170, "최종 제안: 속보성 경보와 공표 후 정밀화를 분리\n전월·전분기는 위험 신호, 연간 공표 후에는 GVA 격차 재검증\n총부가가치 실제-추정 격차를 공개하는 검증형 정책지도", 23, INK, True, "center")
     yy = subhead(slide, x, y + 735, cw, "기대효과")
     effects = [("정밀성", "시·구 평균에 가린 동 격차 발견"), ("적시성", "연간 통계 사이 월 변화 후보 탐지"), ("실현성", "기존 무료 자료·반복 실행"), ("검증성", "실제·추정·오차 공개")]
     for i, (a, b) in enumerate(effects):
