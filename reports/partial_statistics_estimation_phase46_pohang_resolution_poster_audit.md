@@ -48,6 +48,7 @@ subagent를 사용하지 않고 포항시 자료와 포스터를 재검토했다
 - 예측 양호 산업과 예측 취약 산업을 동일 비중으로 제시
 - 내부 실험명, Phase 명칭, KSIC 코드 단독 표기를 제거
 - PPT 본문 글꼴 스케일을 확대하고 패널 간 불필요 여백을 축소
+- 승인 후 Python/Pillow 기반 PNG 렌더러를 추가해 A1 원본 이미지와 축소 미리보기를 생성
 
 ## 검증 결과
 
@@ -58,6 +59,8 @@ subagent를 사용하지 않고 포항시 자료와 포스터를 재검토했다
 .venv/bin/python scripts/verify_partial_statistics_phase45_gva.py
 .venv/bin/python scripts/verify_pohang_poster.py
 .venv/bin/python scripts/audit_poster_pptx_layout.py goyang/poster_goyang_economic_vitality_a1_editable.pptx
+.venv/bin/python scripts/generate_pohang_poster_png.py
 ```
 
 포항 포스터는 A1 594×841mm, 551개 선택 가능 요소, 텍스트박스 겹침 0건으로 확인됐다.
+PNG 산출물은 `pohang/poster_pohang_industrial_vitality_a1.png` 3508×4967, `pohang/poster_pohang_industrial_vitality_a1_preview.png` 1240×1756이다.

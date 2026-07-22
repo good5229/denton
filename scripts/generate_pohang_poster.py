@@ -251,7 +251,7 @@ def main() -> Path:
             rect(slide, x, y + 350, cw, 93, "E9F5F3", None); textbox(slide, x + 12, y + 350, 150, 93, "개선 폭", 18, TEAL, True); textbox(slide, x + 170, y + 350, cw - 182, 93, "공간 -0.433%p\n구 매출 -5.198%p", 21, INK, True)
             textbox(slide, x, y + 455, cw, 72, "74개 산업을 하나씩 제외한 중첩교차검증 결과", 16, MUTED, False, "center")
         else:
-            checks = [("상위합계", "최대 2.33×10⁻¹⁰", GREEN), ("공간 프로필", "중분류 0 · 소분류 4/19", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 actual", "부재 · 개발통계", RED)]
+            checks = [("상위합계", "최대 2.33e-10", GREEN), ("공간 프로필", "중분류 0 · 소분류 4/19", GOLD), ("공장 결합", "업종·읍면동 76.5%", GOLD), ("월 actual", "부재 · 개발통계", RED)]
             for i, (a, b, color) in enumerate(checks):
                 yy = y + i * 102; rect(slide, x, yy, cw, 86, PALE, GRID, .5); rect(slide, x + 12, yy + 22, 24, 24, color, None, rounded=True); textbox(slide, x + 50, yy, 155, 86, a, 17, NAVY, True); textbox(slide, x + 212, yy, cw - 224, 86, b, 16, color, True)
             rect(slide, x, y + 424, cw, 104, "FFF2E8", None); textbox(slide, x + 12, y + 424, cw - 24, 104, "판정: 중분류 공간분포는 검증 가능\n읍면동×소분류×월은 제약추정으로 제한", 17, INK, True, "center")
@@ -313,7 +313,7 @@ def main() -> Path:
     textbox(slide, x + 12, y + ch - 98, cw - 24, 84, "공식통계 승격이 아닌\n정책 후보 선별용 개발통계", 18, RED, True, "center")
 
     x, y, cw, ch = panel(slide, x2, y5, 2 * COL_W + GAP, h5, "12", "결론 및 기대효과")
-    conclusion_cards = [("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 actual 교차검증", "상위합계 오차 2.33×10⁻¹⁰", "전면복제: 중분류 0·소분류 4/19"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 현장자료 수집 우선순위", "무료 자료로 반복 갱신 가능한 구조"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능"])]
+    conclusion_cards = [("분석 성과", ["29개 읍면동·전 산업·36개월 통합", "산업·공간·외삽 actual 교차검증", "상위합계 오차 2.33e-10", "전면복제: 중분류 0·소분류 4/19"]), ("정책 가치", ["시 총량을 동 단위 정책정보로 전환", "양호 산업은 월 경보에 우선 활용", "취약 산업은 현장자료 수집 우선순위", "무료 자료로 반복 갱신 가능한 구조"]), ("공공 기여", ["지역·산업 격차의 동시 진단", "산단·상권·고용정책 연결", "오차 공개를 통한 과잉해석 방지", "타 지역 동일 검증체계 확장 가능"])]
     card_w = (cw - 36) / 3
     for i, (title, items) in enumerate(conclusion_cards):
         xx = x + i * (card_w + 18); rect(slide, xx, y, card_w, 510, PALE, GRID, .5); rect(slide, xx, y, card_w, 52, SKY, None); textbox(slide, xx + 12, y, card_w - 24, 52, title, 19, NAVY, True); bullets(slide, xx + 12, y + 70, card_w - 24, 410, items, 16)
