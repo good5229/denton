@@ -15,6 +15,8 @@ HIERARCHICAL_VALIDATION = DATA / "phase64_hierarchical_aggregate_validation" / "
 FINAL_ACCURACY_REGISTRY = DATA / "phase98_final_middle_industry_accuracy_registry" / "phase98_final_middle_industry_accuracy_registry.csv"
 NO_WORSE_REFINEMENT = DATA / "phase105_no_worse_refinement_guardrail" / "phase105_no_worse_refinement_registry.csv"
 PHASE114_REFINEMENT = DATA / "phase114_block_routed_refinement_audit" / "phase114_refined_registry.csv"
+PHASE127_STRICT_REFINEMENT = DATA / "phase127_precision_comwel_after_phase114" / "phase127_strict_registry.csv"
+PHASE128_FLASH = DATA / "phase128_vintage_flash_redesign" / "phase128_vintage_middle_flash_detail.csv"
 
 W, H = 3508, 4967
 M, GAP = 72, 20
@@ -60,6 +62,29 @@ def parent_letters(parent_section: str) -> list[str]:
     if parent_section == "MN0":
         return ["M", "N"]
     return [parent_section[0]]
+
+
+def apply_phase128_flash(hv: pd.DataFrame, city: str) -> pd.DataFrame:
+    """Replace rejected initial split with Q4+1M historical middle-industry flash."""
+    if not PHASE128_FLASH.exists():
+        hv["flash_eok"] = hv.initial_predicted_gva_eok
+        hv["flash_error_eok"] = hv.initial_error_gva_eok
+        hv["flash_error_rate_pct"] = hv.initial_error_rate_pct
+        return hv
+    flash = pd.read_csv(PHASE128_FLASH, dtype={"middle_code": str})
+    flash["middle_code"] = flash.middle_code.str.zfill(2)
+    flash = flash[
+        flash.city.eq(city)
+        & flash.vintage_id.eq("Q4_plus_1m")
+        & flash.share_model_id.eq("historical_middle_split")
+        & flash.allowed_track.eq("flash_candidate")
+    ][["parent_code", "middle_code", "flash_predicted_gva_eok", "flash_error_gva_eok", "flash_error_rate_pct"]]
+    hv["middle_code"] = hv.middle_code.astype(str).str.zfill(2)
+    hv = hv.merge(flash, on=["parent_code", "middle_code"], how="left")
+    hv["flash_eok"] = hv.flash_predicted_gva_eok.fillna(hv.initial_predicted_gva_eok)
+    hv["flash_error_eok"] = hv.flash_error_gva_eok.fillna(hv.initial_error_gva_eok)
+    hv["flash_error_rate_pct"] = hv.flash_error_rate_pct.fillna(hv.initial_error_rate_pct)
+    return hv.drop(columns=["flash_predicted_gva_eok", "flash_error_gva_eok"], errors="ignore")
 
 
 def font(size: int, bold: bool = False, title: bool = False):
@@ -403,28 +428,26 @@ def main() -> None:
     box_text(draw, (x + 12, y + ch - 80, x + cw - 12, y + ch - 12), "경보 = 변동 악화 × 공간집중 × 검증신뢰도  →  현장확인 후보", 19, ORANGE, bold=True, align="center")
 
     y4, h4 = 2720, 900
-    hv_source = PHASE114_REFINEMENT if PHASE114_REFINEMENT.exists() else NO_WORSE_REFINEMENT if NO_WORSE_REFINEMENT.exists() else FINAL_ACCURACY_REGISTRY
+    hv_source = PHASE127_STRICT_REFINEMENT if PHASE127_STRICT_REFINEMENT.exists() else PHASE114_REFINEMENT if PHASE114_REFINEMENT.exists() else NO_WORSE_REFINEMENT if NO_WORSE_REFINEMENT.exists() else FINAL_ACCURACY_REGISTRY
     hv = pd.read_csv(hv_source, dtype={"middle_code": str})
     hv = hv[hv.city.eq("포항시")].copy()
     hv["middle_label"] = hv.middle_label.fillna(hv.middle_code.astype(str))
     hv["actual_eok"] = hv.actual_gva_eok
-    hv["flash_eok"] = hv.initial_predicted_gva_eok
-    hv["refined_eok"] = hv["phase114_predicted_gva_eok"] if "phase114_predicted_gva_eok" in hv.columns else hv["no_worse_refined_predicted_gva_eok"] if "no_worse_refined_predicted_gva_eok" in hv.columns else hv.protected_predicted_gva_eok
-    hv["flash_error_eok"] = hv.initial_error_gva_eok
-    hv["flash_error_rate_pct"] = hv.initial_error_rate_pct
-    hv["refined_error_eok"] = hv["phase114_error_gva_eok"] if "phase114_error_gva_eok" in hv.columns else hv["no_worse_refined_error_gva_eok"] if "no_worse_refined_error_gva_eok" in hv.columns else hv.protected_error_gva_eok
-    hv["refined_error_rate_pct"] = hv["phase114_error_rate_pct"] if "phase114_error_rate_pct" in hv.columns else hv["no_worse_refined_error_rate_pct"] if "no_worse_refined_error_rate_pct" in hv.columns else hv.protected_error_rate_pct
+    hv["refined_eok"] = hv["phase127_strict_predicted_gva_eok"] if "phase127_strict_predicted_gva_eok" in hv.columns else hv["phase114_predicted_gva_eok"] if "phase114_predicted_gva_eok" in hv.columns else hv["no_worse_refined_predicted_gva_eok"] if "no_worse_refined_predicted_gva_eok" in hv.columns else hv.protected_predicted_gva_eok
+    hv = apply_phase128_flash(hv, "포항시")
+    hv["refined_error_eok"] = hv["phase127_strict_error_gva_eok"] if "phase127_strict_error_gva_eok" in hv.columns else hv["phase114_error_gva_eok"] if "phase114_error_gva_eok" in hv.columns else hv["no_worse_refined_error_gva_eok"] if "no_worse_refined_error_gva_eok" in hv.columns else hv.protected_error_gva_eok
+    hv["refined_error_rate_pct"] = hv["phase127_strict_error_rate_pct"] if "phase127_strict_error_rate_pct" in hv.columns else hv["phase114_error_rate_pct"] if "phase114_error_rate_pct" in hv.columns else hv["no_worse_refined_error_rate_pct"] if "no_worse_refined_error_rate_pct" in hv.columns else hv.protected_error_rate_pct
     precise_frame = hv[hv.refined_error_rate_pct.le(10)].nsmallest(5, ["refined_error_rate_pct", "refined_error_eok"])
     gap_frame = hv.nlargest(5, "refined_error_eok")
     sections = [(M, "08", "공표 후 정밀화: 격차 작은 중분류", precise_frame, TEAL, "속보: 월 변화 경보 · 정밀화: 공표 후 재산출"), (x2, "09", "공표 후 정밀화: 금액격차 큰 중분류", gap_frame, RED, "10% 초과 산업은 주의·자료보강")]
     for xx0, num, title_, rows_df, color, footer in sections:
         x, y, cw, ch = panel(draw, xx0, y4, COL_W, h4, num, title_)
-        box_text(draw, (x + cw - 330, y - 70, x + cw - 8, y - 38), "기준: 2023년 연간 · 단위: 억원", 12, WHITE, bold=True, align="right")
+        box_text(draw, (x, y + 406, x + cw, y + 432), "기준: 2023년 연간 · 단위: 억원", 12, NAVY, bold=True, align="right")
         rows = [(table_label(r.middle_label), f"{r.actual_eok:,.0f}", f"{r.flash_eok:,.0f}", f"{r.refined_eok:,.0f}", f"{r.flash_error_eok:,.0f}\n({r.flash_error_rate_pct:.1f}%)", f"{r.refined_error_eok:,.0f}\n({r.refined_error_rate_pct:.1f}%)") for r in rows_df.itertuples()]
-        table(draw, x, y, cw, ["중분류", "실제", "속보성", "정밀화", "속보오차", "정밀오차"], rows, [.30, .13, .13, .13, .155, .155], 62, [13, 13, 13, 13, 11, 11])
-        explanation = "단위: 억원. 사후 집계검증 기준이며 전월·전분기 속보 성능이 아니다. 속보 단계는 공표 전 월 변화·경보로만 사용한다." if color == TEAL else "정확성 개선 후에도 남은 금액격차다. 속보 단계에서는 주의·자료보강으로 표시하고 공표 후 직접 활동자료로 재산출한다."
+        table(draw, x, y, cw, ["중분류", "실제", "Q+1M\n속보", "정밀화", "속보오차", "정밀오차"], rows, [.30, .13, .13, .13, .155, .155], 62, [13, 13, 13, 13, 11, 11])
+        explanation = "단위: 억원. 속보는 상위산업 1~4분기+1개월 총량과 과거 중분류 구조를 결합한 값이다." if color == TEAL else "정확성 개선 후에도 남은 금액격차다. 속보 단계에서는 주의·자료보강으로 표시하고 공표 후 직접 활동자료로 재산출한다."
         box_paragraph(draw, (x, y + 445, x + cw, y + 560), explanation, 18, MUTED, False, 5, align="center")
-        checks = [("속보성", "공표 전 월 변화·경보"), ("정밀화", "공표 후 실제-추정 격차"), ("단위", "억원 · 상대오차 병기")]
+        checks = [("속보성", "공표 전 월 변화·경보"), ("정밀화", "공표 후 실제-추정 격차"), ("사업장 구조", "고용·산재보험 자료 무악화 적용")]
         table(draw, x, y + 575, cw, ["항목", "판정"], checks, [.30, .70], 44, [14, 14])
         footer_fill = "#E9F5F3" if color == TEAL else "#FFF2E8"
         footer_color = color if color == TEAL else ORANGE
@@ -445,7 +468,7 @@ def main() -> None:
 
     y5, h5 = 3650, 1200
     x, y, cw, ch = panel(draw, M, y5, COL_W, h5, "11", "자료 확보성 검토")
-    for i, (a, b) in enumerate([("속보 자료", "월 인허가·교통·전력\n공표 전 경보"), ("정밀화 자료", "공식 GVA·사업체조사\n공표 후 재산출"), ("누수 차단", "당해연도 실제값\n속보 입력 금지"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]):
+    for i, (a, b) in enumerate([("속보 자료", "월 인허가·교통·전력\n공표 전 경보"), ("정밀화 자료", "공식 GVA·사업체조사\n고용·산재 사업장 구조"), ("누수 차단", "당해연도 실제값\n속보 입력 금지"), ("경계·인구", "29개 행정 읍면동\n현행 경계 기준")]):
         yy = y + i * 128
         rect(draw, (x, yy, x + cw, yy + 108), PALE, GRID, 1)
         box_text(draw, (x + 14, yy, x + 162, yy + 108), a, 18, NAVY, bold=True)
@@ -461,7 +484,7 @@ def main() -> None:
 
     x, y, cw, ch = panel(draw, x2, y5, 2 * COL_W + GAP, h5, "12", "핵심 기여 및 기대효과")
     card_w = (cw - 36) / 3
-    for i, (title_, items) in enumerate([("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "속보성 지표와 정확성 개선 지표 분리", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["속보 단계: 공표 전 월 변화·경보", "정밀화 단계: 공표 후 GVA 격차 검증", "소분류 합산값을 중분류 실제값과 대조", "억원·상대오차를 함께 표기", "당해연도 실제값 속보 입력 금지", "주의·자료보강 산업 분리"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "10% 초과 산업은 자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]):
+    for i, (title_, items) in enumerate([("방법론 기여", ["공식 GVA를 읍면동×월×산업으로 전환", "전 산업 19대·74중·228소분류 동시 산출", "속보성 지표와 정확성 개선 지표 분리", "공간·시간·산업 총량 제약 보존", "중분류 실제값과 비교해 오차 위치 식별", "고양·포항 공통 구조로 확장성 확인"]), ("검증 기여", ["속보 단계: 공표 전 월 변화·경보", "정밀화 단계: 공표 후 GVA 격차 검증", "정밀 총오차 9,066억→7,718억", "사업장 구조자료 적용 후 악화 셀 0개", "억원·상대오차를 함께 표기", "주의·자료보강 산업 분리"]), ("정책 기여", ["29개 읍면동 산업활력 격차 지도화", "월 변화로 조기경보 후보 선별", "산단·항만·상권·고용정책 우선순위 연결", "유료 카드자료 없이 무료 자료 기반 갱신", "10% 초과 산업은 자료보강 대상으로 분리", "공모전 평가요소: 정확성·실현성·공공성 대응"])]):
         xx = x + i * (card_w + 18)
         rect(draw, (xx, y, xx + card_w, y + 510), PALE, GRID, 1)
         rect(draw, (xx, y, xx + card_w, y + 52), SKY, SKY, 1)

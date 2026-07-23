@@ -150,6 +150,55 @@ def add_electricity_contract(rows: list[dict[str, Any]]) -> None:
             add_indicator(rows, city, parent, middle, f"flash_kepco_contract_{cat}_ytd", f"{city} 전력사용량 {cat} 누적", val, "kWh", "공표시차 2개월 가정, 2023-09까지 중 2023-09-30 이전 공표분만 사용")
 
 
+def add_mof_pohang_port_cargo(rows: list[dict[str, Any]]) -> None:
+    """Add Pohang port cargo throughput from MOF statistics sharing API.
+
+    The collected table is `DT_MLTM_1310 외내항 품목별 화물 입출항현황`.
+    It is monthly and port/product-specific.  For flash use, keep a conservative
+    two-month publication lag at the 2023-09-30 cut-off, so only 2023-01~2023-07
+    observations are used.
+    """
+    path = RAW / "phase118_public_sources" / "mof_DT_MLTM_1310_pohang_all_products_latest60.csv"
+    if not path.exists():
+        return
+    df = read_any(path)
+    df["period"] = pd.to_numeric(df.get("PRD_DE"), errors="coerce")
+    df["value"] = numeric(df.get("DT", pd.Series(0, index=df.index)))
+    cut = df[df["period"].between(202301, 202307)].copy()
+    if cut.empty:
+        return
+
+    total = float(cut.loc[cut.get("C2_NM").astype(str).eq("총계"), "value"].sum())
+    add_indicator(
+        rows,
+        "포항시",
+        "H00",
+        "50",
+        "flash_mof_pohang_port_cargo_total_ytd_lag2",
+        "포항항 총 화물처리량 누적",
+        total,
+        "R/T",
+        "해양수산통계 DT_MLTM_1310, 2023-01~07 누적; 2023-09-30 기준 2개월 공표시차 가정",
+    )
+
+    # Steel-related throughput is not a GVA actual.  It is only a physical
+    # activity candidate for the C24/C25 steel-heavy manufacturing split.
+    steel_products = {"철광석", "유연탄", "철강 및 그제품", "고 철", "비철금속 및 그제품"}
+    steel = float(cut.loc[cut.get("C2_NM").astype(str).isin(steel_products), "value"].sum())
+    for middle in ("24", "25"):
+        add_indicator(
+            rows,
+            "포항시",
+            "C00",
+            middle,
+            "flash_mof_pohang_steel_related_port_cargo_ytd_lag2",
+            "포항항 철강 관련 화물처리량 누적",
+            steel,
+            "R/T",
+            "해양수산통계 DT_MLTM_1310, 철광석·유연탄·철강제품 등 2023-01~07 누적",
+        )
+
+
 def build_indicators() -> pd.DataFrame:
     base = p116.build_indicators()
     rows = base.to_dict("records") if not base.empty else []
@@ -157,6 +206,7 @@ def build_indicators() -> pd.DataFrame:
     add_rail_passengers(rows)
     add_agriculture_structure(rows)
     add_electricity_contract(rows)
+    add_mof_pohang_port_cargo(rows)
     out = pd.DataFrame(rows)
     if out.empty:
         return out
@@ -231,7 +281,7 @@ def source_gap_table(registry: pd.DataFrame) -> pd.DataFrame:
         if p == "G00":
             return "도소매 중분류별 월 매출·사업자 과세매출·차량판매 등록"
         if p == "H00" and m == "50":
-            return "항만·연안여객·수상화물 월 물동량"
+            return "포항항 월별 물동량 수집 완료; H49·H50·H52 혼합 배분모형 필요"
         if p == "J00":
             return "통신가입·콘텐츠매출·방송/정보서비스 매출 월지표"
         if p == "K00":
@@ -335,6 +385,7 @@ def main() -> None:
 - 철도·버스 승하차 누적: 육상운송업(H49) 활동 규모 후보
 - 농림어업 2015 세부 매출 구조: 농업·임업·어업(A01~A03) 구조 후보
 - KEPCO 전력사용량: 농사용·산업용·일반용·교육용 계약별 누적 후보
+- 해양수산통계 포항항 월별 화물처리실적: 수상운송업(H50) 및 철강 물량형 제조업 후보
 - 기존 Phase116 후보: 건축 인허가, LOCALDATA 영업재고, KOSIS 2021 이전 사업체·제조업 구조자료
 
 ## 도시별 성능
@@ -359,15 +410,18 @@ def main() -> None:
 
 {p115.md_table(gt20, [("city", "지역"), ("parent_code", "상위산업"), ("middle_code", "코드"), ("middle_label", "중분류"), ("actual_gva_eok", "실제 억원"), ("phase117_flash_predicted_gva_eok", "속보추정 억원"), ("phase117_flash_error_gva_eok", "오차 억원"), ("phase117_flash_error_rate_pct", "오차 %"), ("phase117_required_data", "20% 이하에 필요한 직접자료")], 140)}
 
-## 추가 수집 시도 중 막힌 자료
+## 추가 수집 결과와 남은 한계
 
 | 자료 | 링크 | 결과 | 조치 |
 | --- | --- | --- | --- |
-| 해양수산부 품목별 화물처리실적 월별 API | https://www.data.go.kr/data/15056791/openapi.do | `MOF_API_KEY`, `DATA_GO_KR_ENCODING`, `DATA_GO_KR_DECODING` 모두 401/403 응답 | 이 API는 별도 활용승인 또는 키 권한 확인 필요. 포항 H50 수상운송 20% 이하 개선의 최우선 후보 |
+| 해양수산부 품목별 화물처리실적 월별 API | https://www.data.go.kr/data/15056791/openapi.do | 승인 후 `DATA_GO_KR_ENCODING` 키로 정상 응답. 다만 `/SsopCargFrghtPrdlst2/YM`은 월×품목 전국합계로 항만코드가 없음 | 전국 월별 품목 계절성 보조자료로만 사용 |
+| 해양수산통계 공유서비스 `DT_MLTM_1310 외내항 품목별 화물 입출항현황` | https://www.mof.go.kr/statPortal/api/idx/main.do | `MOF_API_KEY`로 포항항×품목×월 자료 수집 성공. `data/raw/phase118_public_sources/mof_DT_MLTM_1310_pohang_all_products_latest60.csv` 저장 | H50 단일지표는 기존 parent 단일후보 평가기에 바로 채택되지 않음. H49 여객·H50 항만·H52 창고를 각각 분리하는 혼합 배분모형이 다음 단계 |
 
 ## 판정
 
 이번 단계는 무료 후보자료를 최대한 추가했지만, 두 도시의 모든 중분류를 20% 이내로 넣지는 못했다. 특히 도소매, 금융보험, 정보통신, 전문서비스, 환경·개인서비스는 사업체 수나 일반 전력 같은 간접 지표만으로는 중분류별 GVA 구조를 안정적으로 분리하기 어렵다. 이 업종들은 월별 매출·계약액·처리량·가입자·보조금처럼 중분류 활동에 직접 가까운 자료가 필요하다.
+
+포항 수상운송업은 필요한 핵심 자료인 포항항 월별 물동량을 확보했지만, 현재 평가는 상위산업 내부를 하나의 지표로 재배분하는 방식이어서 H50 전용 지표가 H00 후보로 채택되지 않는다. 따라서 다음 실험은 H00을 육상운송(H49)·수상운송(H50)·창고/운송관련(H52)으로 나누고, 각각 철도/버스 승하차·항만 물동량·창고면적을 결합하는 혼합 배분식으로 전환해야 한다.
 """
     REPORT.write_text(report, encoding="utf-8")
     print(REPORT)
