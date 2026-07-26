@@ -8,6 +8,11 @@ accounting checks, operational performance, and purpose-specific judgments.
 
 from __future__ import annotations
 
+import hashlib
+import json
+import platform
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import dedent
 
@@ -31,6 +36,23 @@ def read_parquet(rel: str) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(path)
     return pd.read_parquet(path)
+
+
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def git_commit() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+        ).strip()
+    except Exception:
+        return "unknown"
 
 
 def md_table(df: pd.DataFrame, float_digits: int = 2) -> str:
@@ -80,6 +102,19 @@ def summarize_cube(rel: str, city: str) -> dict[str, object]:
 
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    input_rels = [
+        "data/processed/phase145_operational_route_decision_registry/phase145_selected_operational_performance.csv",
+        "data/processed/phase145_operational_route_decision_registry/phase145_operational_route_decision_registry.csv",
+        "data/processed/phase145_operational_route_decision_registry/phase145_accounting_checks.csv",
+        "data/processed/phase144_city_temporal_route_audit/phase144_baseline_samewindow_temporal_comparison.csv",
+        "data/processed/phase143_temporal_out_of_sample_route_audit/phase143_baseline_samewindow_temporal_comparison.csv",
+        "data/processed/phase132_source_vintage_eligibility_audit/phase132_vintage_eligibility_summary.csv",
+        "data/processed/partial_stats_phase41_all_ksic_multiresolution_cube.parquet",
+        "data/processed/partial_stats_phase42_pohang_multiresolution_cube.parquet",
+        "data/processed/ksic10_official_registry.csv",
+        "data/processed/ksic11_official_registry.csv",
+        "data/processed/ksic10_11_official_crosswalk.csv",
+    ]
 
     perf = read_csv(
         "data/processed/phase145_operational_route_decision_registry/"
@@ -278,6 +313,29 @@ def main() -> None:
     }
     for name, df in tables.items():
         df.to_csv(OUT_DIR / name, index=False)
+    manifest = {
+        "phase": "phase146_multilens_validation_review",
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "git_commit": git_commit(),
+        "python": platform.python_version(),
+        "pandas": pd.__version__,
+        "inputs": [],
+    }
+    for rel in input_rels:
+        path = ROOT / rel
+        if path.exists():
+            manifest["inputs"].append(
+                {
+                    "path": rel,
+                    "bytes": path.stat().st_size,
+                    "sha256": file_sha256(path),
+                }
+            )
+        else:
+            manifest["inputs"].append({"path": rel, "missing": True})
+    (OUT_DIR / "execution_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     goyang_q1 = perf[(perf.city == "고양시") & (perf.available_quarters == 1)].iloc[0]
     goyang_q3 = perf[(perf.city == "고양시") & (perf.available_quarters == 3)].iloc[0]
@@ -290,21 +348,21 @@ def main() -> None:
 
 ## 전제
 
-사용자가 요청한 원문은 독립 전문 에이전트 병렬 검토를 요구했지만, 현재 프로젝트 지침상 subagent를 사용하지 않도록 되어 있으므로 실제 하위 에이전트는 생성하지 않았다. 대신 동일한 산출 요구를 8개 전문 검토 관점으로 분리해 직접 검토했다.
+초기 검토에서는 사용자의 기존 지시 때문에 subagent를 만들지 않았으나, 이후 사용자가 이번 검증 절차에 한해 subagent 사용을 승인했다. 따라서 이번 개정본은 8개 전문 역할을 3개 검토 묶음으로 나눈 subagent 검토 결과를 반영했다: 연구방법론·통계/시계열, KSIC·데이터품질, 신용·행정활용·레드팀. 최종 판단과 문구 반영은 루트 작업자가 통합했다.
 
 이번 검토의 예측 대상은 **총부가가치(GVA)** 다. 사업체 수, 매출, 전력, 인허가, 조달, 교통·항만 등의 자료는 GVA를 직접 관측하는 값이 아니라 GVA를 배분·외삽하기 위한 활동지표 또는 구조지표다.
 
 ## A. 한 페이지 요약
 
-현재 고양시·포항시 모형은 **공식통계가 제공하지 않는 시군구·행정동/읍면동 × KSIC 대·중·소분류 × 월·분기·연 GVA를 상위 actual에 맞춰 배분·외삽하는 운영형 추정체계**다. 가장 방어 가능한 사용처는 “중분류 중심의 지역경제 모니터링과 행정 내부 참고자료”이며, 신용평가·개별기업 위험판정·공식통계 대체에는 아직 부족하다.
+현재 고양시·포항시 모형은 **공식통계가 제공하지 않는 시군구·행정동/읍면동 × KSIC 대·중·소분류 × 월·분기·연 GVA를 이용 가능 활동지표와 구조지표로 배분·외삽하고, 사후에는 최종 연간 actual과 집계 정합성을 검증하는 운영형 추정체계**다. 가장 방어 가능한 사용처는 “중분류 중심의 지역경제 모니터링과 행정 내부 참고자료”이며, 신용평가·개별기업 위험판정·공식통계 대체에는 아직 부족하다.
 
-확인된 운영 성능은 2022~2023 중분류 연간 actual 집계검증 기준이다. 고양시는 Q1+1개월 WAPE {pct(goyang_q1.overall_wape_pct)}%, Q1~Q3+1개월 WAPE {pct(goyang_q3.overall_wape_pct)}%다. 포항시는 Q1+1개월 WAPE {pct(pohang_q1.overall_wape_pct)}%, Q1~Q3+1개월 WAPE {pct(pohang_q3.overall_wape_pct)}%다. Q4+1개월은 연간 통제총량을 회수하는 회계 정산 단계이므로 예측력으로 해석하지 않는다.
+확인된 운영 성능은 2022~2023 두 개 holdout 연도에서, 분기 rolling 시점에 생성한 **연간 중분류 GVA 예측**을 사후 연간 actual과 비교한 집계검증 기준이다. 고양시는 Q1+1개월 WAPE {pct(goyang_q1.overall_wape_pct)}%, Q1~Q3+1개월 WAPE {pct(goyang_q3.overall_wape_pct)}%다. 포항시는 Q1+1개월 WAPE {pct(pohang_q1.overall_wape_pct)}%, Q1~Q3+1개월 WAPE {pct(pohang_q3.overall_wape_pct)}%다. 분기 자체 GVA의 독립 actual 검증은 아직 제한적이며, Q4+1개월은 연간 통제총량을 회수하는 회계 정산 단계이므로 예측력으로 해석하지 않는다.
 
 중요한 감사 결과는 “더 좋아 보이는 복잡한 후보”가 모두 채택된 것이 아니라는 점이다. Phase143~144 시간분리 검증에서 동일 평가창 기준 개선 후보의 상당수가 baseline보다 악화되어, Phase145에서는 고양 Q1~Q3와 포항 Q1~Q2를 baseline으로 되돌렸다. 포항 Q3만 시간분리에서 아주 작은 개선이 확인되어 제한 후보로 채택했다.
 
 최종 판정은 다음과 같다.
 
-- **신뢰 가능한 결과**: 도시×KSIC 중분류×연간/분기 rolling GVA nowcast의 amount-weighted 집계검증, Q4 회계정합성, 후보모형 시간분리 탈락/채택 판정.
+- **현재 표본 내에서 방어 가능한 결과**: 도시×KSIC 중분류×분기 rolling 시점의 연간 GVA nowcast에 대한 amount-weighted 집계검증, Q4 회계정합성, 후보모형 시간분리 탈락/채택 판정.
 - **조건부 해석 결과**: 월별·행정동/읍면동·소분류 추정치. 공간·산업 세부 진단에는 유용하지만 단독 actual 검증이 부족하므로 상위 집계검증과 불확실성 표시가 필요하다.
 - **현재 신뢰하기 어려운 결과**: 공식통계 대체, 인과효과 주장, 개별기업 신용평가, 소분류 월별 수치의 외부 공개 순위화, 전국 일반화 주장.
 - **최우선 보완사항**: 공표일자/as-of 자료관리, 타지역·추가연도 외부검증, 산업별 직접 활동자료 확충, 예측구간 제시, KSIC 개정·소표본 비밀보호 규칙.
@@ -326,17 +384,21 @@ def main() -> None:
 
 {md_table(cube_summary, 0)}
 
-KSIC 계층은 대분류 19개, 중분류 74개, 소분류 228개로 산출되어 있다. 다만 현재 산출물만으로는 KSIC 차수/개정연도 자체가 명시적으로 충분히 고정되어 있다고 보기 어렵다. 이후 외부 공개·논문화 단계에서는 사용한 KSIC 버전과 개정 전후 연결표를 보고서 앞단에 고정해야 한다.
+KSIC 계층은 대분류 19개, 중분류 74개, 소분류 228개로 산출되어 있다. 로컬 `ksic10_official_registry.csv` 기준 KSIC 10차는 2017-07-01~2024-06-30 유효하고, `ksic11_official_registry.csv` 및 `ksic10_11_official_crosswalk.csv`도 확보되어 있다. 따라서 2021~2023 평가 결과는 **KSIC 10차 기준**으로 해석한다. 2024-07-01 이후 자료는 KSIC 11차 적용 및 10↔11 연결표 검증 없이는 동일 결론으로 확장하지 않는다.
 
-### 운영 성능
+또한 `parent_code`는 공식 KSIC 대분류와 완전히 같지 않은 모형용 상위그룹을 포함한다. 예를 들어 `ERS`는 수도·하수·폐기물·문화·기타서비스를 묶은 운영상 그룹이고, `MN0`는 전문·과학·기술 및 사업지원 관련 그룹이다. 외부 공개표에서는 공식 KSIC 대분류와 모형용 상위그룹을 분리해 표기해야 한다.
+
+### 운영 성능: Q1~Q3 예측
 
 {md_table(perf_out)}
+
+위 표는 Phase145 운영 선택표를 요약한 것이며, Q4 행은 비교 편의를 위해 포함되어 있다. 외부 공개 성능표에서는 Q4 0%를 평균 예측성능에 포함하지 말고 아래 회계검증으로 분리하는 것이 안전하다.
 
 ### 회계 검증
 
 {md_table(checks.rename(columns={'check_id':'검증항목','rows':'행수','max_abs_diff_eok':'최대차이(억원)','pass':'통과'}))}
 
-검증 결과, Q4 연간 회수 및 현재분기+이전기간=누계 정합성은 통과했다. 최대 회계 차이는 {max_check:.8f}억원 수준이며, 이는 부동소수점 오차로 볼 수 있다.
+검증 결과, Q4 연간 회수 및 현재분기+이전기간=누계 정합성은 통과했다. 최대 회계 차이는 {max_check:.8f}억원 수준이며, 이는 부동소수점 오차로 볼 수 있다. 이 항목은 예측성능이 아니라 회계 정합성 검증이다.
 
 ## B. 목적별 활용성 평가표
 
@@ -351,6 +413,14 @@ KSIC 계층은 대분류 19개, 중분류 74개, 소분류 228개로 산출되�
 {md_table(industry, 0)}
 
 ## 전문 관점별 검토
+
+### subagent 교차검토 반영사항
+
+| 검토 묶음 | 주요 지적 | 반영 |
+| --- | --- | --- |
+| 연구방법론·통계/시계열 | 두 개 holdout 연도만으로 “신뢰 가능” 표현은 강함. Q4 0%는 성능표가 아니라 회계검증으로 분리해야 함. | “현재 표본 내 방어 가능”으로 표현 완화, 2022~2023 한계와 Q4 회계정산 성격 명시 |
+| KSIC·데이터품질 | KSIC 10차/11차 기준, `parent_code`와 공식 대분류 혼동, as-of 누수 위험, manifest 부족 | KSIC 10차 적용기간과 11차 전환주의 명시, 모형용 상위그룹 설명, execution manifest 생성 |
+| 신용·행정활용·레드팀 | 제안서·포스터에서 자동 정책결정처럼 읽힐 위험, 소액고오차 묶음은 개별 후순위라도 총량 모니터링 필요 | 정책 활용은 “후보 경보→현장확인→부서검토”로 제한, 금액가중 핵심관리/관리관찰/소액고오차 표현 권고 |
 
 ### 1. 연구방법론 검증
 
@@ -402,7 +472,7 @@ UNKNOWN 및 needs_publication_calendar 자료는 엄격 속보에는 투입하�
 
 ### 8. 종합판정
 
-현재 체계는 “공공데이터 기반 지역 GVA 고빈도 추정 엔진”으로서 내부 정책·연구·모니터링에는 충분한 기여가 있다. 그러나 공식통계·신용평가·처분성 행정결정에 바로 투입할 정도의 검증 수준은 아니다. 다음 단계의 핵심은 더 복잡한 모형이 아니라 **검증 가능한 자료만 쓰는 운영규칙**, **타지역·추가연도 외부검증**, **업종별 직접 활동자료의 제한적 채택**, **불확실성 표시**다.
+현재 체계는 “공공데이터 기반 지역 GVA 고빈도 추정 엔진”으로서 내부 정책·연구·모니터링에는 기여가 있다. 그러나 현재 성능근거는 2022~2023 두 개 holdout 연도에 한정되며, 공식통계·신용평가·처분성 행정결정에 바로 투입할 정도의 검증 수준은 아니다. 다음 단계의 핵심은 더 복잡한 모형이 아니라 **검증 가능한 자료만 쓰는 운영규칙**, **타지역·추가연도 외부검증**, **업종별 직접 활동자료의 제한적 채택**, **불확실성 표시**다.
 
 ## E. 방법론 개선안
 
@@ -465,6 +535,7 @@ UNKNOWN 및 needs_publication_calendar 자료는 엄격 속보에는 투입하�
 - Phase144 city routing 시간분리 out-of-sample 감사 결과 확인.
 - Phase132 공표시점·속보적격성 요약 확인.
 - 고양·포항 KSIC 대/중/소분류 × 월/분기/연 × 시/구/읍면동 큐브 범위 확인.
+- KSIC 10차/11차 registry 및 10↔11 연결표 로컬 존재 확인. 2021~2023 결과는 KSIC 10차 기준으로 한정.
 
 ### 미수행 및 필요자료
 
@@ -473,6 +544,7 @@ UNKNOWN 및 needs_publication_calendar 자료는 엄격 속보에는 투입하�
 - 원출처 공표일자 완전감사: data.go.kr, KOSIS, 지자체 포털, 해양수산통계 등 자료별 historical release calendar 필요.
 - 소분류 직접 actual 검증: 공공에서 제공되지 않으므로 현재는 중분류/대분류 집계검증으로 대체.
 - 예측구간 검증: 추가 연도 또는 지역 bootstrap/rolling-origin 표본 필요.
+- 엄격 속보 전용 재산출: `strict_flash_eligible in {{Y, PARTIAL}}`만 사용한 별도 WAPE 필요.
 """
 
     REPORT.write_text(report, encoding="utf-8")
