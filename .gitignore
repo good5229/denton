@@ -4,6 +4,7 @@
 __pycache__/
 *.pyc
 .DS_Store
+.tools/
 
 # Local harness and run records
 harness_doc/
