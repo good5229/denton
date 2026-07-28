@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>전국 GRDP/GVA 추정 검증 대시보드</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">2021–2025 · 2026-07-28 생성 데이터 기준 사후 백테스트</p>
+          <h1>전국 시도·시군구 GRDP/GVA 추정 대시보드</h1>
+          <p class="lead">
+            분기·연간 상위 actual로 검증한 추정값을 지역·업종 단위로 조회한다.
+            시도는 GRDP, 시군구는 GVA actual과 GRDP형 추정값을 구분해 표시한다.
+          </p>
+        </div>
+        <div class="hero-card">
+          <span>5개년 검증</span>
+          <strong id="heroWape">1.889%</strong>
+          <small>엄격 속보형 1분기+1개월 전국 WAPE</small>
+        </div>
+      </section>
+
+      <section class="toolbar" aria-label="지역 및 업종 검색">
+        <label>
+          <span>지역 검색</span>
+          <input id="regionSearch" list="regionOptions" placeholder="예: 고양시, 포항시, 인천광역시" autocomplete="off" />
+          <datalist id="regionOptions"></datalist>
+        </label>
+        <label>
+          <span>업종 검색</span>
+          <input id="industrySearch" list="industryOptions" value="전체" placeholder="전체 또는 KSIC 업종명" autocomplete="off" />
+          <datalist id="industryOptions"></datalist>
+        </label>
+        <button id="openSelection">조회</button>
+        <p id="searchStatus" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="layout">
+        <article class="map-card">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Nationwide map</p>
+              <h2>전국 지도</h2>
+            </div>
+            <p id="mapHint">지역을 검색하거나 지도 위 시도 영역을 선택</p>
+          </div>
+          <div class="map-controls" aria-label="지도 확대 축소">
+            <button id="zoomOutMap" type="button">전국</button>
+            <button id="zoomInMap" type="button">선택 시도 확대</button>
+          </div>
+          <svg id="mapSvg" viewBox="0 0 720 900" role="img" aria-label="대한민국 시도 지도"></svg>
+        </article>
+
+        <aside class="insight-panel">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Method audit</p>
+              <h2>검증 요약</h2>
+            </div>
+          </div>
+          <div class="stat-grid">
+            <div><strong>17</strong><span>시도</span></div>
+            <div><strong>229</strong><span>시군구/통합시</span></div>
+            <div><strong>5년</strong><span>2021–2025</span></div>
+            <div><strong>15</strong><span>업종군</span></div>
+          </div>
+          <div class="method-box">
+            <h3>읽는 법</h3>
+            <ul>
+              <li><b>시도</b>: 추정 GRDP와 공식 시도 GRDP actual 비교</li>
+              <li><b>시군구</b>: 추정 GVA와 배분 순생산물세 기반 GRDP형 참고값 표시</li>
+              <li><b>업종</b>: actual이 있으면 GVA 기준 오차율 표시</li>
+              <li><b>활동지표 보조</b>: 어려운 5개 시도 Q1·Q1~Q2 조기점검 참고값</li>
+            </ul>
+          </div>
+          <div class="method-box accent">
+            <h3>운영 결론</h3>
+            <p>
+              전국 집계 경계는 비교적 안정적이나, 인천·울산·세종·대구·충북은 제조업·건설·운수창고의
+              지역 활동자료를 Q1·Q1~Q2 조기점검 보조지표 보강 후보로 검토할 필요가 있다.
+            </p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <dialog id="regionDialog">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow" id="dialogType">지역</p>
+          <h2 id="dialogTitle">지역 선택</h2>
+          <p id="dialogSubtitle"></p>
+          <p id="actualCoverage" class="coverage-badge"></p>
+          <p id="coordinateBasis" class="coverage-badge muted-badge"></p>
+        </div>
+        <button id="closeDialog" aria-label="닫기">×</button>
+      </div>
+      <div class="dialog-controls">
+        <label>
+          <span>업종</span>
+          <select id="industrySelect"></select>
+        </label>
+      </div>
+      <div class="dialog-grid">
+        <section class="chart-card">
+          <h3 id="totalChartTitle">연도별 추정·실제</h3>
+          <p class="chart-unit">단위: 억원, 실질 기준</p>
+          <svg id="totalChart" viewBox="0 0 760 320"></svg>
+        </section>
+        <section class="chart-card">
+          <h3 id="industryChartTitle">업종별 추정·실제</h3>
+          <p class="chart-unit">단위: 억원, 실질 기준</p>
+          <svg id="industryChart" viewBox="0 0 760 320"></svg>
+        </section>
+      </div>
+      <section class="table-card" id="operatingCard" hidden>
+        <h3>어려운 지역 Q1·Q1~Q2 조기점검 보조 추정</h3>
+        <div id="operatingSummary"></div>
+      </section>
+      <section class="table-card">
+        <h3>수치 표</h3>
+        <p class="table-caption">단위: 억원, 실질 기준 · 오차율: % · 미공표 actual은 ‘-’ 표시</p>
+        <div id="valueTable"></div>
+      </section>
+      <section class="note-card">
+        <h3>해석 기준</h3>
+        <div class="source-box">
+          <h4>actual 데이터 출처</h4>
+          <ul id="actualSource"></ul>
+        </div>
+        <ul id="regionNotes"></ul>
+      </section>
+    </dialog>
+
+    <script src="./data/province_features.js"></script>
+    <script src="./data/sigungu_features.js"></script>
+    <script src="./data/dashboard_data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

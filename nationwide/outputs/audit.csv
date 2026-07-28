@@ -1,0 +1,7 @@
+﻿check,value,status
+covered_provinces,17,17; Sejong handled as one-tier pseudo sigungu
+sigungu_with_2023_local_source,149,"2023 local source coverage, not total national municipalities"
+city_quarter_prediction_rows,119080,information
+province_total_validation_missing_actual,0,0
+activity_validation_missing_actual,0,0
+national_validation_missing_actual,0,0

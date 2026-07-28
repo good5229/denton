@@ -1,0 +1,3 @@
+﻿track,years,mean_national_wape_pct,max_national_wape_pct,std_national_wape_pct
+prior_year_province_anchor,5,0.05918101725115099,0.1270577927989001,0.04586494676554059
+recursive_no_target_actual,5,0.04204535454658141,0.0690245460036438,0.027453322371549405
