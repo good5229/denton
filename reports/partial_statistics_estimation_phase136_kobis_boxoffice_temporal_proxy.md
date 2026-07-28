@@ -8,9 +8,9 @@ KOBIS API는 사용 가능하고 KOPIS는 사용 불가하므로, KOBIS 일별 �
 
 | probe name | params without key | boxoffice type | show range | row count | movie codes same as baseline | sales sum 원 | response scope interpretation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | (none) | 일별 박스오피스 | 20230101~20230101 | 10 | 1 | 8,693,168,037 | national daily box-office response |
-| areaCd_4128_attempt | areaCd=4128 | 일별 박스오피스 | 20230101~20230101 | 10 | 1 | 8,693,168,037 | regional parameter did not produce distinct city-level actual |
-| wideAreaCd_4128_attempt | wideAreaCd=4128 |  |  | 0 | 0 | 0 | regional parameter did not produce distinct city-level actual |
+| baseline | (none) |  |  | 0 | 0 | 0 | request_failed:URLError |
+| areaCd_4128_attempt | areaCd=4128 |  |  | 0 | 0 | 0 | request_failed:URLError |
+| wideAreaCd_4128_attempt | wideAreaCd=4128 |  |  | 0 | 0 | 0 | request_failed:URLError |
 
 ## KOBIS 월별 수집 요약
 
