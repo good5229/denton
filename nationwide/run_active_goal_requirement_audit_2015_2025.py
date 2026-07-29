@@ -52,6 +52,7 @@ PHASE261_CONSTRUCTION_HOLDOUT = OUT / "phase261_construction_regime_gate_holdout
 PHASE261_CONSTRUCTION_SELECTION = OUT / "phase261_construction_regime_gate_selection.csv"
 PHASE262_SERVICE_READINESS = OUT / "phase262_service_residual_readiness_summary.csv"
 PHASE263_SERVICE_SOURCE_PROBE = ROOT / "reports" / "partial_statistics_estimation_phase263_service_direct_source_probe.md"
+PHASE264_SERVICE_COLLECTION_SMOKE = ROOT / "reports" / "partial_statistics_estimation_phase264_service_direct_collection_smoke.md"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -454,6 +455,12 @@ def requirement_rows(
             "next_action": "물류창고업등록정보와 LOCALDATA 전체자료를 우선 수집하고, 항만·방송·KOBIS는 세부업종 gate로 제한해 rolling out-of-year 검증 후 채택 여부 결정",
         },
         {
+            "requirement": "비건설 서비스업 직접활동자료 수집 smoke",
+            "current_status": "blocked_by_403_or_download_route",
+            "evidence": "Phase264 smoke: LOCALDATA 파일 서버 직접 URL은 403, 국토부 물류창고업등록정보 OpenAPI도 현재 공공데이터포털 key와 공식 ServiceKey 파라미터로 403",
+            "next_action": "국토부 물류창고업등록정보 활용신청 상태 확인, LOCALDATA 전체다운로드 UI/authKey 경로 확보 후 전국 원본 우선 수집",
+        },
+        {
             "requirement": "과학자/평가자 검증",
             "current_status": "latest_monthly_bridge_postaudit_reflected",
             "evidence": "월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적",
@@ -668,6 +675,7 @@ def main() -> None:
 - `reports/partial_statistics_estimation_phase261_construction_regime_gated_route.md`
 - `reports/partial_statistics_estimation_phase262_service_residual_source_readiness.md`
 - `reports/partial_statistics_estimation_phase263_service_direct_source_probe.md`
+- `reports/partial_statistics_estimation_phase264_service_direct_collection_smoke.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)
