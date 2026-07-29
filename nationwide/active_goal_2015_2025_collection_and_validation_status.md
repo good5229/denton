@@ -9,7 +9,7 @@
 | 전국 시도 분기 GRDP/GDP 집계검증 | 완료 재실행 | `nationwide/run_nationwide_quarterly_grdp_validation.py` 재실행, 17개 시도·세종 단층처리·actual missing 0건 |
 | 2021~2025 5개년 범용성 검증 | 완료 재실행 | `nationwide/run_nationwide_five_year_generalization_audit.py` 재실행 |
 | 2016~2025 시도 분기 장기 안정성 검증 | 완료 | `nationwide/run_sido_long_window_quarterly_validation.py`; 2015년은 초기화 기준연도, 2016~2025 10개년 검증 |
-| 2021~2025 시군구×업종 월별 bridge | 완료 | `nationwide/run_nationwide_monthly_bridge_validation.py`; 월합→분기 재집계 오류 0건 |
+| 2021~2025 시군구×업종 월별 bridge | 완료, 범위 제한 명시 필요 | `nationwide/run_nationwide_monthly_bridge_validation.py`; 월합→분기 재집계 오류 0건. 단, 2015~2020 산출물은 아니며 2025Q2~Q4는 균등분할 fallback 포함 |
 | 어려운 5개 시도 활동지표 rolling-gate | 완료 재실행 | `nationwide/run_hard_region_indicator_route_rolling_gate.py` 재실행 |
 | 지수 기준연도 혼재 점검 | 완료 | 현재 주요 생산·서비스 지수는 모두 `2020=100`; 별도 2015 기준 legacy 파일 없음 |
 | 조달청 공사계약 2015~2025 전량 수집 | 진행 중이나 API 제한 | 2015년과 2016년 1~9월 complete, 2016년 10월 이후 `HTTP 429` 반복 |
@@ -17,6 +17,7 @@
 | 조달청 공사공고 robust 수집 | 부분 진전 | 2021년 4~7월 `numRows=100` 완전월 확보. 2021년 8월은 33/92 page 확보 후 429로 중단, 성능감사 미사용 |
 | 2015~2025 사용자료 coverage 감사 | 완료 | `nationwide/source_coverage_audit_2015_2025.md`, `nationwide/outputs/source_coverage_audit_2015_2025.csv` 생성 |
 | 2015~2025 시군구 가능범위 게이트 | 완료 | `nationwide/sigungu_temporal_scope_gate_2015_2025.md`; 전기간 직접검증 가능 구간과 상위집계 대체 구간 분리 |
+| 2015~2025 월별 bridge 범위 게이트 | 완료 | `nationwide/monthly_bridge_scope_gate_2015_2025.md`; 2021~2025 산출, 2021Q1~2025Q1 월별 시간경로, 2025Q2~Q4 fallback 구간 분리 |
 | 현재 `/goal` 요구사항 감사 | 진행판정 완료 | `nationwide/active_goal_requirement_audit_2015_2025.md`; 시도 검증과 시군구 전기간 직접검증의 완료 여부를 분리 |
 
 ## 2. 최신 재실행 결과
@@ -70,7 +71,7 @@
 
 ### 2.5 시군구×업종 월별 bridge
 
-`nationwide/run_nationwide_monthly_bridge_validation.py`로 기존 `시군구×업종×분기` 예측값을 월 단위로 확장했다. 월별 official actual이 없으므로 월 정확도를 직접 주장하지 않고, 월별 추정값을 다시 분기로 합산했을 때 기존 분기 추정과 정확히 일치하는지를 검증했다.
+`nationwide/run_nationwide_monthly_bridge_validation.py`로 기존 `시군구×업종×분기` 예측값을 월 단위로 확장했다. 월별 official actual이 없으므로 월 정확도를 직접 주장하지 않고, 월별 추정값을 다시 분기로 합산했을 때 기존 분기 추정과 정확히 일치하는지를 검증했다. 이 산출물은 `2021~2025` 분기 예측을 입력으로 만든 월별 bridge이며, `2015~2020 시군구×업종×월 산출 완료`를 뜻하지 않는다.
 
 | 항목 | 값 |
 | --- | ---: |
@@ -86,6 +87,8 @@
 | 음수 월 추정 셀 | 0 |
 
 월별 활동지표는 `prd_se=M`으로 확인된 시도별 제조업 생산지수, 전국 산업별 서비스업생산지수, 전국 전산업생산지수 원지수의 건설업·공공행정 항목을 사용했다. `월별 시간경로 적용 행 비율`은 월별 official actual 검증 비중이나 시군구 공간배분 설명력 비중이 아니라, 기존 분기 추정값을 3개월로 나눌 때 월별 지수를 사용한 행의 비중이다. 전국 지수는 지역 간 배분 근거가 아니라 동일 업종·동일 분기의 시군구 추정값을 3개월로 나누는 시간경로로만 사용한다. `phase208_DT_1KC2020_산업별_서비스업생산지수_2020_100.0.csv`와 `phase208_DT_1JH20201_전산업생산지수_원지수.csv`의 로컬 coverage는 2020-01~2025-05이므로, 2025년 중 지표 3개월이 모두 채워지지 않는 분기는 균등분할 fallback으로 유지한다. `월합→분기 재집계 오류 0`은 회계적 보존성 검증이며 월별 예측 정확도 actual 검증은 아니다. 조달청 PPS 계약정보/공사공고가 coverage gate와 rolling out-of-year guardrail을 통과하기 전까지 건설업의 시군구 공간배분 route는 자동채택하지 않는다.
+
+따라서 대외 표기는 `2021~2025 시군구×업종 분기 추정값의 월별 보존형 bridge`가 적절하다. 더 구체적으로는 `2021Q1~2025Q1`은 완전한 월별 지표가 있는 경우 해당 지표로 시간배분하고, `2025Q2~2025Q4`는 최신 월별 지표가 완전하지 않아 균등분할 fallback이 포함된 구간으로 분리한다. 이 기준은 `nationwide/monthly_bridge_scope_gate_2015_2025.md`에 고정했다.
 
 ### 2.6 조달청 공사공고 robust 수집·건설업 보조신호 감사
 
@@ -179,4 +182,4 @@
 
 ## 6. 결론
 
-현재 방식은 2021~2025년 5개년 및 2016~2025년 시도 장기검증 기준으로는 범용 운영형 추정체계 후보로 볼 수 있다. 그러나 `/goal` 전체가 완료된 것은 아니다. 시군구×업종 전기간 직접 actual 검증은 공식 공표범위상 불가능한 구간이 있고, 건설업·운수창고·숙박음식·정보통신은 잔여 오차 병목이다. 특히 건설업은 조달청 계약정보 전량 수집이 완료되기 전까지 전국 운영 route로 채택하지 않는다.
+현재 방식은 2021~2025년 5개년 및 2016~2025년 시도 장기검증 기준으로는 범용 운영형 추정체계 후보로 볼 수 있다. 그러나 `/goal` 전체가 완료된 것은 아니다. 시군구×업종 전기간 직접 actual 검증은 공식 공표범위상 불가능한 구간이 있고, 월별 산출도 현재는 2021~2025 분기 추정값의 보존형 bridge다. 건설업·운수창고·숙박음식·정보통신은 잔여 오차 병목이며, 특히 건설업은 조달청 계약정보 전량 수집이 완료되기 전까지 전국 운영 route로 채택하지 않는다.

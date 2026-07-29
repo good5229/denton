@@ -1,6 +1,6 @@
 # 2015~2025 전국 목표 요구사항 감사
 
-생성시각: 2026-07-29T16:53:40+09:00
+생성시각: 2026-07-29T17:00:53+09:00
 
 ## 판정 요약
 
@@ -14,7 +14,7 @@
 | 기준연도 다른 지수 조정 | satisfied_for_current_local_inputs | coverage audit상 주요 생산·서비스 지수는 2020=100 소급계열, index_base_bridge=metadata_ok | legacy 2015=100 계열 추가 시 bridge-year 재기준화 후 투입 |
 | 전국 17개 시도 분기/연간환산 검증 | satisfied | 680개 시도×연도×운영시점 검증행, 전국경계 5개년 | 해석은 최신 빈티지 사후 백테스트로 제한 |
 | 2015~2025 장기 시도 안정성 검증 | satisfied_with_initialization_limit | 2016~2025 10개년×17개 시도, Q1 연간환산 WAPE=1.778%, 최대오차율=11.755% | 2015년은 전년도 기준값이 없어 초기화 연도로 표기; 성능 검증은 2016~2025로 유지 |
-| 전국 시군구×업종 월별 산출 | partial_bridge_2021_2025 | 2021~2025, 357,240행, 월별 시간경로 적용 84.914%, 분기 재집계 오류셀 0개 | 월별 actual 검증이 아니라 분기 재집계 보존형 bridge로 표기; 2015~2020 시군구 월별 산출은 별도 기준값 필요 |
+| 전국 시군구×업종 월별 산출 | partial_bridge_2021_2025 | 2021~2025, 357,240행, 월별 시간경로 적용 84.914%, 분기 재집계 오류셀 0개 | 월별 actual 검증이 아니라 분기 재집계 보존형 bridge로 표기; 2015~2020은 `nationwide/monthly_bridge_2015_2020_extension_audit.md`의 backcast 등급 기준을 따른다 |
 | 전국 시군구×업종 전기간 직접 actual 검증 | not_satisfied_due_publication_scope | 시군구 actual 로컬 공표범위 2019~2023, 공표 시도 17개 | 공표된 연도는 직접검증, 2024~2025 및 미공표 시도는 시도·전국 상위 actual 집계검증으로 대체 |
 | 건설업 직접 활동자료 route 전국 채택 | blocked_by_pps_api_quota | PPS계약 first incomplete=201610, adoptable_years=1; PPS공고 complete=202104,202105,202106,202107, first incomplete=202108 | 429 해제 후 월/일 단위 재개; 계약은 quality_complete 연도만, 공고는 완전월만 rolling 검증에 투입 |
 | 과학자/평가자 검증 | latest_monthly_bridge_postaudit_reflected | 월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적 | 후속 실험마다 사전/사후 검증을 반복하고, 자동채택 표현은 rolling gate 통과분으로 제한 |
@@ -82,6 +82,7 @@
 
 - 현 상태는 `전국 17개 시도 총량 모니터링`에는 사용 가능한 후보 체계다.
 - `시군구×업종`은 공표연도 직접검증과 상위 집계검증을 병행해야 하며, 2015~2025 전기간 직접검증으로 표현하면 안 된다.
+- `시군구×업종×월`은 2021~2025 분기값 보존형 bridge로 확정하고, 2015~2020은 별도 backcast 등급으로 분리한다.
 - 건설업은 PPS 전량 수집과 품질게이트가 끝나기 전에는 전국 route로 채택하지 않는다.
 - 활동지표 route는 업종별 잔여오차 축소 후보지만, 자동채택이 아니라 rolling out-of-year gate 통과분만 채택한다.
 
@@ -93,3 +94,5 @@
 - `nationwide/outputs/active_goal_sido_validation_summary.csv`
 - `nationwide/outputs/active_goal_national_boundary_summary.csv`
 - `nationwide/outputs/active_goal_activity_validation_summary.csv`
+- `nationwide/monthly_bridge_2015_2020_extension_audit.md`
+- `nationwide/monthly_bridge_scope_gate_2015_2025.md`
