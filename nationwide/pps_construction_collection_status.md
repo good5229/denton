@@ -112,6 +112,7 @@ raw 파싱 sanity check:
 | 202106 page 1~167 | 여러 차례 timeout 재시도 후 전체 page 확보 |
 | 202107 page 1~124 | 전·중·후반 page chunk 병렬 재시도 후 전체 page 확보 |
 | 202108 page 6~50 | page 6~20 추가 확보 후 page 21~26에서 `HTTP 429`; 재감사 기준 33/92 page 확보 |
+| 202108 page 22 단일 smoke | collector 429 즉시중단 보강 후에도 `HTTP 429`; 추가 chunk 수집 중단 |
 
 현재 대표 누락 page:
 
@@ -162,4 +163,4 @@ raw 파싱 sanity check:
 1. 조달청 공사공고 API는 월 단위 전량 수집을 유지하되, timeout 발생 월은 페이지 단위 retry/resume manifest를 남기도록 collector를 보강한다.
 2. 가능하면 공사공고보다 계약/낙찰 API를 우선한다. 입찰공고보다 계약금액·계약일·공사기간이 GVA 발생시점에 더 가깝다.
 3. 2021~2025 전체 PPS가 채워진 뒤에만 과거연도 가중치 선택 → 목표연도 평가 방식의 rolling out-of-year 검증을 수행한다.
-4. 2021년 8월은 API throttling이 풀린 뒤 page 22부터 작은 chunk로 재개한다. 완전월 조건(`92/92 page`, `9,161건`, missing page 0)을 만족하기 전에는 어떤 성능표에도 포함하지 않는다.
+4. 2021년 8월은 API throttling이 풀린 뒤 page 22 단일 smoke부터 재개한다. 단일 page가 성공할 때만 작은 chunk로 확장하고, 완전월 조건(`92/92 page`, `9,161건`, missing page 0)을 만족하기 전에는 어떤 성능표에도 포함하지 않는다.

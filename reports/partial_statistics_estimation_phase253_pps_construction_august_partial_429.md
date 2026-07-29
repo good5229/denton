@@ -19,7 +19,7 @@
 | 완전성 | 실패 |
 | 성능감사 투입 | 제외 |
 
-확보된 page는 1~21, 36~43, 67~70 중심이다. page 22부터 재시도했으나 `HTTP 429: Too Many Requests`가 즉시 재현되었다.
+확보된 page는 1~21, 36~43, 67~70 중심이다. page 22부터 재시도했으나 `HTTP 429: Too Many Requests`가 즉시 재현되었다. collector 429 즉시중단 보강 후 2026-07-29 후속 page 22 단일 smoke도 다시 `HTTP 429`였으므로 추가 chunk 수집은 중단했다. 현재 시점에서는 8월 완전월 확보를 계속 시도하지 않고, API throttling 해제 후 missing page 단위로 재개하는 것이 안전하다.
 
 ## 수집기 보강
 
