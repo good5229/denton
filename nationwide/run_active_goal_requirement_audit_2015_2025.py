@@ -240,9 +240,9 @@ def requirement_rows(
         },
         {
             "requirement": "과학자/평가자 검증",
-            "current_status": "in_progress",
-            "evidence": "현재 evaluator/scientist agent 검토 요청 진행 중",
-            "next_action": "회신 반영 후 requirement audit와 상태 문서 갱신",
+            "current_status": "latest_monthly_bridge_postaudit_reflected",
+            "evidence": "월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적",
+            "next_action": "후속 실험마다 사전/사후 검증을 반복하고, 자동채택 표현은 rolling gate 통과분으로 제한",
         },
     ]
     return pd.DataFrame(status_rows)
@@ -272,7 +272,7 @@ def monthly_bridge_evidence() -> str:
     r = d.iloc[0]
     return (
         f"{int(r['years_min'])}~{int(r['years_max'])}, {int(r['monthly_rows']):,}행, "
-        f"월별지표 적용 {float(r['indicator_rows_pct']):.3f}%, "
+        f"월별 시간경로 적용 {float(r['indicator_rows_pct']):.3f}%, "
         f"분기 재집계 오류셀 {int(r['bad_quarter_cells_gt_1won_equiv'])}개"
     )
 

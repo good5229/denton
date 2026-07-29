@@ -420,6 +420,8 @@ def main() -> int:
 
 {md_table(summary, digits=6)}
 
+`indicator_rows_pct`는 **월별 시간경로를 적용한 행 비중**이다. 월별 official actual 검증 비중이나 시군구 공간배분 설명력 비중이 아니며, 지역별·업종별 분기 추정 총량은 변경하지 않는다.
+
 ## 3. 사용한 월별 시간경로
 
 | 업종군 | 월별 배분 기준 | 비고 |
@@ -447,6 +449,8 @@ def main() -> int:
 ## 7. 분기 재집계 및 월 share 무결성 검증
 
 월별 추정값은 원 분기 추정값을 보존해야 한다. 따라서 각 `track×시도×시군구×업종×분기`별 월합과 원 분기값을 비교했다.
+
+이 검증은 월별 정확도 검증이 아니라 **상위 분기값 보존성 검증**이다. `bad_quarter_cells_gt_1won_equiv=0`은 월별로 쪼갠 값을 다시 합치면 기존 분기 추정값과 일치한다는 뜻이다.
 
 {md_table(summary[["max_abs_quarter_reaggregation_error_eok", "bad_quarter_cells_gt_1won_equiv", "bad_month_count_cells", "bad_month_share_sum_cells", "negative_month_value_cells"]], digits=10)}
 
