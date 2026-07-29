@@ -1,6 +1,6 @@
 # 2015~2025 전국 목표 요구사항 감사
 
-생성시각: 2026-07-29T18:33:44+09:00
+생성시각: 2026-07-29T18:40:05+09:00
 
 ## 판정 요약
 
@@ -109,3 +109,4 @@
 - `nationwide/sigungu_2020_backcast_monthly_bridge_pilot.md`
 - `reports/partial_statistics_estimation_phase252_rolling_indicator_route_selection.md`
 - `reports/partial_statistics_estimation_phase254_pps_retry_after_update.md`
+- `reports/partial_statistics_estimation_phase255_sigungu_residual_priority_audit.md`
