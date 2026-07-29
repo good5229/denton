@@ -11,7 +11,7 @@
 
 - 기간: 202104~202106
 - 입력: `data/raw/phase122_pps_bid_notices_robust/cnstwk*_YYYYMM_*.json`
-- 출력: `nationwide/outputs/pps_construction_nationwide_*_202104_202106_robust_2021q2_complete.csv`
+- 출력: `nationwide/outputs/pps_construction_nationwide_*_202104_202106_robust_202104_202106_complete.csv`
 
 ## raw 수집 매니페스트
 
@@ -59,5 +59,6 @@
 
 - 이 변환은 target-year GRVA actual을 사용하지 않는다.
 - 단, `cnstrtsiteRgnNm`이 광역시도까지만 있는 공고가 많으면 시군구 건설업 공간배분에는 한계가 있다.
-- 전국 2021~2023년 전체 공사공고 raw cache가 확보되면 `sigungu_exact` 행만 사용해 건설업 공간배분 후보로 시험할 수 있다.
+- 전국 2021~2025년 전체 공사공고 raw cache가 확보되면 `sigungu_exact` 행만 사용해 건설업 공간배분 후보로 시험할 수 있다.
 - 공고지표는 공공공사 중심이므로 민간 건설경기까지 대표하지 못한다. 건축HUB 허가·착공·준공 면적과 결합하는 것이 다음 단계다.
+- 이 파일은 신호 변환 보고서이며, 성능 채택 여부는 `construction_pps_sigungu_spatial_audit_2021m06_flash.md`와 `construction_pps_sigungu_spatial_audit_2021m01_m06_flash.md`의 guardrail 판정에 따른다.
