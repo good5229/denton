@@ -1,4 +1,0 @@
-﻿자료,파일,행수,지역수,산업,기간
-광업 생산지수,data/processed/mining_production_index.csv,272,14,광업,201901~202304
-제조업 생산지수,data/processed/phase195_monthly_mining_manufacturing_production_index.csv,1374,18,제조업,201901~202505
-제조업 세부 생산지수,data/processed/phase195_monthly_detail_manufacturing_production_index.csv,2145,6,"광업 및 제조업, 반도체 및 부품, 사무회계·통신기기·반도체, 영상음향, 제조업, 총지수",202001~202505

@@ -20,6 +20,7 @@ reports/ppt/preview/
 
 # Large reproducible experiment detail output
 reports/experiments/electricity_policy_predictions.csv
+nationwide/outputs/*.csv
 
 # Local reference documents
 reference/*.pdf
