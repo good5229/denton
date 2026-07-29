@@ -50,6 +50,7 @@ PHASE252_ROUTE_SUMMARY = OUT / "phase252_summary_by_track_quarter.csv"
 PHASE261_CONSTRUCTION_OVERALL = OUT / "phase261_construction_regime_gate_overall_summary.csv"
 PHASE261_CONSTRUCTION_HOLDOUT = OUT / "phase261_construction_regime_gate_holdout_summary.csv"
 PHASE261_CONSTRUCTION_SELECTION = OUT / "phase261_construction_regime_gate_selection.csv"
+PHASE262_SERVICE_READINESS = OUT / "phase262_service_residual_readiness_summary.csv"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -307,6 +308,23 @@ def phase261_status() -> dict[str, object]:
     return out
 
 
+def phase262_status() -> dict[str, object]:
+    out: dict[str, object] = {}
+    if not PHASE262_SERVICE_READINESS.exists():
+        return out
+    df = pd.read_csv(PHASE262_SERVICE_READINESS)
+    if df.empty:
+        return out
+    out["activities"] = int(df["activity"].nunique())
+    out["not_route_ready"] = int(df["route_status"].astype(str).eq("not_route_ready").sum())
+    out["local_candidate_sources"] = int(pd.to_numeric(df["local_candidate_sources"], errors="coerce").fillna(0).sum())
+    out["monthly_indicator_sources"] = int(pd.to_numeric(df["monthly_indicator_sources"], errors="coerce").fillna(0).sum())
+    top = df.sort_values(["wape_pct", "over20_cells"], ascending=[False, False]).head(3)
+    out["top_residual_activities"] = ", ".join(top["activity"].astype(str).tolist())
+    out["top_wape_pct"] = float(pd.to_numeric(top["wape_pct"], errors="coerce").max()) if not top.empty else None
+    return out
+
+
 def requirement_rows(
     source_counts: pd.DataFrame,
     sigungu_matrix: pd.DataFrame,
@@ -315,6 +333,7 @@ def requirement_rows(
     pps: dict[str, object],
     phase252: dict[str, object],
     phase261: dict[str, object],
+    phase262: dict[str, object],
 ) -> pd.DataFrame:
     direct_coverage_count = int(source_counts[source_counts["coverage_status"].eq("covers_2015_2025")]["source_count"].sum())
     sigungu_year_min = int(sigungu_matrix["year"].min())
@@ -409,6 +428,19 @@ def requirement_rows(
                 f"최대 WAPE 악화폭={fmt_pct_points(phase252.get('route_max_delta_wape_pp'))}pp"
             ),
             "next_action": "현재 운영 산출물에는 반영하지 않음; 후보 발굴 결과로 보관하고 공표일 장부·지역별 직접 활동자료가 보강된 뒤 재검증",
+        },
+        {
+            "requirement": "비건설 잔여 서비스업 자료준비도",
+            "current_status": "diagnosed_not_route_ready",
+            "evidence": (
+                f"Phase262 activities={phase262.get('activities', '')}, "
+                f"not_route_ready={phase262.get('not_route_ready', '')}, "
+                f"local_candidate_sources={phase262.get('local_candidate_sources', '')}, "
+                f"monthly_indicator_sources={phase262.get('monthly_indicator_sources', '')}, "
+                f"top_residual={phase262.get('top_residual_activities', '')}, "
+                f"top_wape={fmt_pct_points(phase262.get('top_wape_pct'))}%"
+            ),
+            "next_action": "월별 KOSIS 지표는 시간경로 전용으로 유지; 운수·숙박음식·정보통신은 시군구 금액형/공간형 직접 활동자료 수집 후 rolling gate 재검증",
         },
         {
             "requirement": "과학자/평가자 검증",
@@ -524,6 +556,7 @@ def main() -> None:
     pps = pps_status()
     phase252 = phase252_status()
     phase261 = phase261_status()
+    phase262 = phase262_status()
     requirements = requirement_rows(
         source_counts,
         sigungu_matrix,
@@ -532,6 +565,7 @@ def main() -> None:
         pps,
         phase252,
         phase261,
+        phase262,
     )
 
     source_counts.to_csv(OUT / "active_goal_requirement_source_counts.csv", index=False, encoding="utf-8-sig")
@@ -621,6 +655,7 @@ def main() -> None:
 - `reports/partial_statistics_estimation_phase259_mfg_electricity_holdout.md`
 - `reports/partial_statistics_estimation_phase260_mfg_electricity_factory_interaction.md`
 - `reports/partial_statistics_estimation_phase261_construction_regime_gated_route.md`
+- `reports/partial_statistics_estimation_phase262_service_residual_source_readiness.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)

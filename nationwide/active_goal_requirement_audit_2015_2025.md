@@ -1,6 +1,6 @@
 # 2015~2025 전국 목표 요구사항 감사
 
-생성시각: 2026-07-29T21:17:31+09:00
+생성시각: 2026-07-29T21:22:22+09:00
 
 ## 판정 요약
 
@@ -21,6 +21,7 @@
 | 건설업 직접 활동자료 route 전국 채택 | blocked_by_pps_api_quota | PPS계약 first incomplete=201610, latest first incomplete=201610, manifest_rows=25974, last_error=<HTTPError 429: 'Too Many Requests'>, adoptable_years=1, phase250_safe_candidates=0; PPS공고 complete=202104,202105,202106,202107, first incomplete=202108 | 429 해제 후 월/일 단위 재개; 계약은 quality_complete 연도만, 공고는 완전월만 rolling 검증에 투입하고, safe candidate 0개 상태에서는 건설업 route로 채택하지 않음 |
 | 건설업 대체자료 지역유형 gate | diagnosed_rejected_for_operational_adoption | Phase261 rows=607, warmup_years=2021, holdout_years=2022,2023, active_cells=0, baseline_wape=19.429%, gated_wape=19.429%, nonbaseline_selected_regimes=0, fallback_or_sparse_rows=8 | CALS·BuildingHUB·서울정비 조합만으로는 자동채택하지 않음; PPS 완전월·민간건축 금액형·전국 정비사업 이력 확보 후 같은 rolling gate 재검증 |
 | 활동지표 route rolling 자동채택 | rejected_for_operational_adoption | Phase252 strict route rows=8160, adopted_rows=68, WAPE 악화 운영요약행=4, 10%초과 악화 운영요약행=4, 최대 WAPE 악화폭=0.036pp | 현재 운영 산출물에는 반영하지 않음; 후보 발굴 결과로 보관하고 공표일 장부·지역별 직접 활동자료가 보강된 뒤 재검증 |
+| 비건설 잔여 서비스업 자료준비도 | diagnosed_not_route_ready | Phase262 activities=6, not_route_ready=6, local_candidate_sources=15, monthly_indicator_sources=23, top_residual=운수 및 창고업, 정보통신업, 사업서비스업, top_wape=8.124% | 월별 KOSIS 지표는 시간경로 전용으로 유지; 운수·숙박음식·정보통신은 시군구 금액형/공간형 직접 활동자료 수집 후 rolling gate 재검증 |
 | 과학자/평가자 검증 | latest_monthly_bridge_postaudit_reflected | 월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적 | 후속 실험마다 사전/사후 검증을 반복하고, 자동채택 표현은 rolling gate 통과분으로 제한 |
 
 ## 사용자료 coverage 요약
@@ -117,3 +118,4 @@
 - `reports/partial_statistics_estimation_phase259_mfg_electricity_holdout.md`
 - `reports/partial_statistics_estimation_phase260_mfg_electricity_factory_interaction.md`
 - `reports/partial_statistics_estimation_phase261_construction_regime_gated_route.md`
+- `reports/partial_statistics_estimation_phase262_service_residual_source_readiness.md`
