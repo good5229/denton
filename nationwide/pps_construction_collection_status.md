@@ -51,13 +51,15 @@
 - 안전장치: `numRows`를 파일명에 포함해 기존 999행 페이지 cache와 섞이지 않도록 분리
 - 추가 옵션: `--start-page`, `--end-page`로 page chunk/resume 가능
 
-2021년 4~6월 robust 수집 결과:
+2021년 4~7월 robust 수집 결과:
 
 | 기간 | totalCount | 필요 page 수 (`numRows=100`) | 수집 성공 page | 현재 확보 건수 | 남은 page | 현재 판정 |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | 202104 | 17,438 | 175 | 175 | 17,438 | 0 | 완전월 확보 |
 | 202105 | 14,074 | 141 | 141 | 14,074 | 0 | 완전월 확보 |
 | 202106 | 16,602 | 167 | 167 | 16,602 | 0 | 완전월 확보 |
+| 202107 | 12,322 | 124 | 124 | 12,322 | 0 | 완전월 확보 |
+| 202108 | 9,161 | 92 | 5 | 500 | 87 | 불완전, 실험 미사용 |
 
 명령 예시:
 
@@ -89,7 +91,7 @@
 | 202105 | 14,074 | 141 | 141 | 14,074 | 완전 |
 | 202106 | 16,602 | 167 | 167 | 16,602 | 완전 |
 
-2026-07-29 15~16시대 재시도에서 2021년 6월 167개 page 전체를 확보했다. 따라서 2021년 4~6월은 `numRows=100` robust cache 기준 완전월이며, 2021년 Q2 feasibility audit에 투입할 수 있다.
+2026-07-29 15~16시대 재시도에서 2021년 6월 167개 page 전체를 확보했다. 이후 2021년 7월도 124개 page 전체를 확보했다. 따라서 2021년 4~7월은 `numRows=100` robust cache 기준 완전월이며, feasibility audit에 투입할 수 있다. 2021년 8월은 5개 page만 받은 부분월이므로 성능 감사에 투입하지 않는다.
 
 raw 파싱 sanity check:
 
@@ -97,9 +99,10 @@ raw 파싱 sanity check:
 - 2021년 Q2 명령: `.venv/bin/python nationwide/run_pps_construction_nationwide_signal.py --start 202104 --end 202106 --raw-dir data/raw/phase122_pps_bid_notices_robust --output-suffix robust_202104_202106_complete`
 - 2021년 4월 결과: 전체자료 17,438건 중 시군구 정확 귀속 15,100건, 33,790억원
 - 2021년 Q2 결과: 전체자료 48,114건 중 시군구 정확 귀속 40,792건, 107,330억원
-- 판정: 파싱·시군구 귀속 정상, 2021년 Q2 완전월 신호로 feasibility audit 가능
+- 2021년 7월 결과: 전체자료 12,322건 중 시군구 정확 귀속 10,587건, 32,304억원
+- 판정: 파싱·시군구 귀속 정상, 2021년 Q2와 2021년 7월 완전월 신호로 feasibility audit 가능
 
-2021년 4~6월 추가 수집 로그:
+2021년 4~7월 추가 수집 로그:
 
 | chunk | 결과 |
 | --- | --- |
@@ -107,14 +110,15 @@ raw 파싱 sanity check:
 | page 101~140 | page 101~119 일부 성공, 120~123 timeout 후 중단 |
 | page 141~175 | page 141,143~145,147,150~155,157 성공, 일부 timeout 후 중단 |
 | 202106 page 1~167 | 여러 차례 timeout 재시도 후 전체 page 확보 |
+| 202107 page 1~124 | 전·중·후반 page chunk 병렬 재시도 후 전체 page 확보 |
 
 현재 대표 누락 page:
 
 - 없음
 
-## 2021년 4~6월 완전월 성능 감사
+## 2021년 4~7월 완전월 성능 감사
 
-2021년 4월, 5월, 6월, 1~6월 누적 PPS 신호를 2021년 건설업 시군구 actual에 대해 감사했다.
+2021년 4월, 5월, 6월, 7월, 1~6월 누적 PPS 신호를 2021년 건설업 시군구 actual에 대해 감사했다.
 
 | 신호 | 기준 WAPE | 최선 WAPE | Guardrail 통과 |
 | --- | ---: | ---: | --- |
@@ -124,6 +128,7 @@ raw 파싱 sanity check:
 | 2021년 1~5월 누적 | 13.415% | 13.287% | 없음 |
 | 2021년 6월 단독 | 13.415% | 13.400% | `기존 share 99% + PPS 공고수 share 1%` |
 | 2021년 1~6월 누적 | 13.415% | 13.322% | 없음 |
+| 2021년 7월 단독 | 13.415% | 13.415% | 없음 |
 
 해석:
 
@@ -131,6 +136,7 @@ raw 파싱 sanity check:
 - 2021년 1~5월 누적 기준 WAPE 최선 후보는 WAPE를 13.415%→13.287%로 낮추지만 10% 초과 셀을 117→120, 20% 초과 셀을 60→61, 최대 APE를 89.249%→105.665%로 악화시켜 채택하지 않는다.
 - 2021년 6월 단독 기준 최선 후보는 WAPE 13.415%→13.400%, 10% 초과 셀 117→116, 20% 초과 셀 60→58, 최대 APE 89.249%→88.814%로 모두 개선되어 guardrail을 통과한다.
 - 그러나 2021년 1~6월 누적 기준 WAPE 최선 후보는 WAPE 13.415%→13.322%, 20% 초과 셀 60→57로 낮추지만 최대 APE가 89.249%→92.790%로 악화되어 채택하지 않는다.
+- 2021년 7월 단독 기준에서는 PPS 혼합 후보가 기준 WAPE보다 낮아지지 않았다. 6월 단독의 통과 결과가 월별로 안정적으로 재현된다고 보기 어렵다.
 - 따라서 6월 단독 결과는 PPS가 보조 신호로 의미 있음을 보여주는 근거일 뿐, 운영 route 채택 근거가 아니다.
 - 따라서 PPS는 여전히 건설업 공간배분의 단독 route가 아니라 건축HUB·재건축/재개발 자료와 결합할 보조 신호다.
 
@@ -140,13 +146,13 @@ raw 파싱 sanity check:
 | --- | --- | --- |
 | 2023 부분기간 PPS 미세 보정 감사 | 가능 | `construction_pps_sigungu_spatial_audit.md` |
 | 2021 Q1 속보형 PPS 감사 | 가능 | `construction_pps_sigungu_spatial_audit_2021q1_flash.md` |
-| 2021 4~6월 완전월 추가 감사 | 가능 | `construction_pps_sigungu_spatial_audit_2021m04_flash.md`, `construction_pps_sigungu_spatial_audit_2021m05_flash.md`, `construction_pps_sigungu_spatial_audit_2021m06_flash.md`, `construction_pps_sigungu_spatial_audit_2021m01_m06_flash.md` |
+| 2021 4~7월 완전월 추가 감사 | 가능 | `construction_pps_sigungu_spatial_audit_2021m04_flash.md`, `construction_pps_sigungu_spatial_audit_2021m05_flash.md`, `construction_pps_sigungu_spatial_audit_2021m06_flash.md`, `construction_pps_sigungu_spatial_audit_2021m07_flash.md`, `construction_pps_sigungu_spatial_audit_2021m01_m06_flash.md` |
 | 2021~2025 rolling out-of-year PPS 검증 | 불가 | 전 기간 raw 불완전. 2021년 4~6월은 완전월이지만 2021년 하반기 이후가 아직 부족 |
 
 ## 현재 판정
 
 - 2023 부분기간에서는 `기존 share 98% + PPS 금액 share 2%`가 guardrail을 통과했다.
-- 2021 Q1, 4월, 5월, 1~5월 누적, 1~6월 누적 속보형에서는 WAPE가 일부 낮아져도 10% 초과 셀·20% 초과 셀·최대오차율 중 하나 이상이 악화되어 guardrail 통과 후보가 없었다.
+- 2021 Q1, 4월, 5월, 7월, 1~5월 누적, 1~6월 누적 속보형에서는 WAPE가 일부 낮아져도 10% 초과 셀·20% 초과 셀·최대오차율 중 하나 이상이 악화되거나 기준 WAPE를 넘어서 guardrail 통과 후보가 없었다.
 - 2021년 6월 단독은 guardrail 통과 후보가 있었지만, 단일 월 결과이므로 운영 route 채택 근거가 아니라 보조 신호 후보 근거로만 남긴다.
 - 따라서 PPS는 아직 운영 route가 아니라 건축HUB·재건축/재개발 자료와 결합할 후보 신호다.
 

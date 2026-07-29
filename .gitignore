@@ -23,6 +23,9 @@ reports/experiments/electricity_policy_predictions.csv
 nationwide/outputs/*.csv
 nationwide/outputs/*.json
 
+# Generated/local CSV extracts
+*.csv
+
 # Local reference documents
 reference/*.pdf
 
