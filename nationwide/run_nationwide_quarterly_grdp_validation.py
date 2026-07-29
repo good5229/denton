@@ -130,7 +130,8 @@ def md_table(df: pd.DataFrame, digits: int = 3) -> str:
         return "_해당 없음_"
     v = df.copy()
     for c in v.columns:
-        if str(c).lower() in {"year", "연도", "quarter", "available_quarters", "사용분기수", "연도수", "시군구수"}:
+        col_name = str(c)
+        if col_name.lower() in {"year", "years", "quarter", "available_quarters"} or "연도" in col_name or col_name in {"사용분기수", "시군구수"}:
             v[c] = v[c].map(lambda x: "" if pd.isna(x) else str(int(x)) if isinstance(x, (int, float)) and float(x).is_integer() else str(x))
         elif pd.api.types.is_float_dtype(v[c]):
             v[c] = v[c].map(lambda x: "" if pd.isna(x) else f"{float(x):,.{digits}f}")
