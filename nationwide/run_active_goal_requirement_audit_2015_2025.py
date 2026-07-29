@@ -53,6 +53,7 @@ PHASE261_CONSTRUCTION_SELECTION = OUT / "phase261_construction_regime_gate_selec
 PHASE262_SERVICE_READINESS = OUT / "phase262_service_residual_readiness_summary.csv"
 PHASE263_SERVICE_SOURCE_PROBE = ROOT / "reports" / "partial_statistics_estimation_phase263_service_direct_source_probe.md"
 PHASE264_SERVICE_COLLECTION_SMOKE = ROOT / "reports" / "partial_statistics_estimation_phase264_service_direct_collection_smoke.md"
+PHASE265_COLLECTION_BLOCKER_REGISTRY = ROOT / "reports" / "partial_statistics_estimation_phase265_collection_blocker_registry.md"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -466,6 +467,12 @@ def requirement_rows(
             "evidence": "월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적",
             "next_action": "후속 실험마다 사전/사후 검증을 반복하고, 자동채택 표현은 rolling gate 통과분으로 제한",
         },
+        {
+            "requirement": "잔여 수집 병목 레지스트리",
+            "current_status": "documented_goal_not_complete",
+            "evidence": "Phase265: PPS 429, LOCALDATA/물류창고업 403, 시군구 actual 공표범위, 민간건축·정비사업 전국자료 부족을 분리 기록",
+            "next_action": "PPS no-raw smoke 성공 또는 서비스업 활용신청/다운로드 경로 확보 후 원본 우선 수집",
+        },
     ]
     return pd.DataFrame(status_rows)
 
@@ -676,6 +683,7 @@ def main() -> None:
 - `reports/partial_statistics_estimation_phase262_service_residual_source_readiness.md`
 - `reports/partial_statistics_estimation_phase263_service_direct_source_probe.md`
 - `reports/partial_statistics_estimation_phase264_service_direct_collection_smoke.md`
+- `reports/partial_statistics_estimation_phase265_collection_blocker_registry.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)
