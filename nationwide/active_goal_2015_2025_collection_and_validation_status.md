@@ -23,6 +23,7 @@
 | 시군구×업종 잔여오차 우선순위 감사 | 완료 | Phase255에서 공개 actual 구간의 잔여오차를 금액오차·WAPE·대형 actual 10% 초과 셀로 분해. 건설업은 상대오차 병목, 광업·제조업은 금액오차 병목으로 분리 |
 | 광업·제조업 tail 자료준비도 감사 | 완료 | Phase256에서 제조업 생산지수·전력·공장등록 연결 가능성을 점검. 228개 시군구는 holdout 설계 후보 bundle이나, route 채택·성능 개선 주장으로 쓰지 않음 |
 | 광업·제조업 전력 share holdout | 완료, route 미채택 | Phase259에서 산업용 전력 share 단독혼합을 rolling holdout 검증. 전력은 12개월 coverage가 완전하지만 비baseline 후보가 guardrail을 통과하지 못해 baseline 유지 |
+| 광업·제조업 전력×공장구조 interaction holdout | 완료, route 미채택 | Phase260에서 전력 share에 공장규모·업종구성 moderator를 결합한 사전정의 후보를 rolling holdout 검증. 비baseline 후보가 guardrail을 통과하지 못해 baseline 유지 |
 | 2015~2025 사용자료 coverage 감사 | 완료 | `nationwide/source_coverage_audit_2015_2025.md`, `nationwide/outputs/source_coverage_audit_2015_2025.csv` 생성 |
 | 2015~2025 시군구 가능범위 게이트 | 완료 | `nationwide/sigungu_temporal_scope_gate_2015_2025.md`; 전기간 직접검증 가능 구간과 상위집계 대체 구간 분리 |
 | 2015~2025 월별 bridge 범위 게이트 | 완료 | `nationwide/monthly_bridge_scope_gate_2015_2025.md`; 2015 초기화, 2016~2020 사후 backcast, 2021~2025 운영 bridge 등급 분리 |
@@ -288,6 +289,17 @@ Phase259는 산업용 전력 share를 기존 광업·제조업 시군구 share�
 
 전력자료는 2021~2023 모든 검증 셀에서 12개월 coverage와 leakage flag를 충족했지만, 전력 share 단독 혼합은 전체기간 discovery에서도 baseline보다 나아지지 않았다. 전력 비중을 높일수록 WAPE와 10%·20% 초과 셀이 크게 악화되므로, 산업용 전력은 제조업 전체 공간배분 단독 route가 아니라 공장규모·업종구성·전력다소비 업종 구분과 결합할 후보로만 유지한다.
 
+## 5.5 광업·제조업 전력×공장구조 interaction holdout
+
+Phase260은 Phase259의 후속 실험으로, 전력 share 단독혼합 대신 공장등록 snapshot에서 계산한 공장규모·제조시설면적·KSIC 2자리 업종 bucket을 전력과 결합했다. 단, 공장등록 자료는 현시점 snapshot이므로 연도별 공장 stock 변화나 strict nowcast 입력으로 해석하지 않고, retrospective refinement 후보로만 두었다.
+
+| holdout | 선택 | 기준 WAPE | 선택 WAPE | 판정 |
+| --- | --- | ---: | ---: | --- |
+| 2022 | baseline 유지 | 5.535% | 5.535% | 비baseline interaction 후보 guardrail 미통과 |
+| 2023 | baseline 유지 | 5.467% | 5.467% | 비baseline interaction 후보 guardrail 미통과 |
+
+actual parent를 재주입한 oracle 진단에서도 baseline WAPE 5.057%가 가장 낮았다. 따라서 현재 공개자료 조합만으로는 광업·제조업 시군구 배분의 금액오차를 안정적으로 줄였다고 말할 수 없다. 다음 개선은 공장등록의 연도별 vintage, 폐업·변경이력, 제조업 중분류 금액형 구조자료, 산단·대형사업장 단위 생산·출하·투자 자료가 확보될 때 재시도하는 것이 맞다.
+
 ## 6. 결론
 
-현재 방식은 2021~2025년 5개년, 2016~2025년 시도 장기검증, 2015년 초기화 재구성, 2016~2020년 시군구 구성비 기반 사후 backcast 기준으로는 범용 운영형 추정체계 후보로 볼 수 있다. 그러나 `/goal` 전체가 완료된 것은 아니다. 시군구×업종 전기간 직접 actual 검증은 공식 공표범위상 불가능한 구간이 있고, 월별 산출도 2015 초기화, 2016~2020 사후 backcast, 2021~2025 운영 bridge로 등급이 나뉜다. 건설업·운수창고·숙박음식·정보통신은 잔여 오차 병목이며, 특히 건설업은 조달청 계약정보 전량 수집이 완료되기 전까지 전국 운영 route로 채택하지 않는다.
+현재 방식은 2021~2025년 5개년, 2016~2025년 시도 장기검증, 2015년 초기화 재구성, 2016~2020년 시군구 구성비 기반 사후 backcast 기준으로는 범용 운영형 추정체계 후보로 볼 수 있다. 그러나 `/goal` 전체가 완료된 것은 아니다. 시군구×업종 전기간 직접 actual 검증은 공식 공표범위상 불가능한 구간이 있고, 월별 산출도 2015 초기화, 2016~2020 사후 backcast, 2021~2025 운영 bridge로 등급이 나뉜다. 건설업·운수창고·숙박음식·정보통신은 잔여 오차 병목이며, 광업·제조업은 전력·공장구조 후보가 아직 rolling gate를 통과하지 못했다. 특히 건설업은 조달청 계약정보 전량 수집이 완료되기 전까지 전국 운영 route로 채택하지 않는다.

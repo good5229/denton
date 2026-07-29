@@ -1,6 +1,6 @@
 # 2015~2025 전국 목표 요구사항 감사
 
-생성시각: 2026-07-29T20:52:48+09:00
+생성시각: 2026-07-29T21:00:28+09:00
 
 ## 판정 요약
 
@@ -114,3 +114,4 @@
 - `reports/partial_statistics_estimation_phase257_pps_api_smoke.md`
 - `reports/partial_statistics_estimation_phase258_construction_alt_source_readiness.md`
 - `reports/partial_statistics_estimation_phase259_mfg_electricity_holdout.md`
+- `reports/partial_statistics_estimation_phase260_mfg_electricity_factory_interaction.md`

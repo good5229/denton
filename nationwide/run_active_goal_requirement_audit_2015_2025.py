@@ -554,6 +554,7 @@ def main() -> None:
 - `reports/partial_statistics_estimation_phase257_pps_api_smoke.md`
 - `reports/partial_statistics_estimation_phase258_construction_alt_source_readiness.md`
 - `reports/partial_statistics_estimation_phase259_mfg_electricity_holdout.md`
+- `reports/partial_statistics_estimation_phase260_mfg_electricity_factory_interaction.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)
