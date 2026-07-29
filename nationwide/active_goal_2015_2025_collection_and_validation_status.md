@@ -22,6 +22,7 @@
 | 활동지표 route rolling 선택 | 미채택 | Phase252에서 기존 hard-region no-worse의 actual 누수 위험을 분리하고, 17개 시도 rolling holdout으로 재검증. strict route는 68행만 채택됐으나 Q1/Q2에서 WAPE와 10% 초과 셀이 늘어 운영 산출물 자동반영 금지 |
 | 시군구×업종 잔여오차 우선순위 감사 | 완료 | Phase255에서 공개 actual 구간의 잔여오차를 금액오차·WAPE·대형 actual 10% 초과 셀로 분해. 건설업은 상대오차 병목, 광업·제조업은 금액오차 병목으로 분리 |
 | 광업·제조업 tail 자료준비도 감사 | 완료 | Phase256에서 제조업 생산지수·전력·공장등록 연결 가능성을 점검. 228개 시군구는 holdout 설계 후보 bundle이나, route 채택·성능 개선 주장으로 쓰지 않음 |
+| 광업·제조업 전력 share holdout | 완료, route 미채택 | Phase259에서 산업용 전력 share 단독혼합을 rolling holdout 검증. 전력은 12개월 coverage가 완전하지만 비baseline 후보가 guardrail을 통과하지 못해 baseline 유지 |
 | 2015~2025 사용자료 coverage 감사 | 완료 | `nationwide/source_coverage_audit_2015_2025.md`, `nationwide/outputs/source_coverage_audit_2015_2025.csv` 생성 |
 | 2015~2025 시군구 가능범위 게이트 | 완료 | `nationwide/sigungu_temporal_scope_gate_2015_2025.md`; 전기간 직접검증 가능 구간과 상위집계 대체 구간 분리 |
 | 2015~2025 월별 bridge 범위 게이트 | 완료 | `nationwide/monthly_bridge_scope_gate_2015_2025.md`; 2015 초기화, 2016~2020 사후 backcast, 2021~2025 운영 bridge 등급 분리 |
@@ -275,6 +276,17 @@ Phase256은 Phase255의 금액오차 1위인 `광업, 제조업`에 대해 이�
 | 로컬 자료 부족 | 1 | 98,102 | 3,104 | 3.16% | 0 |
 
 운영 판정은 보수적이다. 시도별 월간 제조업 생산지수는 월별 시간경로에는 적합하지만 시군구 내부 구조를 고치는 근거가 아니다. 전력과 일반구 roll-up 공장등록은 대형 제조업 도시의 구조 진단에는 유용하지만, 전력 단독 또는 현재 공장등록 snapshot 단독 route는 아직 채택하지 않는다. 다음 단계는 `월간 생산지수 × 전력집약도 × 공장규모` 묶음을 사전 고정하고, 제조업 대형 도시를 discovery/holdout으로 나눠 out-of-year 또는 holdout-city 검증을 통과시키는 것이다.
+
+## 5.4 광업·제조업 전력 share holdout
+
+Phase259는 산업용 전력 share를 기존 광업·제조업 시군구 share에 섞는 후보를 rolling holdout으로 검증했다. primary 평가는 target actual parent를 재주입하지 않고, 기존 baseline의 시도×연도 예측합을 parent total로 유지했다.
+
+| holdout | 선택 | 기준 WAPE | 선택 WAPE | 판정 |
+| --- | --- | ---: | ---: | --- |
+| 2022 | baseline 유지 | 5.535% | 5.535% | 비baseline 전력혼합 후보 guardrail 미통과 |
+| 2023 | baseline 유지 | 5.467% | 5.467% | 비baseline 전력혼합 후보 guardrail 미통과 |
+
+전력자료는 2021~2023 모든 검증 셀에서 12개월 coverage와 leakage flag를 충족했지만, 전력 share 단독 혼합은 전체기간 discovery에서도 baseline보다 나아지지 않았다. 전력 비중을 높일수록 WAPE와 10%·20% 초과 셀이 크게 악화되므로, 산업용 전력은 제조업 전체 공간배분 단독 route가 아니라 공장규모·업종구성·전력다소비 업종 구분과 결합할 후보로만 유지한다.
 
 ## 6. 결론
 
