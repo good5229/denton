@@ -9,6 +9,7 @@
 | 전국 시도 분기 GRDP/GDP 집계검증 | 완료 재실행 | `nationwide/run_nationwide_quarterly_grdp_validation.py` 재실행, 17개 시도·세종 단층처리·actual missing 0건 |
 | 2021~2025 5개년 범용성 검증 | 완료 재실행 | `nationwide/run_nationwide_five_year_generalization_audit.py` 재실행 |
 | 2016~2025 시도 분기 장기 안정성 검증 | 완료 | `nationwide/run_sido_long_window_quarterly_validation.py`; 2015년은 초기화 기준연도, 2016~2025 10개년 검증 |
+| 2020 시군구×업종 분기/월 bridge 파일럿 | 완료, 제한 파일럿 | `nationwide/run_sigungu_2020_backcast_monthly_bridge_pilot.py`; 2019 기준값 보유 9개 시도만 대상. 시도 actual 집계오차와 월합→분기 보존성만 검증 |
 | 2021~2025 시군구×업종 월별 bridge | 완료, 범위 제한 명시 필요 | `nationwide/run_nationwide_monthly_bridge_validation.py`; 월합→분기 재집계 오류 0건. 단, 2015~2020 산출물은 아니며 2025Q2~Q4는 균등분할 fallback 포함 |
 | 어려운 5개 시도 활동지표 rolling-gate | 완료 재실행 | `nationwide/run_hard_region_indicator_route_rolling_gate.py` 재실행 |
 | 지수 기준연도 혼재 점검 | 완료 | 현재 주요 생산·서비스 지수는 모두 `2020=100`; 별도 2015 기준 legacy 파일 없음 |
@@ -89,6 +90,15 @@
 월별 활동지표는 `prd_se=M`으로 확인된 시도별 제조업 생산지수, 전국 산업별 서비스업생산지수, 전국 전산업생산지수 원지수의 건설업·공공행정 항목을 사용했다. `월별 시간경로 적용 행 비율`은 월별 official actual 검증 비중이나 시군구 공간배분 설명력 비중이 아니라, 기존 분기 추정값을 3개월로 나눌 때 월별 지수를 사용한 행의 비중이다. 전국 지수는 지역 간 배분 근거가 아니라 동일 업종·동일 분기의 시군구 추정값을 3개월로 나누는 시간경로로만 사용한다. `phase208_DT_1KC2020_산업별_서비스업생산지수_2020_100.0.csv`와 `phase208_DT_1JH20201_전산업생산지수_원지수.csv`의 로컬 coverage는 2020-01~2025-05이므로, 2025년 중 지표 3개월이 모두 채워지지 않는 분기는 균등분할 fallback으로 유지한다. `월합→분기 재집계 오류 0`은 회계적 보존성 검증이며 월별 예측 정확도 actual 검증은 아니다. 조달청 PPS 계약정보/공사공고가 coverage gate와 rolling out-of-year guardrail을 통과하기 전까지 건설업의 시군구 공간배분 route는 자동채택하지 않는다.
 
 따라서 대외 표기는 `2021~2025 시군구×업종 분기 추정값의 월별 보존형 bridge`가 적절하다. 더 구체적으로는 `2021Q1~2025Q1`은 완전한 월별 지표가 있는 경우 해당 지표로 시간배분하고, `2025Q2~2025Q4`는 최신 월별 지표가 완전하지 않아 균등분할 fallback이 포함된 구간으로 분리한다. 이 기준은 `nationwide/monthly_bridge_scope_gate_2015_2025.md`에 고정했다.
+
+
+### 2.5-1 2020 시군구×업종 분기/월 bridge 제한 파일럿
+
+2019년 시군구×업종 기준값이 있는 9개 시도만 대상으로 2020년 분기·월 bridge 파일럿을 별도 산출했다. 이 결과는 2021~2025 운영 산출물과 같은 등급이 아니라 coverage 제한 파일럿이다. 검증은 시군구 월별 actual이 아니라 시도 분기 actual 집계오차와 월합→분기 재집계 보존성을 기준으로 한다.
+
+- 대상: 2019 기준값 보유 9개 시도, 152개 하위단위, 23,712개 월별 행
+- 시도 GRDP 분기 집계 WAPE: 2.112%, 최대 APE: 4.939%
+- 월합→분기 재집계 오류셀: 0개, 월별 지표 적용 행: 100.000%
 
 ### 2.6 조달청 공사공고 robust 수집·건설업 보조신호 감사
 
