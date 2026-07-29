@@ -550,6 +550,7 @@ def main() -> None:
 - `reports/partial_statistics_estimation_phase252_rolling_indicator_route_selection.md`
 - `reports/partial_statistics_estimation_phase254_pps_retry_after_update.md`
 - `reports/partial_statistics_estimation_phase255_sigungu_residual_priority_audit.md`
+- `reports/partial_statistics_estimation_phase256_manufacturing_tail_source_readiness.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)
