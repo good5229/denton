@@ -15,9 +15,9 @@
 | 2021~2025 시군구×업종 월별 bridge | 완료, 범위 제한 명시 필요 | `nationwide/run_nationwide_monthly_bridge_validation.py`; 월합→분기 재집계 오류 0건. 2021~2025 운영 bridge이며, 2025Q2~Q4는 균등분할 fallback 포함 |
 | 어려운 5개 시도 활동지표 rolling-gate | 완료 재실행 | `nationwide/run_hard_region_indicator_route_rolling_gate.py` 재실행 |
 | 지수 기준연도 혼재 점검 | 완료 | 현재 주요 생산·서비스 지수는 모두 `2020=100`; 별도 2015 기준 legacy 파일 없음 |
-| 조달청 공사계약 2015~2025 전량 수집 | 진행 중이나 API 제한 | 2015년과 2016년 1~9월 complete, 2016년 10월 이후 `HTTP 429` 반복. Phase257 no-raw smoke에서도 20161001 1행 요청이 429 |
+| 조달청 공사계약 2015~2025 전량 수집 | 진행 중이나 API 제한 | 2015년과 2016년 1~9월 complete, 2016년 10월 이후 `HTTP 429` 반복. 2026-07-29 21:06 KST Phase257 no-raw smoke에서도 20161001 1행 요청이 429 |
 | 조달청 공사계약 기반 건설업 전국 route 채택 | 보류 | 2021~2025 전량 수집 전에는 rolling out-of-year 검증 불가 |
-| 조달청 공사공고 robust 수집 | 부분 진전 | 2021년 4~7월 `numRows=100` 완전월 확보. Phase257 no-raw smoke에서도 202108 page 34가 429, 성능감사 미사용 |
+| 조달청 공사공고 robust 수집 | 부분 진전 | 2021년 4~7월 `numRows=100` 완전월 확보. 2026-07-29 21:06 KST Phase257 no-raw smoke에서도 202108 page 34가 429, 성능감사 미사용 |
 | 건설업 대체 공개자료 readiness | 완료, route 미채택 | Phase258에서 BuildingHUB·CALS·LH·서울정비·PPS 부분자료를 점검. 모두 보조/진단 후보이나 전국 2015~2025 운영 route 승격은 보류 |
 | 활동지표 route rolling 선택 | 미채택 | Phase252에서 기존 hard-region no-worse의 actual 누수 위험을 분리하고, 17개 시도 rolling holdout으로 재검증. strict route는 68행만 채택됐으나 Q1/Q2에서 WAPE와 10% 초과 셀이 늘어 운영 산출물 자동반영 금지 |
 | 시군구×업종 잔여오차 우선순위 감사 | 완료 | Phase255에서 공개 actual 구간의 잔여오차를 금액오차·WAPE·대형 actual 10% 초과 셀로 분해. 건설업은 상대오차 병목, 광업·제조업은 금액오차 병목으로 분리 |
@@ -178,7 +178,7 @@
 | 완료 월 | 2015년 1~12월, 2016년 1~9월 |
 | 미완료 시작점 | 2016년 10월 |
 | 월 단위 병목 | 2016년 10월 27페이지에서 반복 `HTTP 429` |
-| 최신 smoke | 2026-07-29 18:55 KST Phase257 no-raw smoke 기준 계약 20161001 1행 요청·공사공고 202108 page 34 요청 모두 `HTTP 429` |
+| 최신 smoke | 2026-07-29 21:06 KST Phase257 no-raw smoke 기준 계약 20161001 1행 요청·공사공고 202108 page 34 요청 모두 `HTTP 429` |
 | 품질감사 최신값 | 132개월 중 완료 21개월, 미완료 111개월, 품질완료 CSV 행 기준 수집률 67.44%, manifest 부분 raw 포함 706,697/910,191행, 최초 미완료월 201610 |
 | manifest 정합성 | 깨진 period 행 1개 제거 후 132개월 유지, `invalid_manifest_period_rows=0` |
 | 공식 근거 | 공공데이터포털 조달청 표준서비스 페이지에 계약정보 조회기간 `1개월 → 1주일` 축소 운영 공지 |
