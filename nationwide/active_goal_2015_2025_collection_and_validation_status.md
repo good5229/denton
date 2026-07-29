@@ -15,9 +15,9 @@
 | 2021~2025 시군구×업종 월별 bridge | 완료, 범위 제한 명시 필요 | `nationwide/run_nationwide_monthly_bridge_validation.py`; 월합→분기 재집계 오류 0건. 2021~2025 운영 bridge이며, 2025Q2~Q4는 균등분할 fallback 포함 |
 | 어려운 5개 시도 활동지표 rolling-gate | 완료 재실행 | `nationwide/run_hard_region_indicator_route_rolling_gate.py` 재실행 |
 | 지수 기준연도 혼재 점검 | 완료 | 현재 주요 생산·서비스 지수는 모두 `2020=100`; 별도 2015 기준 legacy 파일 없음 |
-| 조달청 공사계약 2015~2025 전량 수집 | 진행 중이나 API 제한 | 2015년과 2016년 1~9월 complete, 2016년 10월 이후 `HTTP 429` 반복 |
+| 조달청 공사계약 2015~2025 전량 수집 | 진행 중이나 API 제한 | 2015년과 2016년 1~9월 complete, 2016년 10월 이후 `HTTP 429` 반복. Phase254에서 승인·키 업데이트 후 201610 일별 분할 재시도도 첫 호출부터 429 |
 | 조달청 공사계약 기반 건설업 전국 route 채택 | 보류 | 2021~2025 전량 수집 전에는 rolling out-of-year 검증 불가 |
-| 조달청 공사공고 robust 수집 | 부분 진전 | 2021년 4~7월 `numRows=100` 완전월 확보. 2021년 8월은 33/92 page 확보 후 429로 중단, 성능감사 미사용 |
+| 조달청 공사공고 robust 수집 | 부분 진전 | 2021년 4~7월 `numRows=100` 완전월 확보. Phase254에서 202108 page 34 재시도도 429로 중단, 성능감사 미사용 |
 | 활동지표 route rolling 선택 | 미채택 | Phase252에서 기존 hard-region no-worse의 actual 누수 위험을 분리하고, 17개 시도 rolling holdout으로 재검증. strict route는 68행만 채택됐으나 Q1/Q2에서 WAPE와 10% 초과 셀이 늘어 운영 산출물 자동반영 금지 |
 | 2015~2025 사용자료 coverage 감사 | 완료 | `nationwide/source_coverage_audit_2015_2025.md`, `nationwide/outputs/source_coverage_audit_2015_2025.csv` 생성 |
 | 2015~2025 시군구 가능범위 게이트 | 완료 | `nationwide/sigungu_temporal_scope_gate_2015_2025.md`; 전기간 직접검증 가능 구간과 상위집계 대체 구간 분리 |
@@ -173,7 +173,7 @@
 | 완료 월 | 2015년 1~12월, 2016년 1~9월 |
 | 미완료 시작점 | 2016년 10월 |
 | 월 단위 병목 | 2016년 10월 27페이지에서 반복 `HTTP 429` |
-| 최신 smoke | 2026-07-29 18:03 KST 기준 2016년 10월 일별 분할 재시도도 첫 호출부터 `HTTP 429` |
+| 최신 smoke | 2026-07-29 18:32 KST 기준 승인·키 업데이트 후 2016년 10월 일별 분할 재시도도 첫 호출부터 `HTTP 429` |
 | 품질감사 최신값 | 132개월 중 완료 21개월, 미완료 111개월, 품질완료 CSV 행 기준 수집률 67.44%, manifest 부분 raw 포함 706,697/910,191행, 최초 미완료월 201610 |
 | manifest 정합성 | 깨진 period 행 1개 제거 후 132개월 유지, `invalid_manifest_period_rows=0` |
 | 공식 근거 | 공공데이터포털 조달청 표준서비스 페이지에 계약정보 조회기간 `1개월 → 1주일` 축소 운영 공지 |
@@ -181,6 +181,8 @@
 | 채택 기준 | 12개월 모두 `quality_complete=True`인 연도만 건설업 연간 검증 투입 |
 
 201610은 manifest 기준 31,271건 중 25,974건의 부분 raw가 남아 있지만 monthly CSV와 품질완료 조건을 만족하지 못한다. 따라서 부분 raw를 0으로 대체하거나 건설업 route 검증에 투입하지 않는다. Phase250 재검증에서도 safe candidate는 0개로 유지되어 `건설업 PPS 계약 route 미채택` 판정을 유지한다.
+
+Phase254 재시도에서도 같은 결론을 유지한다. 계약 API는 `201610` 일별 분할 첫 호출에서 `HTTP 429`, 공사공고 API는 `202108` page 34에서 `HTTP 429`가 재현됐다. 따라서 PPS partial raw는 수집 가능성·coverage 진단에만 남기고, 건설업 성능검증·route ranking·운영 산출물에는 넣지 않는다.
 
 ## 4. 데이터 출처·공표주기 기록
 

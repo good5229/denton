@@ -47,7 +47,6 @@ PPS_CONTRACT_SAFE_CANDIDATES = (
     / "phase250_guardrail_safe_candidates.csv"
 )
 PHASE252_ROUTE_SUMMARY = OUT / "phase252_summary_by_track_quarter.csv"
-PHASE253_ALL_ACTIVITY_GRDP = OUT / "phase253_all_activity_grdp_summary.csv"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -265,14 +264,6 @@ def phase252_status() -> dict[str, object]:
                 (route["rolling_over10_cells"] > route["baseline_over10_cells"]).sum()
             )
             out["route_max_delta_wape_pp"] = float(route["delta_wape_pp"].max())
-    if PHASE253_ALL_ACTIVITY_GRDP.exists():
-        grdp = pd.read_csv(PHASE253_ALL_ACTIVITY_GRDP)
-        if not grdp.empty:
-            out["phase253_grdp_rows"] = int(grdp["rows"].sum())
-            out["phase253_grdp_improved_points"] = int((grdp["delta_wape_pp"] < 0).sum())
-            out["phase253_grdp_worse_points"] = int((grdp["delta_wape_pp"] > 0).sum())
-            out["phase253_grdp_best_delta_wape_pp"] = float(grdp["delta_wape_pp"].min())
-            out["phase253_grdp_worst_delta_wape_pp"] = float(grdp["delta_wape_pp"].max())
     return out
 
 
@@ -359,11 +350,7 @@ def requirement_rows(
                 f"adopted_rows={phase252.get('route_adopted_rows', '')}, "
                 f"WAPE 악화 운영요약행={phase252.get('route_worse_wape_rows', '')}, "
                 f"10%초과 악화 운영요약행={phase252.get('route_worse_over10_rows', '')}, "
-                f"최대 WAPE 악화폭={fmt_pct_points(phase252.get('route_max_delta_wape_pp'))}pp; "
-                f"Phase253 GRDP 개선 운영점={phase252.get('phase253_grdp_improved_points', '')}, "
-                f"악화 운영점={phase252.get('phase253_grdp_worse_points', '')}, "
-                f"최대 개선={fmt_pct_points(phase252.get('phase253_grdp_best_delta_wape_pp'))}pp, "
-                f"최대 악화={fmt_pct_points(phase252.get('phase253_grdp_worst_delta_wape_pp'))}pp"
+                f"최대 WAPE 악화폭={fmt_pct_points(phase252.get('route_max_delta_wape_pp'))}pp"
             ),
             "next_action": "현재 운영 산출물에는 반영하지 않음; 후보 발굴 결과로 보관하고 공표일 장부·지역별 직접 활동자료가 보강된 뒤 재검증",
         },
@@ -561,7 +548,7 @@ def main() -> None:
 - `nationwide/sigungu_2020_fullcoverage_share_bridge_backcast.md`
 - `nationwide/sigungu_2020_backcast_monthly_bridge_pilot.md`
 - `reports/partial_statistics_estimation_phase252_rolling_indicator_route_selection.md`
-- `nationwide/phase253_all_activity_rolling_route_selection.md`
+- `reports/partial_statistics_estimation_phase254_pps_retry_after_update.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)
