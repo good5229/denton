@@ -366,6 +366,9 @@ def pps_manifest_stats(df: pd.DataFrame) -> dict[str, Any]:
     d = df.copy()
     valid = d["period"].astype(str).str.fullmatch(r"\d{6}", na=False)
     d = d[valid].copy()
+    if "created_at" in d.columns:
+        d = d.sort_values(["period", "created_at"])
+    d = d.drop_duplicates("period", keep="last")
     d["period"] = d["period"].astype(str)
     complete = d["complete"].astype(str).str.lower().isin({"true", "1", "yes"}) if "complete" in d else pd.Series(False, index=d.index)
     d["year"] = d["period"].str[:4]
