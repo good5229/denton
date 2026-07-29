@@ -32,6 +32,7 @@ NATIONAL_BOUNDARY = OUT / "national_gdp_yearly_summary.csv"
 ACTIVITY_VALIDATION = OUT / "sido_activity_quarterly_validation.csv"
 LONG_WINDOW_SUMMARY = OUT / "sido_long_window_operating_summary.csv"
 MONTHLY_BRIDGE_SUMMARY = OUT / "monthly_bridge_summary.csv"
+MONTHLY_BRIDGE_2020_PILOT_SUMMARY = OUT / "monthly_bridge_summary_2020_backcast_pilot.csv"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -242,7 +243,7 @@ def requirement_rows(
         },
         {
             "requirement": "전국 시군구×업종 월별 산출",
-            "current_status": "partial_bridge_2021_2025",
+            "current_status": "partial_bridge_2020_pilot_2021_2025_operational",
             "evidence": monthly_bridge_evidence(),
             "next_action": "월별 actual 검증이 아니라 분기 재집계 보존형 bridge로 표기; 2015~2020은 `nationwide/monthly_bridge_2015_2020_extension_audit.md`의 backcast 등급 기준을 따른다",
         },
@@ -290,11 +291,21 @@ def monthly_bridge_evidence() -> str:
     if d.empty:
         return "monthly_bridge_summary.csv 비어 있음"
     r = d.iloc[0]
-    return (
+    evidence = (
         f"{int(r['years_min'])}~{int(r['years_max'])}, {int(r['monthly_rows']):,}행, "
         f"월별 시간경로 적용 {float(r['indicator_rows_pct']):.3f}%, "
         f"분기 재집계 오류셀 {int(r['bad_quarter_cells_gt_1won_equiv'])}개"
     )
+    if MONTHLY_BRIDGE_2020_PILOT_SUMMARY.exists():
+        pilot = pd.read_csv(MONTHLY_BRIDGE_2020_PILOT_SUMMARY)
+        if not pilot.empty:
+            pr = pilot.iloc[0]
+            evidence += (
+                f"; 2020 제한 파일럿 {int(pr['province_count'])}개 시도·"
+                f"{int(pr['city_count'])}개 하위단위·{int(pr['monthly_rows']):,}행, "
+                f"분기 재집계 오류셀 {int(pr['bad_quarter_cells_gt_1won_equiv'])}개"
+            )
+    return evidence
 
 
 def main() -> None:
@@ -361,7 +372,7 @@ def main() -> None:
 
 - 현 상태는 `전국 17개 시도 총량 모니터링`에는 사용 가능한 후보 체계다.
 - `시군구×업종`은 공표연도 직접검증과 상위 집계검증을 병행해야 하며, 2015~2025 전기간 직접검증으로 표현하면 안 된다.
-- `시군구×업종×월`은 2021~2025 분기값 보존형 bridge로 확정하고, 2015~2020은 별도 backcast 등급으로 분리한다.
+- `시군구×업종×월`은 2021~2025 분기값 보존형 bridge로 확정하고, 2020은 2019 기준값 보유 시도 한정 backcast 파일럿으로 분리한다.
 - 건설업은 PPS 전량 수집과 품질게이트가 끝나기 전에는 전국 route로 채택하지 않는다.
 - 활동지표 route는 업종별 잔여오차 축소 후보지만, 자동채택이 아니라 rolling out-of-year gate 통과분만 채택한다.
 
@@ -375,6 +386,7 @@ def main() -> None:
 - `nationwide/outputs/active_goal_activity_validation_summary.csv`
 - `nationwide/monthly_bridge_2015_2020_extension_audit.md`
 - `nationwide/monthly_bridge_scope_gate_2015_2025.md`
+- `nationwide/sigungu_2020_backcast_monthly_bridge_pilot.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)
