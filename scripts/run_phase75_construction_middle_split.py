@@ -39,11 +39,13 @@ def md_table(df: pd.DataFrame, cols: list[tuple[str, str]], limit: int | None = 
     return "\n".join(lines) + "\n"
 
 
-def event_features(events: pd.DataFrame) -> pd.DataFrame:
+def event_features(events: pd.DataFrame, start_year: int = 2021, cutoff_year: int = 2023) -> pd.DataFrame:
     rows = []
     for city, city_frame in events.groupby("city"):
         for date_col, label in (("permit_date", "허가"), ("start_date", "착공"), ("approval_date", "사용승인")):
-            frame = city_frame[city_frame[date_col].dt.year.between(2021, 2025)].copy()
+            # The middle-industry actual benchmark used below is 2023.  Do not
+            # let 2024~2025 building events leak into the 2023 validation.
+            frame = city_frame[city_frame[date_col].dt.year.between(start_year, cutoff_year)].copy()
             area = float(pd.to_numeric(frame.total_floor_area, errors="coerce").clip(lower=0).sum())
             count = float(frame.permit_register_pk.nunique())
             median_area = float(pd.to_numeric(frame.total_floor_area, errors="coerce").median()) if len(frame) else 0.0
@@ -117,7 +119,9 @@ def main() -> None:
     gva_parent = f.groupby("city").actual_gva_eok.sum().to_dict()
 
     events = pd.read_csv(EVENTS, parse_dates=["permit_date", "start_date", "approval_date"])
-    features = event_features(events)
+    validation_start_year = 2021
+    validation_cutoff_year = 2023
+    features = event_features(events, validation_start_year, validation_cutoff_year)
     cand = candidates(features, current_share)
     cand["share_42"] = 1 - cand.share_41
 
@@ -202,7 +206,7 @@ def main() -> None:
 
 ## 사용 자료 요약
 
-2021~2025년 건축 이벤트를 사용했다. 면적은 ㎡ 단위다.
+2023년 중분류 actual을 검증하므로 미래자료 누수를 막기 위해 {validation_start_year}~{validation_cutoff_year}년 건축 이벤트만 사용했다. 면적은 ㎡ 단위다.
 
 {md_table(features, [("city", "지역"), ("event_stage", "단계"), ("event_count", "건수"), ("total_floor_area", "연면적"), ("mean_floor_area", "평균면적"), ("median_floor_area", "중앙면적"), ("large_project_area", "1천㎡ 이상 면적"), ("industrial_warehouse_area", "산업창고 면적")])}
 
@@ -226,6 +230,7 @@ def main() -> None:
 - 현행 기준은 포항시 41 비중을 {current_by_city[current_by_city.city.eq('포항시')].predicted_41_share_pct.iloc[0]:.1f}%로 추정했지만 실제는 {actual_share_41['포항시'] * 100:.1f}%다.
 - 두 지역 모두 현행보다 개선되는 후보 중 가장 안정적인 기준은 **{best_robust.candidate if best_robust is not None else '없음'}**이다.
 - 건축 이벤트의 면적/건수 포화식은 사업체·종사자 기준보다 종합건설 비중을 더 잘 복원한다. 다만 포항은 산업·창고 대형 프로젝트가 많아 단순 면적만 쓰면 종합건설을 과대평가할 수 있다.
+- 이번 검증은 2023년 이후 이벤트를 사용하지 않는 누수 방지 버전이다. 단, 후보식 선택은 아직 고양·포항 2개 도시 단면에 그치므로 전국 운영 route로 채택하려면 타 연도·타 지역 rolling 검증이 필요하다.
 
 ## 현재 기준 핵심 수치
 
