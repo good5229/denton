@@ -38,6 +38,14 @@ MONTHLY_BRIDGE_2016_2020_SUMMARY = OUT / "monthly_bridge_summary_2016_2020_backc
 MONTHLY_BRIDGE_2015_INIT_SUMMARY = OUT / "monthly_bridge_summary_2015_initialization.csv"
 SIGUNGU_LONG_BACKCAST_SUMMARY = OUT / "sido_quarterly_grdp_summary_2016_2020_backcast.csv"
 SIGUNGU_2015_INIT_SUMMARY = OUT / "sido_quarterly_grdp_summary_2015_initialization.csv"
+PPS_CONTRACT_QUALITY = ROOT / "data" / "processed" / "phase249_pps_contract_quality_audit" / "phase249_monthly_collection_quality.csv"
+PPS_CONTRACT_SAFE_CANDIDATES = (
+    ROOT
+    / "data"
+    / "processed"
+    / "phase250_pps_contract_construction_route_validation"
+    / "phase250_guardrail_safe_candidates.csv"
+)
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -192,6 +200,23 @@ def pps_status() -> dict[str, object]:
                 "contract_first_incomplete_period": fmt_intish(r.get("pps_first_incomplete_period")),
             }
         )
+        if PPS_CONTRACT_QUALITY.exists():
+            qa = pd.read_csv(PPS_CONTRACT_QUALITY, dtype={"period": str})
+            incomplete = qa[qa["quality_complete"].ne(True)].copy()
+            if not incomplete.empty:
+                first = incomplete.sort_values("period").iloc[0]
+                out.update(
+                    {
+                        "contract_latest_first_incomplete_period": first.get("period"),
+                        "contract_latest_first_incomplete_error": first.get("manifest_error", ""),
+                        "contract_latest_first_incomplete_manifest_rows": fmt_intish(
+                            first.get("manifest_rows_collected", first.get("rows_collected", ""))
+                        ),
+                    }
+                )
+        if PPS_CONTRACT_SAFE_CANDIDATES.exists():
+            safe = pd.read_csv(PPS_CONTRACT_SAFE_CANDIDATES)
+            out["contract_safe_candidate_count"] = len(safe)
     bid = cov[cov["source_id"].eq("pps_bid_notice_robust")]
     if bid.empty:
         out["bid_status"] = "missing_from_source_coverage"
@@ -273,8 +298,16 @@ def requirement_rows(
         {
             "requirement": "건설업 직접 활동자료 route 전국 채택",
             "current_status": "blocked_by_pps_api_quota",
-            "evidence": f"PPS계약 first incomplete={pps.get('contract_first_incomplete_period')}, adoptable_years={pps.get('contract_adoptable_years')}; PPS공고 complete={pps.get('bid_complete_periods')}, first incomplete={pps.get('bid_first_incomplete_period')}",
-            "next_action": "429 해제 후 월/일 단위 재개; 계약은 quality_complete 연도만, 공고는 완전월만 rolling 검증에 투입",
+            "evidence": (
+                f"PPS계약 first incomplete={pps.get('contract_first_incomplete_period')}, "
+                f"latest first incomplete={pps.get('contract_latest_first_incomplete_period')}, "
+                f"manifest_rows={pps.get('contract_latest_first_incomplete_manifest_rows')}, "
+                f"last_error={pps.get('contract_latest_first_incomplete_error')}, "
+                f"adoptable_years={pps.get('contract_adoptable_years')}, "
+                f"phase250_safe_candidates={pps.get('contract_safe_candidate_count', '')}; "
+                f"PPS공고 complete={pps.get('bid_complete_periods')}, first incomplete={pps.get('bid_first_incomplete_period')}"
+            ),
+            "next_action": "429 해제 후 월/일 단위 재개; 계약은 quality_complete 연도만, 공고는 완전월만 rolling 검증에 투입하고, safe candidate 0개 상태에서는 건설업 route로 채택하지 않음",
         },
         {
             "requirement": "과학자/평가자 검증",

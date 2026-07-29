@@ -385,6 +385,11 @@ def pps_manifest_stats(df: pd.DataFrame) -> dict[str, Any]:
     d = d.drop_duplicates("period", keep="last")
     d["period"] = d["period"].astype(str)
     complete = d["complete"].astype(str).str.lower().isin({"true", "1", "yes"}) if "complete" in d else pd.Series(False, index=d.index)
+    rows_collected = pd.to_numeric(d.get("rows_collected", 0), errors="coerce").fillna(0)
+    total_count = pd.to_numeric(d.get("total_count", 0), errors="coerce").fillna(0)
+    partial = (~complete) & rows_collected.gt(0) & total_count.gt(rows_collected)
+    error_text = d.get("error", pd.Series("", index=d.index)).fillna("").astype(str)
+    rate_limited = (~complete) & error_text.str.contains("429|Too Many Requests", case=False, regex=True)
     d["year"] = d["period"].str[:4]
     annual = d.groupby("year")["period"].count().rename("months_seen").reset_index()
     annual_complete = d[complete].groupby("year")["period"].count().rename("months_complete").reset_index()
@@ -394,6 +399,10 @@ def pps_manifest_stats(df: pd.DataFrame) -> dict[str, Any]:
         "pps_months_complete": int(complete.sum()),
         "pps_adoptable_years": adoptable,
         "pps_first_incomplete_period": d.loc[~complete, "period"].min() if (~complete).any() else "",
+        "pps_manifest_rows_collected": int(rows_collected.sum()),
+        "pps_manifest_total_count": int(total_count.sum()),
+        "pps_partial_raw_months": int(partial.sum()),
+        "pps_rate_limited_months": int(rate_limited.sum()),
     }
 
 
@@ -585,6 +594,10 @@ def main() -> int:
         "pps_months_complete",
         "pps_complete_periods",
         "pps_first_incomplete_period",
+        "pps_manifest_rows_collected",
+        "pps_manifest_total_count",
+        "pps_partial_raw_months",
+        "pps_rate_limited_months",
         "notes",
     ]
     report = f"""# 2015~2025 전국 자료 coverage 감사
@@ -607,7 +620,7 @@ def main() -> int:
 
 - `시도별 분기 GRDP/GDP`, 생산·서비스 지수 계열은 2015~2025 전국/시도 검증에 대체로 사용 가능하다.
 - 시군구 연간 GVA actual은 공식 공표 범위가 2020~2023 중심이고 시도별 누락연도가 있다. 따라서 2015~2025 전기간 시군구 actual 검증은 불가능하며, 2021~2025 backtest는 직전연도/재귀 기준값과 상위 집계검증을 병행해야 한다.
-- 조달청 공사계약은 전국 원본 성격이 맞지만 API 429로 전량 수집이 끝나지 않았다. 현재는 건설업 전국 route 채택이 아니라 수집·품질게이트 보류 상태다.
+- 조달청 공사계약은 전국 원본 성격이 맞지만 API 429로 전량 수집이 끝나지 않았다. 부분 raw가 남은 월도 품질완료 월로 승격하지 않고, 현재는 건설업 전국 route 채택이 아니라 수집·품질게이트 보류 상태다.
 - 조달청 공사공고 robust cache는 공사계약 API 제한 중 수집 가능한 보조자료이나, 완전월만 성능감사에 투입한다. 현재 완전월과 부분월은 자료별 판정 표의 `pps_complete_periods`, `pps_first_incomplete_period`로 분리한다.
 - CALS, LH, 서울 도시정비사업은 보조자료이며, 각각 공공/SOC·공공주택·서울 정비사업으로 범위가 제한된다.
 - 현재 로컬 주요 지수는 2020=100 소급계열이므로 2015=100/2020=100 혼재 왜곡은 확인되지 않았다. 향후 legacy 2015=100 계열이 추가되면 bridge year 재기준화가 필요하다.

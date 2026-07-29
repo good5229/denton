@@ -80,6 +80,11 @@ def main() -> int:
         df = safe_read(p)
         hit = manifest[manifest["period"].eq(period)]
         total_count = int(float(hit.iloc[-1]["total_count"])) if not hit.empty and "total_count" in hit else len(df)
+        manifest_rows_collected = (
+            int(float(hit.iloc[-1]["rows_collected"]))
+            if not hit.empty and "rows_collected" in hit and pd.notna(hit.iloc[-1]["rows_collected"])
+            else len(df)
+        )
         pages_collected = int(float(hit.iloc[-1]["pages_collected"])) if not hit.empty and "pages_collected" in hit else 0
         manifest_complete = (
             str(hit.iloc[-1].get("complete", "")).strip().lower() in {"true", "1", "yes"}
@@ -94,14 +99,17 @@ def main() -> int:
         manifest_error = clean_manifest_text(hit.iloc[-1].get("error", "")) if not hit.empty else ""
         raw_json_count = len(list((ROOT / "data" / "raw" / "phase248_pps_contract_incremental" / period).glob("contract_*.json")))
         monthly_csv_exists = p.exists() and p.stat().st_size > 4
+        raw_partial_preserved = bool((not monthly_csv_exists) and manifest_rows_collected > 0 and total_count > manifest_rows_collected)
         if df.empty:
             rows.append(
                 {
                     "period": period,
                     "api_total_count": total_count,
+                    "manifest_rows_collected": manifest_rows_collected,
                     "rows_collected": 0,
                     "pages_collected": pages_collected,
                     "raw_json_count": raw_json_count,
+                    "raw_partial_preserved": raw_partial_preserved,
                     "monthly_csv_exists": monthly_csv_exists,
                     "collection_rate_pct": 0.0 if total_count else np.nan,
                     "manifest_complete": manifest_complete,
@@ -135,9 +143,11 @@ def main() -> int:
             {
                 "period": period,
                 "api_total_count": total_count,
+                "manifest_rows_collected": manifest_rows_collected,
                 "rows_collected": len(df),
                 "pages_collected": pages_collected,
                 "raw_json_count": raw_json_count,
+                "raw_partial_preserved": raw_partial_preserved,
                 "monthly_csv_exists": monthly_csv_exists,
                 "collection_rate_pct": collection_rate,
                 "manifest_complete": manifest_complete,
@@ -200,13 +210,32 @@ def main() -> int:
         "adoptable_years": int(annual_gate["adoptable_year"].sum()) if not annual_gate.empty else 0,
         "invalid_manifest_period_rows": invalid_manifest_period_rows,
         "rows_collected": int(audit["rows_collected"].sum()),
+        "manifest_rows_collected": int(audit["manifest_rows_collected"].sum()) if "manifest_rows_collected" in audit else int(audit["rows_collected"].sum()),
         "api_total_count_seen": int(audit["api_total_count"].sum()),
+        "raw_partial_preserved_months": int(audit["raw_partial_preserved"].sum()) if "raw_partial_preserved" in audit else 0,
         "overall_collection_rate_pct": float(audit["rows_collected"].sum() / audit["api_total_count"].sum() * 100) if audit["api_total_count"].sum() else np.nan,
         "mean_province_match_rate_pct": float(completed["province_match_rate_pct"].mean()) if not completed.empty else np.nan,
         "mean_sigungu_match_rate_pct": float(completed["sigungu_match_rate_pct"].mean()) if not completed.empty else np.nan,
     }
     summary_df = pd.DataFrame([summary])
     summary_df.to_csv(OUT / "phase249_collection_quality_summary.csv", index=False, encoding="utf-8-sig")
+    blockers = audit[audit["quality_complete"].ne(True)].copy()
+    if not blockers.empty:
+        blocker_cols = [
+            "period",
+            "api_total_count",
+            "manifest_rows_collected",
+            "rows_collected",
+            "pages_collected",
+            "raw_json_count",
+            "raw_partial_preserved",
+            "monthly_csv_exists",
+            "collection_rate_pct",
+            "manifest_complete",
+            "manifest_ok",
+            "manifest_error",
+        ]
+        blockers = blockers[[c for c in blocker_cols if c in blockers.columns]].head(12)
 
     report = f"""# Phase249 조달청 공사계약 수집 품질 감사
 
@@ -216,15 +245,21 @@ def main() -> int:
 
 {md_table(summary_df, digits=2)}
 
-## 2. 월별 수집·매칭 품질
+## 2. 첫 미완료 원인
 
-{md_table(audit[["period", "api_total_count", "rows_collected", "pages_collected", "raw_json_count", "monthly_csv_exists", "collection_rate_pct", "manifest_complete", "quality_complete", "duplicate_contract_id_count", "missing_or_zero_amount_count", "province_match_rate_pct", "sigungu_match_rate_pct"]], max_rows=60, digits=2)}
+{md_table(blockers, max_rows=12, digits=2) if not blockers.empty else "_미완료 월 없음_"}
 
-## 3. 연도별 채택 가능성 게이트
+첫 미완료 월은 후속 수집 재개의 시작점이다. `HTTPError 429: Too Many Requests`가 남아 있으면 해당 시점의 API 일일/분당 제한 또는 서버 측 제한에 걸린 것으로 보고, 부분 수집 파일은 downstream 건설업 route 검증에 투입하지 않는다.
+
+## 3. 월별 수집·매칭 품질
+
+{md_table(audit[["period", "api_total_count", "manifest_rows_collected", "rows_collected", "pages_collected", "raw_json_count", "raw_partial_preserved", "monthly_csv_exists", "collection_rate_pct", "manifest_complete", "quality_complete", "duplicate_contract_id_count", "missing_or_zero_amount_count", "province_match_rate_pct", "sigungu_match_rate_pct"]], max_rows=60, digits=2)}
+
+## 4. 연도별 채택 가능성 게이트
 
 {md_table(annual_gate, max_rows=20, digits=2)}
 
-## 4. 판정 기준
+## 5. 판정 기준
 
 | 항목 | 기준 | 해석 |
 | --- | --- | --- |
@@ -235,11 +270,11 @@ def main() -> int:
 | 중복 계약번호 | dedup 전후 비교 | 계약변경/중복 가능성 확인 |
 | 금액 0/결측 | 별도 집계 | 금액 share 산식에서 제외/보조 처리 |
 
-## 5. 기준연도 100 지수 혼재 처리 원칙
+## 6. 기준연도 100 지수 혼재 처리 원칙
 
 2015=100, 2020=100 등 기준이 다른 지수형 입력은 사용 전 공통 bridge year로 재기준화한다. 기본식은 `rebased = raw / raw[bridge_year] * 100`이며, 2020년 충격 가능성이 큰 지표는 2019년·2021년 bridge 민감도도 같이 본다. 재기준화 후에는 전국합/시도합 보존과 연도별 변동률 왜곡 여부를 감사한다.
 
-## 6. 주의
+## 7. 주의
 
 조달청 계약정보의 지역 텍스트는 계약기관·수요기관·공사명에 섞여 있다. 따라서 이 감사의 `matched_city`는 실제 공사 수행지를 확정한 값이 아니라, 공개 계약정보 텍스트 기반 보수적 지역 귀속값이다.
 """
