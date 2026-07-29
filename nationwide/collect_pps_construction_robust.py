@@ -17,6 +17,7 @@ from calendar import monthrange
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -120,6 +121,7 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--sleep", type=float, default=0.05)
     parser.add_argument("--max-consecutive-errors", type=int, default=3)
+    parser.add_argument("--continue-on-http-429", action="store_true", help="Continue after HTTP 429 instead of stopping the current period")
     parser.add_argument("--start-page", type=int, default=1)
     parser.add_argument("--end-page", type=int, default=None)
     parser.add_argument("--refresh", action="store_true")
@@ -158,6 +160,9 @@ def main() -> int:
             except Exception as exc:
                 errors.append({"period": period, "page": page, "num_rows": args.num_rows, "error": repr(exc)})
                 print(f"ERROR {period} page={page}: {exc}", flush=True)
+                if isinstance(exc, HTTPError) and exc.code == 429 and not args.continue_on_http_429:
+                    print(f"STOP {period}: HTTP 429 rate limit at page={page}; retry missing pages after cooldown", flush=True)
+                    break
                 consecutive_errors += 1
                 if consecutive_errors >= args.max_consecutive_errors:
                     break
