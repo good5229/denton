@@ -1,6 +1,6 @@
 # 2015~2025 전국 목표 요구사항 감사
 
-생성시각: 2026-07-29T18:09:13+09:00
+생성시각: 2026-07-29T18:26:42+09:00
 
 ## 판정 요약
 
@@ -19,6 +19,7 @@
 | 2016~2020 시군구×업종 분기 backcast | satisfied_as_posthoc_backcast | 5개년, 340개 시도분기행, 시도 GRDP WAPE=1.970%, 최대오차율=11.359%, 기준값 재스케일 오류 0셀 | 사후 전국 분기경로를 사용한 장기 재구성으로 표기; Q+1개월 속보 성능 또는 시군구 내부 구성비 actual 검증으로 해석 금지 |
 | 전국 시군구×업종 전기간 직접 actual 검증 | not_satisfied_due_publication_scope | 시군구 actual 로컬 공표범위 2019~2023, 공표 시도 17개 | 공표된 연도는 직접검증, 2024~2025 및 미공표 시도는 시도·전국 상위 actual 집계검증으로 대체 |
 | 건설업 직접 활동자료 route 전국 채택 | blocked_by_pps_api_quota | PPS계약 first incomplete=201610, latest first incomplete=201610, manifest_rows=25974, last_error=<HTTPError 429: 'Too Many Requests'>, adoptable_years=1, phase250_safe_candidates=0; PPS공고 complete=202104,202105,202106,202107, first incomplete=202108 | 429 해제 후 월/일 단위 재개; 계약은 quality_complete 연도만, 공고는 완전월만 rolling 검증에 투입하고, safe candidate 0개 상태에서는 건설업 route로 채택하지 않음 |
+| 활동지표 route rolling 자동채택 | rejected_for_operational_adoption | Phase252 strict route rows=8160, adopted_rows=68, WAPE 악화 운영요약행=4, 10%초과 악화 운영요약행=4, 최대 WAPE 악화폭=0.036pp; Phase253 GRDP 개선 운영점=2, 악화 운영점=6, 최대 개선=-0.130pp, 최대 악화=0.990pp | 현재 운영 산출물에는 반영하지 않음; 후보 발굴 결과로 보관하고 공표일 장부·지역별 직접 활동자료가 보강된 뒤 재검증 |
 | 과학자/평가자 검증 | latest_monthly_bridge_postaudit_reflected | 월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적 | 후속 실험마다 사전/사후 검증을 반복하고, 자동채택 표현은 rolling gate 통과분으로 제한 |
 
 ## 사용자료 coverage 요약
@@ -90,7 +91,7 @@
 - 2015년은 초기화용 사후 재구성, 2016~2020년은 사후 전국 분기경로 기반 장기 backcast, 2021~2025년은 운영형 분기·월 bridge로 구분하며 세 구간의 성능을 같은 지표로 합산하지 않는다.
 - `시군구×업종×월`은 2021~2025 분기값 보존형 bridge로 확정하고, 2020은 2019 시군구 구성비를 2019 시도×업종 공식총량에 연결한 전국 사후 backcast로 분리한다.
 - 건설업은 PPS 전량 수집과 품질게이트가 끝나기 전에는 전국 route로 채택하지 않는다.
-- 활동지표 route는 업종별 잔여오차 축소 후보지만, 자동채택이 아니라 rolling out-of-year gate 통과분만 채택한다.
+- 활동지표 route는 업종별 잔여오차 축소 후보지만, Phase252 rolling holdout에서 악화 위험이 확인되어 현재 운영 산출물에는 자동채택하지 않는다.
 
 ## 산출물
 
@@ -106,3 +107,5 @@
 - `nationwide/sigungu_2016_2020_fullcoverage_share_bridge_backcast.md`
 - `nationwide/sigungu_2020_fullcoverage_share_bridge_backcast.md`
 - `nationwide/sigungu_2020_backcast_monthly_bridge_pilot.md`
+- `reports/partial_statistics_estimation_phase252_rolling_indicator_route_selection.md`
+- `nationwide/phase253_all_activity_rolling_route_selection.md`

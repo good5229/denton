@@ -18,6 +18,7 @@
 | 조달청 공사계약 2015~2025 전량 수집 | 진행 중이나 API 제한 | 2015년과 2016년 1~9월 complete, 2016년 10월 이후 `HTTP 429` 반복 |
 | 조달청 공사계약 기반 건설업 전국 route 채택 | 보류 | 2021~2025 전량 수집 전에는 rolling out-of-year 검증 불가 |
 | 조달청 공사공고 robust 수집 | 부분 진전 | 2021년 4~7월 `numRows=100` 완전월 확보. 2021년 8월은 33/92 page 확보 후 429로 중단, 성능감사 미사용 |
+| 활동지표 route rolling 선택 | 미채택 | Phase252에서 기존 hard-region no-worse의 actual 누수 위험을 분리하고, 17개 시도 rolling holdout으로 재검증. strict route는 68행만 채택됐으나 Q1/Q2에서 WAPE와 10% 초과 셀이 늘어 운영 산출물 자동반영 금지 |
 | 2015~2025 사용자료 coverage 감사 | 완료 | `nationwide/source_coverage_audit_2015_2025.md`, `nationwide/outputs/source_coverage_audit_2015_2025.csv` 생성 |
 | 2015~2025 시군구 가능범위 게이트 | 완료 | `nationwide/sigungu_temporal_scope_gate_2015_2025.md`; 전기간 직접검증 가능 구간과 상위집계 대체 구간 분리 |
 | 2015~2025 월별 bridge 범위 게이트 | 완료 | `nationwide/monthly_bridge_scope_gate_2015_2025.md`; 2015 초기화, 2016~2020 사후 backcast, 2021~2025 운영 bridge 등급 분리 |
@@ -216,6 +217,20 @@
 | 운수·창고 물동량/터미널/항만/창고면적의 지역별 장기 시계열 | 운수 및 창고업의 업종별 10~20% 초과 오차 축소 필요 |
 | 숙박·음식 방문객/객실/관광소비 지역 시계열 | 숙박 및 음식점업의 지역 충격 반영 필요 |
 | 정보통신 사업장 규모·통신/콘텐츠 활동자료 | 정보통신업은 사업체수보다 대형사업장·플랫폼/콘텐츠 활동이 중요 |
+
+## 5.1 활동지표 route rolling 검증 결과
+
+`nationwide/run_hard_region_indicator_route_experiment.py`의 hard-region no-worse 방식은 목표연도 actual을 보고 셀별로 좋아지는 후보만 채택할 수 있어 운영 근거로는 데이터 유출 위험이 있다. 이를 보완하기 위해 `nationwide/run_phase252_rolling_indicator_route_selection.py`를 추가했고, 목표연도 `y`의 route는 `y` 이전 연도 성과만으로 선택하도록 바꿨다.
+
+| 항목 | 결과 |
+| --- | --- |
+| 검증 범위 | 17개 시도, 2022~2025 holdout |
+| 후보 | 제조업 생산지수, 서비스업생산지수, 건설수주 원지표, 건설수주 BOK식 분산 |
+| 채택 gate | 최소 훈련 2개년, WAPE 개선, 10%·20% 초과 셀 비증가, max APE 비악화 |
+| Phase252 결과 | strict route는 68행만 채택됐고 운영요약 8행 중 WAPE 악화 4행, 10% 초과 악화 4행 |
+| 운영 판정 | `reject_for_operational_adoption` |
+
+따라서 기존 hard-region 결과는 탐색적 후보 발굴로만 보관하고, Phase252 route는 현재 전국 운영 산출물에 반영하지 않는다. 이 결과는 활동지표가 쓸모없다는 뜻이 아니라, 현재의 전역 `track×activity×available_quarters` 선택 규칙이 holdout 안정성을 통과하지 못했다는 뜻이다.
 
 ## 6. 결론
 

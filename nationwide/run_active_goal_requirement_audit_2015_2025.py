@@ -46,6 +46,8 @@ PPS_CONTRACT_SAFE_CANDIDATES = (
     / "phase250_pps_contract_construction_route_validation"
     / "phase250_guardrail_safe_candidates.csv"
 )
+PHASE252_ROUTE_SUMMARY = OUT / "phase252_summary_by_track_quarter.csv"
+PHASE253_ALL_ACTIVITY_GRDP = OUT / "phase253_all_activity_grdp_summary.csv"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -68,6 +70,15 @@ def md_table(df: pd.DataFrame, digits: int = 3) -> str:
     for _, r in v.iterrows():
         lines.append("| " + " | ".join(str(r[c]).replace("|", "/") for c in v.columns) + " |")
     return "\n".join(lines)
+
+
+def fmt_pct_points(value: object, digits: int = 3) -> str:
+    try:
+        if value is None or pd.isna(value):
+            return ""
+        return f"{float(value):.{digits}f}"
+    except Exception:
+        return str(value)
 
 
 def source_summary() -> pd.DataFrame:
@@ -235,12 +246,43 @@ def pps_status() -> dict[str, object]:
     return out
 
 
+def phase252_status() -> dict[str, object]:
+    """Summarize leakage-safe rolling activity-route experiments.
+
+    These files are intentionally ignored CSV outputs.  The audit keeps only
+    the decision-level numbers so the goal status can be regenerated without
+    accidentally tracking large CSV artifacts.
+    """
+
+    out: dict[str, object] = {}
+    if PHASE252_ROUTE_SUMMARY.exists():
+        route = pd.read_csv(PHASE252_ROUTE_SUMMARY)
+        if not route.empty:
+            out["route_rows"] = int(route["rows"].sum())
+            out["route_adopted_rows"] = int(route["adopted_rows"].sum())
+            out["route_worse_wape_rows"] = int((route["rolling_wape_pct"] > route["baseline_wape_pct"]).sum())
+            out["route_worse_over10_rows"] = int(
+                (route["rolling_over10_cells"] > route["baseline_over10_cells"]).sum()
+            )
+            out["route_max_delta_wape_pp"] = float(route["delta_wape_pp"].max())
+    if PHASE253_ALL_ACTIVITY_GRDP.exists():
+        grdp = pd.read_csv(PHASE253_ALL_ACTIVITY_GRDP)
+        if not grdp.empty:
+            out["phase253_grdp_rows"] = int(grdp["rows"].sum())
+            out["phase253_grdp_improved_points"] = int((grdp["delta_wape_pp"] < 0).sum())
+            out["phase253_grdp_worse_points"] = int((grdp["delta_wape_pp"] > 0).sum())
+            out["phase253_grdp_best_delta_wape_pp"] = float(grdp["delta_wape_pp"].min())
+            out["phase253_grdp_worst_delta_wape_pp"] = float(grdp["delta_wape_pp"].max())
+    return out
+
+
 def requirement_rows(
     source_counts: pd.DataFrame,
     sigungu_matrix: pd.DataFrame,
     sido_summary: pd.DataFrame,
     national_summary: pd.DataFrame,
     pps: dict[str, object],
+    phase252: dict[str, object],
 ) -> pd.DataFrame:
     direct_coverage_count = int(source_counts[source_counts["coverage_status"].eq("covers_2015_2025")]["source_count"].sum())
     sigungu_year_min = int(sigungu_matrix["year"].min())
@@ -308,6 +350,22 @@ def requirement_rows(
                 f"PPS공고 complete={pps.get('bid_complete_periods')}, first incomplete={pps.get('bid_first_incomplete_period')}"
             ),
             "next_action": "429 해제 후 월/일 단위 재개; 계약은 quality_complete 연도만, 공고는 완전월만 rolling 검증에 투입하고, safe candidate 0개 상태에서는 건설업 route로 채택하지 않음",
+        },
+        {
+            "requirement": "활동지표 route rolling 자동채택",
+            "current_status": "rejected_for_operational_adoption",
+            "evidence": (
+                f"Phase252 strict route rows={phase252.get('route_rows', '')}, "
+                f"adopted_rows={phase252.get('route_adopted_rows', '')}, "
+                f"WAPE 악화 운영요약행={phase252.get('route_worse_wape_rows', '')}, "
+                f"10%초과 악화 운영요약행={phase252.get('route_worse_over10_rows', '')}, "
+                f"최대 WAPE 악화폭={fmt_pct_points(phase252.get('route_max_delta_wape_pp'))}pp; "
+                f"Phase253 GRDP 개선 운영점={phase252.get('phase253_grdp_improved_points', '')}, "
+                f"악화 운영점={phase252.get('phase253_grdp_worse_points', '')}, "
+                f"최대 개선={fmt_pct_points(phase252.get('phase253_grdp_best_delta_wape_pp'))}pp, "
+                f"최대 악화={fmt_pct_points(phase252.get('phase253_grdp_worst_delta_wape_pp'))}pp"
+            ),
+            "next_action": "현재 운영 산출물에는 반영하지 않음; 후보 발굴 결과로 보관하고 공표일 장부·지역별 직접 활동자료가 보강된 뒤 재검증",
         },
         {
             "requirement": "과학자/평가자 검증",
@@ -421,7 +479,8 @@ def main() -> None:
     sigungu_matrix = sigungu_publication_matrix()
     sido_summary, national_summary, activity_summary = validation_summary()
     pps = pps_status()
-    requirements = requirement_rows(source_counts, sigungu_matrix, sido_summary, national_summary, pps)
+    phase252 = phase252_status()
+    requirements = requirement_rows(source_counts, sigungu_matrix, sido_summary, national_summary, pps, phase252)
 
     source_counts.to_csv(OUT / "active_goal_requirement_source_counts.csv", index=False, encoding="utf-8-sig")
     sigungu_matrix.to_csv(OUT / "active_goal_sigungu_actual_publication_matrix.csv", index=False, encoding="utf-8-sig")
@@ -485,7 +544,7 @@ def main() -> None:
 - 2015년은 초기화용 사후 재구성, 2016~2020년은 사후 전국 분기경로 기반 장기 backcast, 2021~2025년은 운영형 분기·월 bridge로 구분하며 세 구간의 성능을 같은 지표로 합산하지 않는다.
 - `시군구×업종×월`은 2021~2025 분기값 보존형 bridge로 확정하고, 2020은 2019 시군구 구성비를 2019 시도×업종 공식총량에 연결한 전국 사후 backcast로 분리한다.
 - 건설업은 PPS 전량 수집과 품질게이트가 끝나기 전에는 전국 route로 채택하지 않는다.
-- 활동지표 route는 업종별 잔여오차 축소 후보지만, 자동채택이 아니라 rolling out-of-year gate 통과분만 채택한다.
+- 활동지표 route는 업종별 잔여오차 축소 후보지만, Phase252 rolling holdout에서 악화 위험이 확인되어 현재 운영 산출물에는 자동채택하지 않는다.
 
 ## 산출물
 
@@ -501,6 +560,8 @@ def main() -> None:
 - `nationwide/sigungu_2016_2020_fullcoverage_share_bridge_backcast.md`
 - `nationwide/sigungu_2020_fullcoverage_share_bridge_backcast.md`
 - `nationwide/sigungu_2020_backcast_monthly_bridge_pilot.md`
+- `reports/partial_statistics_estimation_phase252_rolling_indicator_route_selection.md`
+- `nationwide/phase253_all_activity_rolling_route_selection.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)
