@@ -107,6 +107,10 @@ def bounds(period: str) -> tuple[str, str]:
     return f"{period}010000", f"{period}{monthrange(y, m)[1]:02d}2359"
 
 
+def day_bounds(period: str, day: int) -> tuple[str, str]:
+    return f"{period}{day:02d}0000", f"{period}{day:02d}2359"
+
+
 def normalize_province(p: str) -> str:
     if p == "강원도":
         return "강원특별자치도"
@@ -169,9 +173,26 @@ def fetch_page(
     retry_sleep: float,
 ) -> dict[str, Any]:
     begin, end = bounds(period)
+    return fetch_page_range(period, begin, end, page, num_rows, key, timeout, refresh, retries, retry_sleep, "")
+
+
+def fetch_page_range(
+    period: str,
+    begin: str,
+    end: str,
+    page: int,
+    num_rows: int,
+    key: str,
+    timeout: int,
+    refresh: bool,
+    retries: int,
+    retry_sleep: float,
+    cache_suffix: str,
+) -> dict[str, Any]:
     raw_dir = RAW / period
     raw_dir.mkdir(parents=True, exist_ok=True)
-    path = raw_dir / f"contract_{period}_n{num_rows}_{page:04d}.json"
+    suffix = f"_{cache_suffix}" if cache_suffix else ""
+    path = raw_dir / f"contract_{period}{suffix}_n{num_rows}_{page:04d}.json"
     if path.exists() and not refresh:
         return json.loads(path.read_text(encoding="utf-8"))
     params = {
@@ -266,12 +287,29 @@ def update_manifest(row: dict[str, Any]) -> None:
     with MANIFEST_LOCK:
         path = OUT / "phase248_pps_contract_collection_manifest.csv"
         row["period"] = str(row["period"])
+        previous = pd.DataFrame()
         if path.exists():
             try:
                 m = pd.read_csv(path, dtype={"period": str})
             except pd.errors.EmptyDataError:
                 m = pd.DataFrame()
             m["period"] = m["period"].astype(str).str.zfill(6)
+            previous = m[m["period"].astype(str).eq(str(row["period"]).zfill(6))].copy()
+            if not previous.empty and not row.get("complete") and not row.get("ok"):
+                prev = previous.iloc[-1]
+                # Do not let a failed refresh attempt with no response body erase
+                # the best known API total/partial progress for this month.
+                for col in ["total_count", "rows_collected", "pages_collected"]:
+                    try:
+                        old_value = int(float(prev.get(col, 0) or 0))
+                    except (TypeError, ValueError):
+                        old_value = 0
+                    try:
+                        new_value = int(float(row.get(col, 0) or 0))
+                    except (TypeError, ValueError):
+                        new_value = 0
+                    if old_value > new_value:
+                        row[col] = old_value
             m = m[m["period"].astype(str).ne(str(row["period"]))]
             m = pd.concat([m, pd.DataFrame([row])], ignore_index=True)
         else:
@@ -401,6 +439,127 @@ def collect_month(
     return row
 
 
+def collect_month_daily_split(
+    period: str,
+    num_rows: int,
+    key: str,
+    timeout: int,
+    sleep: float,
+    refresh: bool,
+    max_pages: int | None,
+    retries: int,
+    retry_sleep: float,
+    progress_every: int,
+) -> dict[str, Any]:
+    out_path = MONTHLY / f"pps_contract_{period}.csv"
+    if out_path.exists() and not refresh and manifest_complete(period):
+        existing = pd.read_csv(out_path)
+        row = {
+            "period": period,
+            "total_count": len(existing),
+            "rows_collected": len(existing),
+            "pages_collected": len(list((RAW / period).glob("contract_*.json"))),
+            "complete": True,
+            "skipped_existing": True,
+            "ok": True,
+            "error": "",
+            "created_at": CREATED_AT,
+            "raw_dir": str((RAW / period).relative_to(ROOT)),
+            "monthly_csv": str(out_path.relative_to(ROOT)),
+        }
+        update_manifest(row)
+        print(f"{period} skip existing rows={len(existing)}", flush=True)
+        return row
+
+    year, month = int(period[:4]), int(period[4:])
+    rows: list[dict[str, Any]] = []
+    total = 0
+    pages = 0
+    error = ""
+    for day in range(1, monthrange(year, month)[1] + 1):
+        begin, end = day_bounds(period, day)
+        page = 1
+        day_total = None
+        while True:
+            try:
+                data = fetch_page_range(
+                    period,
+                    begin,
+                    end,
+                    page,
+                    num_rows,
+                    key,
+                    timeout,
+                    refresh,
+                    retries,
+                    retry_sleep,
+                    f"d{day:02d}",
+                )
+                b = body_of(data)
+                if day_total is None:
+                    day_total = int(b.get("totalCount") or 0)
+                    total += day_total
+                items = items_of(data)
+                rows.extend(items)
+                pages += 1
+                if page * num_rows >= day_total:
+                    break
+                if max_pages is not None and page >= max_pages:
+                    break
+                page += 1
+                if sleep:
+                    time.sleep(sleep)
+            except Exception as exc:
+                error = repr(exc)
+                break
+        if error:
+            break
+        if progress_every and day % progress_every == 0:
+            print(f"{period} daily progress day={day:02d} rows={len(rows):,}/{total:,} pages={pages}", flush=True)
+        if sleep:
+            time.sleep(sleep)
+
+    if error:
+        row = {
+            "period": period,
+            "total_count": int(total or 0),
+            "rows_collected": int(len(rows)),
+            "pages_collected": int(pages),
+            "complete": False,
+            "skipped_existing": False,
+            "ok": False,
+            "error": error,
+            "created_at": CREATED_AT,
+            "raw_dir": str((RAW / period).relative_to(ROOT)),
+            "monthly_csv": str(out_path.relative_to(ROOT)),
+        }
+        update_manifest(row)
+        print(f"{period} daily rows={len(rows):,}/{int(total or 0):,} pages={pages} complete=False error=yes", flush=True)
+        return row
+
+    df = normalize_month(period, rows)
+    if {"untyCntrctNo", "cntrctRefNo"}.issubset(df.columns):
+        df = df.drop_duplicates(["untyCntrctNo", "cntrctRefNo"], keep="last")
+    MONTHLY.mkdir(parents=True, exist_ok=True)
+    df.to_csv(out_path, index=False, encoding="utf-8-sig")
+    row = {
+        "period": period,
+        "total_count": int(total or 0),
+        "rows_collected": int(len(df)),
+        "pages_collected": int(pages),
+        "complete": bool(total is not None and len(df) >= total and max_pages is None),
+        "skipped_existing": False,
+        "ok": True,
+        "error": "",
+        "created_at": CREATED_AT,
+        "raw_dir": str((RAW / period).relative_to(ROOT)),
+        "monthly_csv": str(out_path.relative_to(ROOT)),
+    }
+    update_manifest(row)
+    print(f"{period} daily rows={len(df):,}/{int(total or 0):,} pages={pages} complete={row['complete']} error=no", flush=True)
+    return row
+
+
 def write_aggregate(start: str, end: str) -> None:
     files = sorted(MONTHLY.glob("pps_contract_*.csv"))
     frames = []
@@ -506,15 +665,17 @@ def main() -> int:
     parser.add_argument("--retries", type=int, default=8)
     parser.add_argument("--retry-sleep", type=float, default=45.0)
     parser.add_argument("--progress-every", type=int, default=10)
+    parser.add_argument("--daily-split", action="store_true", help="split incomplete months into day-sized API queries")
     args = parser.parse_args()
     key = service_key()
     RAW.mkdir(parents=True, exist_ok=True)
     MONTHLY.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     periods = month_iter(args.start, args.end)
+    collector = collect_month_daily_split if args.daily_split else collect_month
     if args.workers <= 1:
         for period in periods:
-            row = collect_month(
+            row = collector(
                 period,
                 args.num_rows,
                 key,
@@ -534,7 +695,7 @@ def main() -> int:
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
             futures = {
                 executor.submit(
-                    collect_month,
+                    collector,
                     period,
                     args.num_rows,
                     key,

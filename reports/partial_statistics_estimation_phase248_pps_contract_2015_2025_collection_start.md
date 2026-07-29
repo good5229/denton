@@ -95,6 +95,17 @@
 
 병렬 수집은 가능하지만 API timeout/할당량 리스크가 있으므로 안정화 전에는 `--workers 1`을 기본으로 둔다.
 
+월 전체 쿼리가 특정 page에서 반복 timeout이면 일자 단위 쿼리로 쪼개는 우회 경로를 사용한다.
+
+```bash
+.venv/bin/python nationwide/collect_phase248_pps_contract_incremental.py \
+  --start 201610 --end 201610 --daily-split \
+  --num-rows 999 --timeout 45 --sleep 0.02 \
+  --retries 8 --retry-sleep 45 --stop-on-error
+```
+
+실패한 refresh가 기존 partial manifest를 0건으로 덮지 않도록, 수집기는 실패 행을 기록할 때 기존 `total_count`, `rows_collected`, `pages_collected`의 더 큰 값을 보존한다.
+
 특정 구간만 재개하려면 예:
 
 ```bash
