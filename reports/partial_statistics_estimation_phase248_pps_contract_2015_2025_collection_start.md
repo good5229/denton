@@ -68,6 +68,7 @@
 - 수집기 로직은 2015년 전체와 2016년 1~9월에서 정상 동작했다.
 - 2016년 10월 이후에는 raw page 일부 또는 빈 monthly CSV가 있어 `quality_complete=False`로 분리한다.
 - 본분석은 `quality_complete=True` 월만 사용하고, 연간 검증은 12개월 모두 complete인 연도만 채택한다.
+- 공공데이터포털의 조달청 나라장터 공공데이터개방표준서비스 페이지에는 계약정보 오퍼레이션의 응답지연·부하 해소 작업으로 조회기간을 `1개월 → 1주일`로 축소 운영한다는 공지가 있다. 따라서 월 단위 대량 조회에서 발생한 `HTTP 429 Too Many Requests`는 제공기관의 부하 제한과 일관된다.
 
 ## 5. 수집량 추정
 
@@ -84,24 +85,25 @@
 
 ## 6. 다음 재개 명령
 
-외부 API 호출 가능 상태에서 아래 명령으로 재개한다. 기존 complete 월은 건너뛰고, 불완전 월은 `--refresh`로 재수집하는 편이 안전하다.
+외부 API 호출 가능 상태에서 아래 명령으로 재개한다. 기존 complete 월은 건너뛰고, 불완전 월은 기존 raw cache를 최대한 활용해 이어받는다. 단, 월 단위 조회는 반복적으로 `HTTP 429`가 발생했으므로 실무 재개 기본값은 일 단위 분할이다.
 
 ```bash
 .venv/bin/python nationwide/collect_phase248_pps_contract_incremental.py \
   --start 201610 --end 202512 \
-  --num-rows 999 --timeout 45 --sleep 0.03 \
-  --retries 8 --retry-sleep 45 --stop-on-error --refresh
+  --daily-split \
+  --num-rows 999 --timeout 120 --sleep 2 \
+  --retries 10 --retry-sleep 60 --workers 1
 ```
 
 병렬 수집은 가능하지만 API timeout/할당량 리스크가 있으므로 안정화 전에는 `--workers 1`을 기본으로 둔다.
 
-월 전체 쿼리가 특정 page에서 반복 timeout이면 일자 단위 쿼리로 쪼개는 우회 경로를 사용한다.
+API가 안정화되어 월 단위 조회가 허용되는 시점에는 아래처럼 월 단위 증분 재개도 가능하다. 다만 2016년 10월 27페이지에서 반복 429가 발생했으므로 본 경로는 보조 경로로 둔다.
 
 ```bash
 .venv/bin/python nationwide/collect_phase248_pps_contract_incremental.py \
-  --start 201610 --end 201610 --daily-split \
-  --num-rows 999 --timeout 45 --sleep 0.02 \
-  --retries 8 --retry-sleep 45 --stop-on-error
+  --start 201610 --end 202512 \
+  --num-rows 999 --timeout 120 --sleep 5 \
+  --retries 20 --retry-sleep 120 --workers 1
 ```
 
 실패한 refresh가 기존 partial manifest를 0건으로 덮지 않도록, 수집기는 실패 행을 기록할 때 기존 `total_count`, `rows_collected`, `pages_collected`의 더 큰 값을 보존한다.
