@@ -12,6 +12,8 @@
 | 전국 분기 GDP/순생산물세 | 위 XLSX의 전국 행 및 기존 `data/raw/national_quarterly_gdp_real.json` | 통계청/한국은행 계열 국민계정·지역소득 파생 | 전국 계절비중, 전국 GDP actual 비교 경계 | 분기 |
 | 시도/산업별 광공업생산지수(2020=100) | `data/processed/mining_production_index.csv`, `data/processed/phase195_monthly_mining_manufacturing_production_index.csv` | KOSIS 국가통계포털 / 광업제조업동향조사 | 광업·제조업 시간경로 분리 후보. 광업 2019-01~2023-04, 제조업 2019-01~2025-05 로컬 보유 | 월간. KOSIS 경제상황판 기준 광공업생산지수·제조업생산지수는 광업제조업동향조사 원천 |
 | 기본분류 일부항목 제외 광공업생산지수(2020=100) | `data/processed/phase195_monthly_detail_manufacturing_production_index.csv` | KOSIS 국가통계포털 / 광업제조업동향조사 | 제조업 세부산업 시간경로 후보. 반도체 및 부품 등 일부 세부 항목 보유 | 월간 |
+| 전국 산업별 서비스업생산지수(2020=100) | `data/processed/phase208_monthly_indicator_collection/phase208_DT_1KC2020_산업별_서비스업생산지수_2020_100.0.csv` | KOSIS 국가통계포털 / 서비스업동향조사 | 도소매·운수창고·숙박음식·정보통신·금융보험·부동산·사업서비스·교육·보건복지·문화기타의 분기 내 월별 시간경로. 전국 지수이므로 시군구 공간배분 근거로 사용하지 않음 | 월간. 로컬 보유기간 2020-01~2025-05 |
+| 전국 전산업생산지수 원지수(2020=100) | `data/processed/phase208_monthly_indicator_collection/phase208_DT_1JH20201_전산업생산지수_원지수.csv` | KOSIS 국가통계포털 / 전산업생산지수 계열 | 건설업·공공행정의 분기 내 월별 시간경로. 전국 지수이므로 시군구 공간배분 근거로 사용하지 않음 | 월간. 로컬 보유기간 2020-01~2025-05 |
 | 조달청 나라장터 공사계약 정보 | `data/raw/phase248_pps_contract_incremental/`, `data/processed/phase248_pps_contract_monthly/`, `data/processed/phase248_pps_contract_collection_manifest.csv` | 공공데이터포털 / 조달청 나라장터 계약정보서비스 | 공공공사 계약금액·계약일·착공일 기반 건설업 보조 활동자료. 원 API는 전국 계약행을 제공하며, 고양·포항·기타 시군구 분석은 이 전국 원본에서 지역명을 추출한 부분집합 | 수시/일별 계약정보 성격. 대량 월 조회는 429 제한이 발생해 월별 또는 일별 증분 수집·품질게이트 필요 |
 | CALS 공사계약/공사목록 | `data/processed/phase241_cals_construction_contract_rows.csv` | 건설CALS/공공 공사정보 계열 공개자료 | 도로·하천 등 공공/SOC 공사의 계약·공사 위치 보조자료. 민간 건축공사를 포함하지 않음 | 공사정보 갱신형 공개 스냅샷 |
 | LH 분양임대공고 | `data/processed/phase243_lh_notice_rows_202101_202312.csv` | LH 청약/분양임대공고 공개 페이지 | 공공주택·토지 공급 이벤트의 위치·시점 보조자료. 금액 자료가 아니므로 건설업 GVA 단독 배분 기준으로 사용하지 않음 | 공고 발생 시 수시 갱신 |
@@ -26,6 +28,7 @@
 | 통계청 실험적 분기 GRDP | 로컬 Phase22 기준 2025Q1 2025-06-26, 2025Q2 2025-09-26, 2025Q3 2025-12-26, 2025Q4 2026-03-30, 2026Q1 2026-06-29 공표 확인 | 분기 actual 검증 경계. Q+1개월 엄격 속보 성과로 직접 주장하지 않음 |
 | 시군구 연간 GRVA | 시도별 KOSIS 표 최신 변경일 상이 | 2023년 원천 부재 시도는 직전 예측 또는 시도 공식총량 보정으로 별도 감사 |
 | 광업제조업동향조사 생산지수 | 월간 지표. 최신 KOSIS 스냅샷에는 과거 빈티지별 공표시점 장부가 완전히 포함되지 않음 | 광업·제조업 내부 시간경로 분리 및 제조업 세부 시간배분 후보. 공개 actual 검증은 다시 `광업+제조업`으로 합산 |
+| 서비스업동향조사·산업활동동향 생산지수 | 월간 지표. 최신 KOSIS 스냅샷에는 과거 빈티지별 공표시점 장부가 완전히 포함되지 않음 | 시도별 서비스업 지수는 rolling gate가 필요하고, 전국 산업별 서비스업 지수와 전산업생산지수 원지수는 월 bridge의 시간경로로만 사용 |
 | 조달청 공사계약 정보 | 계약 발생 후 공개되는 수시 자료이나, 대량 API 조회는 호출량·조회범위 제한의 영향을 받음 | 건설업 시군구 공간배분 보조 신호로만 후보화한다. `계약정보 텍스트 기반 지역 귀속 공공공사 계약액`으로 표기하고, 전체 건설업 실제 기성액 또는 민간공사 금액으로 해석하지 않는다. |
 
 ## 조달청 공사계약 수집 게이트
@@ -44,7 +47,7 @@
 
 | 점검 항목 | 결과 |
 | --- | --- |
-| 현재 생산·서비스 지수 기준 | `rolling_mining_manufacturing_production_index.csv`, `rolling_mining_production_index.csv`, `rolling_electricity_gas_production_index.csv`, `rolling_service_production_index.csv`, `expanded_national_service_ksic_production_index.csv` 모두 로컬 기준 `2020=100` |
+| 현재 생산·서비스 지수 기준 | `rolling_mining_manufacturing_production_index.csv`, `rolling_mining_production_index.csv`, `rolling_electricity_gas_production_index.csv`, `rolling_service_production_index.csv`, `expanded_national_service_ksic_production_index.csv`, `phase208_DT_1KC2020_산업별_서비스업생산지수_2020_100.0.csv`, `phase208_DT_1JH20201_전산업생산지수_원지수.csv` 모두 로컬 기준 `2020=100` |
 | 보유 기간 | 주요 rolling 지수는 2015년부터 2025년 4~5월까지 소급 보유 |
 | 2015=100 구계열 존재 여부 | 현재 로컬에는 별도 legacy 2015-base 파일 없음 |
 | bridge 산출물 | `data/processed/index_base_bridge_source_summary.csv`는 2020 기준 소급자료 요약, `index_base_bridge_factors.csv`는 `no_legacy_2015_base_files` 상태 안내, `index_base_bridge_converted_2020_base.csv`는 변환 대상 부재로 비어 있음 |
