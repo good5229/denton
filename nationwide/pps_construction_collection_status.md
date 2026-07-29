@@ -94,7 +94,7 @@
 raw 파싱 sanity check:
 
 - 2021년 4월 명령: `.venv/bin/python nationwide/run_pps_construction_nationwide_signal.py --start 202104 --end 202104 --raw-dir data/raw/phase122_pps_bid_notices_robust --output-suffix robust_n100_complete`
-- 2021년 Q2 명령: `.venv/bin/python nationwide/run_pps_construction_nationwide_signal.py --start 202104 --end 202106 --raw-dir data/raw/phase122_pps_bid_notices_robust --output-suffix robust_2021q2_n100_complete`
+- 2021년 Q2 명령: `.venv/bin/python nationwide/run_pps_construction_nationwide_signal.py --start 202104 --end 202106 --raw-dir data/raw/phase122_pps_bid_notices_robust --output-suffix robust_202104_202106_complete`
 - 2021년 4월 결과: 전체자료 17,438건 중 시군구 정확 귀속 15,100건, 33,790억원
 - 2021년 Q2 결과: 전체자료 48,114건 중 시군구 정확 귀속 40,792건, 107,330억원
 - 판정: 파싱·시군구 귀속 정상, 2021년 Q2 완전월 신호로 feasibility audit 가능
@@ -114,7 +114,7 @@ raw 파싱 sanity check:
 
 ## 2021년 4~6월 완전월 성능 감사
 
-2021년 4월, 5월, Q2 완전월 PPS 신호를 2021년 건설업 시군구 actual에 대해 감사했다.
+2021년 4월, 5월, 6월, 1~6월 누적 PPS 신호를 2021년 건설업 시군구 actual에 대해 감사했다.
 
 | 신호 | 기준 WAPE | 최선 WAPE | Guardrail 통과 |
 | --- | ---: | ---: | --- |
@@ -122,13 +122,16 @@ raw 파싱 sanity check:
 | 2021년 1~4월 누적 | 13.415% | 13.296% | 없음 |
 | 2021년 5월 단독 | 13.415% | 13.356% | 없음 |
 | 2021년 1~5월 누적 | 13.415% | 13.287% | 없음 |
-| 2021년 Q2 완전월 | 13.415% | 13.372% | 없음 |
+| 2021년 6월 단독 | 13.415% | 13.400% | `기존 share 99% + PPS 공고수 share 1%` |
+| 2021년 1~6월 누적 | 13.415% | 13.322% | 없음 |
 
 해석:
 
 - 4~6월 완전월을 추가해도 PPS 공사공고는 WAPE를 소폭 낮추는 데 그친다.
 - 2021년 1~5월 누적 기준 WAPE 최선 후보는 WAPE를 13.415%→13.287%로 낮추지만 10% 초과 셀을 117→120, 20% 초과 셀을 60→61, 최대 APE를 89.249%→105.665%로 악화시켜 채택하지 않는다.
-- 2021년 Q2 완전월 기준 최선 후보는 WAPE 13.415%→13.372%, 10% 초과 셀 117→116, 20% 초과 셀 60→59로 개선되지만 최대 APE가 89.249%→89.478%로 소폭 악화되어 guardrail을 통과하지 못한다.
+- 2021년 6월 단독 기준 최선 후보는 WAPE 13.415%→13.400%, 10% 초과 셀 117→116, 20% 초과 셀 60→58, 최대 APE 89.249%→88.814%로 모두 개선되어 guardrail을 통과한다.
+- 그러나 2021년 1~6월 누적 기준 WAPE 최선 후보는 WAPE 13.415%→13.322%, 20% 초과 셀 60→57로 낮추지만 최대 APE가 89.249%→92.790%로 악화되어 채택하지 않는다.
+- 따라서 6월 단독 결과는 PPS가 보조 신호로 의미 있음을 보여주는 근거일 뿐, 운영 route 채택 근거가 아니다.
 - 따라서 PPS는 여전히 건설업 공간배분의 단독 route가 아니라 건축HUB·재건축/재개발 자료와 결합할 보조 신호다.
 
 ## 현재 가능한 검증
@@ -137,13 +140,14 @@ raw 파싱 sanity check:
 | --- | --- | --- |
 | 2023 부분기간 PPS 미세 보정 감사 | 가능 | `construction_pps_sigungu_spatial_audit.md` |
 | 2021 Q1 속보형 PPS 감사 | 가능 | `construction_pps_sigungu_spatial_audit_2021q1_flash.md` |
-| 2021 4~6월 완전월 추가 감사 | 가능 | `construction_pps_sigungu_spatial_audit_2021m04_flash.md`, `construction_pps_sigungu_spatial_audit_2021m05_flash.md`, `construction_pps_sigungu_spatial_audit_2021m01_m05_flash.md`, `construction_pps_sigungu_spatial_audit_2021q2_complete.md` |
+| 2021 4~6월 완전월 추가 감사 | 가능 | `construction_pps_sigungu_spatial_audit_2021m04_flash.md`, `construction_pps_sigungu_spatial_audit_2021m05_flash.md`, `construction_pps_sigungu_spatial_audit_2021m06_flash.md`, `construction_pps_sigungu_spatial_audit_2021m01_m06_flash.md` |
 | 2021~2025 rolling out-of-year PPS 검증 | 불가 | 전 기간 raw 불완전. 2021년 4~6월은 완전월이지만 2021년 하반기 이후가 아직 부족 |
 
 ## 현재 판정
 
 - 2023 부분기간에서는 `기존 share 98% + PPS 금액 share 2%`가 guardrail을 통과했다.
-- 2021 Q1, 4월, 5월, 1~5월 누적, Q2 완전월 속보형에서는 WAPE가 일부 낮아져도 10% 초과 셀·20% 초과 셀·최대오차율 중 하나 이상이 악화되어 guardrail 통과 후보가 없었다.
+- 2021 Q1, 4월, 5월, 1~5월 누적, 1~6월 누적 속보형에서는 WAPE가 일부 낮아져도 10% 초과 셀·20% 초과 셀·최대오차율 중 하나 이상이 악화되어 guardrail 통과 후보가 없었다.
+- 2021년 6월 단독은 guardrail 통과 후보가 있었지만, 단일 월 결과이므로 운영 route 채택 근거가 아니라 보조 신호 후보 근거로만 남긴다.
 - 따라서 PPS는 아직 운영 route가 아니라 건축HUB·재건축/재개발 자료와 결합할 후보 신호다.
 
 ## 다음 수집 제안

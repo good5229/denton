@@ -136,6 +136,8 @@ def main() -> int:
         rows_done = 0
         consecutive_errors = 0
         while True:
+            if args.end_page is not None and page > args.end_page:
+                break
             try:
                 data, path = fetch(period, page, args.num_rows, key, args.timeout, args.refresh)
                 body = body_of(data)
@@ -160,6 +162,8 @@ def main() -> int:
                 if consecutive_errors >= args.max_consecutive_errors:
                     break
                 page += 1
+                if args.end_page is not None and page > args.end_page:
+                    break
         manifest.append(
             {
                 "created_at": CREATED_AT,
