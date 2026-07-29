@@ -161,10 +161,6 @@ def validation_summary() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
 def pps_status() -> dict[str, object]:
     cov = pd.read_csv(SOURCE_COVERAGE)
-    row = cov[cov["source_id"].eq("pps_contract_info")]
-    if row.empty:
-        return {"status": "missing_from_source_coverage"}
-    r = row.iloc[0].to_dict()
     def fmt_intish(value: object) -> object:
         try:
             if pd.isna(value):
@@ -174,14 +170,38 @@ def pps_status() -> dict[str, object]:
         except Exception:
             return value
 
-    return {
-        "coverage_status": r.get("coverage_status"),
-        "period_min": r.get("period_min"),
-        "period_max": r.get("period_max"),
-        "pps_months_complete": fmt_intish(r.get("pps_months_complete")),
-        "pps_adoptable_years": fmt_intish(r.get("pps_adoptable_years")),
-        "pps_first_incomplete_period": fmt_intish(r.get("pps_first_incomplete_period")),
-    }
+    out: dict[str, object] = {}
+    contract = cov[cov["source_id"].eq("pps_contract_info")]
+    if contract.empty:
+        out["contract_status"] = "missing_from_source_coverage"
+    else:
+        r = contract.iloc[0].to_dict()
+        out.update(
+            {
+                "contract_status": r.get("coverage_status"),
+                "contract_period_min": r.get("period_min"),
+                "contract_period_max": r.get("period_max"),
+                "contract_months_complete": fmt_intish(r.get("pps_months_complete")),
+                "contract_adoptable_years": fmt_intish(r.get("pps_adoptable_years")),
+                "contract_first_incomplete_period": fmt_intish(r.get("pps_first_incomplete_period")),
+            }
+        )
+    bid = cov[cov["source_id"].eq("pps_bid_notice_robust")]
+    if bid.empty:
+        out["bid_status"] = "missing_from_source_coverage"
+    else:
+        r = bid.iloc[0].to_dict()
+        out.update(
+            {
+                "bid_status": r.get("coverage_status"),
+                "bid_period_min": r.get("period_min"),
+                "bid_period_max": r.get("period_max"),
+                "bid_months_complete": fmt_intish(r.get("pps_months_complete")),
+                "bid_complete_periods": r.get("pps_complete_periods"),
+                "bid_first_incomplete_period": fmt_intish(r.get("pps_first_incomplete_period")),
+            }
+        )
+    return out
 
 
 def requirement_rows(
@@ -199,8 +219,8 @@ def requirement_rows(
         {
             "requirement": "2015~2025 사용자료 전체 수집",
             "current_status": "partial",
-            "evidence": f"{direct_coverage_count}개 자료군은 2015~2025 직접 coverage, PPS={pps.get('coverage_status')}, 시군구 GVA actual={sigungu_year_min}~{sigungu_year_max}",
-            "next_action": "PPS API 쿨다운 후 건설 공사계약 전량 수집; 시군구 actual 공표 공백은 상위 집계검증으로 분리 표기",
+            "evidence": f"{direct_coverage_count}개 자료군은 2015~2025 직접 coverage, PPS계약={pps.get('contract_status')}, PPS공고={pps.get('bid_status')}, 시군구 GVA actual={sigungu_year_min}~{sigungu_year_max}",
+            "next_action": "PPS API 쿨다운 후 건설 공사계약/공사공고 완전월 수집; 시군구 actual 공표 공백은 상위 집계검증으로 분리 표기",
         },
         {
             "requirement": "기준연도 다른 지수 조정",
@@ -235,8 +255,8 @@ def requirement_rows(
         {
             "requirement": "건설업 직접 활동자료 route 전국 채택",
             "current_status": "blocked_by_pps_api_quota",
-            "evidence": f"PPS first incomplete={pps.get('pps_first_incomplete_period')}, adoptable_years={pps.get('pps_adoptable_years')}",
-            "next_action": "429 해제 후 월/일 단위 재개; quality_complete 연도만 rolling 검증에 투입",
+            "evidence": f"PPS계약 first incomplete={pps.get('contract_first_incomplete_period')}, adoptable_years={pps.get('contract_adoptable_years')}; PPS공고 complete={pps.get('bid_complete_periods')}, first incomplete={pps.get('bid_first_incomplete_period')}",
+            "next_action": "429 해제 후 월/일 단위 재개; 계약은 quality_complete 연도만, 공고는 완전월만 rolling 검증에 투입",
         },
         {
             "requirement": "과학자/평가자 검증",

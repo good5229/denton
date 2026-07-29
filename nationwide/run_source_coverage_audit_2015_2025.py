@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime
+from math import ceil
 from pathlib import Path
 from typing import Any
 
@@ -194,6 +195,19 @@ SOURCE_SPECS: list[dict[str, Any]] = [
         "role": "건설업 공공공사 계약금액 보조자료",
         "notes": "API 429로 전량 미완료. 공공공사 계약액이지 전체 건설업 actual이 아니다.",
         "special": "pps_manifest",
+    },
+    {
+        "source_id": "pps_bid_notice_robust",
+        "label": "조달청 나라장터 공사공고 robust cache",
+        "path": "data/raw/phase122_pps_bid_notices_robust",
+        "provider": "공공데이터포털/조달청",
+        "expected_time": "month/page",
+        "expected_geo": "nationwide_text_attribution",
+        "expected_scope": "nationwide_public_bid_notices",
+        "index_base": "amount_not_index",
+        "role": "건설업 공공공사 공고 위치·예산 보조자료",
+        "notes": "numRows=100 raw cache 기준 완전월만 성능감사에 투입. 공사공고는 전체 건설업 actual이 아니다.",
+        "special": "pps_bid_robust_dir",
     },
     {
         "source_id": "cals_contracts",
@@ -383,11 +397,102 @@ def pps_manifest_stats(df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+def body_of(data: dict[str, Any]) -> dict[str, Any]:
+    res = data.get("response", data)
+    body = res.get("body", {})
+    return body if isinstance(body, dict) else {}
+
+
+def item_count(data: dict[str, Any]) -> int:
+    items = body_of(data).get("items", [])
+    if isinstance(items, list):
+        return len(items)
+    if isinstance(items, dict):
+        item = items.get("item", items)
+        if isinstance(item, list):
+            return len(item)
+        if isinstance(item, dict):
+            return 1
+    return 0
+
+
+def pps_bid_robust_stats(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    pattern = re.compile(r"cnstwk_(20\d{4})_n(\d+)_(\d{4})\.json$")
+    by_period: dict[str, list[tuple[int, int, Path]]] = {}
+    for p in path.glob("cnstwk_*_n*_*.json"):
+        m = pattern.match(p.name)
+        if not m:
+            continue
+        by_period.setdefault(m.group(1), []).append((int(m.group(3)), int(m.group(2)), p))
+    rows: list[dict[str, Any]] = []
+    for period, pages in sorted(by_period.items()):
+        # Keep the robust numRows=100 cache separate from legacy or future
+        # page-size variants. Mixing page sizes makes page numbers non-comparable.
+        pages_100 = [(page, n, p) for page, n, p in pages if n == 100]
+        if not pages_100:
+            continue
+        total_count = 0
+        cached_items = 0
+        page_nums: list[int] = []
+        for page, _, p in pages_100:
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                continue
+            body = body_of(data)
+            if not total_count:
+                total_count = int(body.get("totalCount") or 0)
+            cached_items += item_count(data)
+            page_nums.append(page)
+        expected_pages = ceil(total_count / 100) if total_count else 0
+        missing = [x for x in range(1, expected_pages + 1) if x not in set(page_nums)] if expected_pages else []
+        rows.append(
+            {
+                "period": period,
+                "total_count": total_count,
+                "expected_pages": expected_pages,
+                "cached_pages": len(set(page_nums)),
+                "cached_items": cached_items,
+                "complete": bool(expected_pages and len(set(page_nums)) == expected_pages and cached_items == total_count and not missing),
+                "missing_page_count": len(missing),
+            }
+        )
+    if not rows:
+        return {}
+    df = pd.DataFrame(rows)
+    complete = df["complete"].astype(bool)
+    years = df["period"].astype(str).str[:4].astype(int)
+    complete_periods = df.loc[complete, "period"].astype(str).tolist()
+    incomplete_periods = df.loc[~complete, "period"].astype(str).tolist()
+    return {
+        "rows": int(df["cached_items"].sum()),
+        "columns": 7,
+        "period_min": str(df["period"].min()),
+        "period_max": str(df["period"].max()),
+        "period_count": int(df["period"].nunique()),
+        "year_min": int(years.min()),
+        "year_max": int(years.max()),
+        "pps_months_complete": int(complete.sum()),
+        "pps_complete_periods": ",".join(complete_periods),
+        "pps_first_incomplete_period": incomplete_periods[0] if incomplete_periods else "",
+        "pps_cached_pages": int(df["cached_pages"].sum()),
+        "pps_expected_pages": int(df["expected_pages"].sum()),
+        "pps_cached_items": int(df["cached_items"].sum()),
+        "pps_total_count": int(df["total_count"].sum()),
+    }
+
+
 def coverage_status(row: dict[str, Any]) -> str:
     if not row["exists"]:
         return "missing"
     if row["source_id"] == "pps_contract_info":
         return "blocked_api_incomplete" if row.get("pps_adoptable_years", 0) < 11 else "complete"
+    if row["source_id"] == "pps_bid_notice_robust":
+        if row.get("pps_first_incomplete_period"):
+            return "partial_complete_months"
+        return "complete" if row.get("pps_months_complete", 0) else "missing"
     if row["source_id"] == "index_base_bridge":
         return "metadata_ok"
     if row["expected_scope"] in {"local_only", "partial_industry", "public_soc_partial", "public_housing_land_partial"}:
@@ -411,18 +516,31 @@ def main() -> int:
     rows: list[dict[str, Any]] = []
     for spec in SOURCE_SPECS:
         path = ROOT / spec["path"]
-        df, encoding, read_status = read_table(path)
-        row: dict[str, Any] = {
-            **spec,
-            "local_path": spec["path"],
-            "exists": path.exists(),
-            "read_status": read_status,
-            "encoding_or_type": encoding,
-            "rows": int(len(df)) if read_status == "ok" else 0,
-            "columns": int(len(df.columns)) if read_status == "ok" else 0,
-        }
-        row.update(period_stats(df))
-        row.update(geo_stats(df, spec.get("expected_geo", "")))
+        if spec.get("special") == "pps_bid_robust_dir":
+            df = pd.DataFrame()
+            row = {
+                **spec,
+                "local_path": spec["path"],
+                "exists": path.exists(),
+                "read_status": "directory_ok" if path.exists() else "missing",
+                "encoding_or_type": "json_pages",
+                "rows": 0,
+                "columns": 0,
+            }
+            row.update(pps_bid_robust_stats(path))
+        else:
+            df, encoding, read_status = read_table(path)
+            row = {
+                **spec,
+                "local_path": spec["path"],
+                "exists": path.exists(),
+                "read_status": read_status,
+                "encoding_or_type": encoding,
+                "rows": int(len(df)) if read_status == "ok" else 0,
+                "columns": int(len(df.columns)) if read_status == "ok" else 0,
+            }
+            row.update(period_stats(df))
+            row.update(geo_stats(df, spec.get("expected_geo", "")))
         if spec.get("special") == "pps_manifest":
             row.update(pps_manifest_stats(df))
         row["coverage_status"] = coverage_status(row)
@@ -437,8 +555,14 @@ def main() -> int:
         if df.empty:
             return "_해당 없음_"
         x = df.copy()
+        def fmt_cell(value: object) -> str:
+            if pd.isna(value):
+                return ""
+            if isinstance(value, float) and value.is_integer():
+                return str(int(value))
+            return str(value)
         for c in x.columns:
-            x[c] = x[c].fillna("").astype(str)
+            x[c] = x[c].map(fmt_cell)
         lines = ["| " + " | ".join(x.columns) + " |", "| " + " | ".join(["---"] * len(x.columns)) + " |"]
         for _, r in x.iterrows():
             lines.append("| " + " | ".join(str(r[c]).replace("|", "/") for c in x.columns) + " |")
@@ -458,6 +582,9 @@ def main() -> int:
         "index_base",
         "expected_scope",
         "coverage_status",
+        "pps_months_complete",
+        "pps_complete_periods",
+        "pps_first_incomplete_period",
         "notes",
     ]
     report = f"""# 2015~2025 전국 자료 coverage 감사
@@ -481,6 +608,7 @@ def main() -> int:
 - `시도별 분기 GRDP/GDP`, 생산·서비스 지수 계열은 2015~2025 전국/시도 검증에 대체로 사용 가능하다.
 - 시군구 연간 GVA actual은 공식 공표 범위가 2020~2023 중심이고 시도별 누락연도가 있다. 따라서 2015~2025 전기간 시군구 actual 검증은 불가능하며, 2021~2025 backtest는 직전연도/재귀 기준값과 상위 집계검증을 병행해야 한다.
 - 조달청 공사계약은 전국 원본 성격이 맞지만 API 429로 전량 수집이 끝나지 않았다. 현재는 건설업 전국 route 채택이 아니라 수집·품질게이트 보류 상태다.
+- 조달청 공사공고 robust cache는 공사계약 API 제한 중 수집 가능한 보조자료이나, 완전월만 성능감사에 투입한다. 현재 완전월과 부분월은 자료별 판정 표의 `pps_complete_periods`, `pps_first_incomplete_period`로 분리한다.
 - CALS, LH, 서울 도시정비사업은 보조자료이며, 각각 공공/SOC·공공주택·서울 정비사업으로 범위가 제한된다.
 - 현재 로컬 주요 지수는 2020=100 소급계열이므로 2015=100/2020=100 혼재 왜곡은 확인되지 않았다. 향후 legacy 2015=100 계열이 추가되면 bridge year 재기준화가 필요하다.
 
