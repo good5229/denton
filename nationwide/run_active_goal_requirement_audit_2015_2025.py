@@ -51,6 +51,7 @@ PHASE261_CONSTRUCTION_OVERALL = OUT / "phase261_construction_regime_gate_overall
 PHASE261_CONSTRUCTION_HOLDOUT = OUT / "phase261_construction_regime_gate_holdout_summary.csv"
 PHASE261_CONSTRUCTION_SELECTION = OUT / "phase261_construction_regime_gate_selection.csv"
 PHASE262_SERVICE_READINESS = OUT / "phase262_service_residual_readiness_summary.csv"
+PHASE263_SERVICE_SOURCE_PROBE = ROOT / "reports" / "partial_statistics_estimation_phase263_service_direct_source_probe.md"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -443,6 +444,16 @@ def requirement_rows(
             "next_action": "월별 KOSIS 지표는 시간경로 전용으로 유지; 운수·숙박음식·정보통신은 시군구 금액형/공간형 직접 활동자료 수집 후 rolling gate 재검증",
         },
         {
+            "requirement": "비건설 서비스업 직접활동자료 수집 후보",
+            "current_status": "source_candidates_identified_not_collected",
+            "evidence": (
+                "Phase263 웹 후보 점검 완료: 운수·창고업=해수부 항만 물동량/국토부 물류창고업등록정보, "
+                "숙박·음식점업=LOCALDATA 음식점·숙박 인허가 전체자료, "
+                "정보통신업=방송산업 실태조사/KOBIS 보조"
+            ),
+            "next_action": "물류창고업등록정보와 LOCALDATA 전체자료를 우선 수집하고, 항만·방송·KOBIS는 세부업종 gate로 제한해 rolling out-of-year 검증 후 채택 여부 결정",
+        },
+        {
             "requirement": "과학자/평가자 검증",
             "current_status": "latest_monthly_bridge_postaudit_reflected",
             "evidence": "월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적",
@@ -656,6 +667,7 @@ def main() -> None:
 - `reports/partial_statistics_estimation_phase260_mfg_electricity_factory_interaction.md`
 - `reports/partial_statistics_estimation_phase261_construction_regime_gated_route.md`
 - `reports/partial_statistics_estimation_phase262_service_residual_source_readiness.md`
+- `reports/partial_statistics_estimation_phase263_service_direct_source_probe.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)

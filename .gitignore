@@ -25,6 +25,7 @@ nationwide/outputs/*.json
 
 # Generated/local CSV extracts
 *.csv
+*.CSV
 
 # Local reference documents
 reference/*.pdf
