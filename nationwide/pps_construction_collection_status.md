@@ -59,7 +59,7 @@
 | 202105 | 14,074 | 141 | 141 | 14,074 | 0 | 완전월 확보 |
 | 202106 | 16,602 | 167 | 167 | 16,602 | 0 | 완전월 확보 |
 | 202107 | 12,322 | 124 | 124 | 12,322 | 0 | 완전월 확보 |
-| 202108 | 9,161 | 92 | 5 | 500 | 87 | 불완전, 실험 미사용 |
+| 202108 | 9,161 | 92 | 33 | 3,300 | 59 | 불완전, 429로 실험 미사용 |
 
 명령 예시:
 
@@ -91,7 +91,7 @@
 | 202105 | 14,074 | 141 | 141 | 14,074 | 완전 |
 | 202106 | 16,602 | 167 | 167 | 16,602 | 완전 |
 
-2026-07-29 15~16시대 재시도에서 2021년 6월 167개 page 전체를 확보했다. 이후 2021년 7월도 124개 page 전체를 확보했다. 따라서 2021년 4~7월은 `numRows=100` robust cache 기준 완전월이며, feasibility audit에 투입할 수 있다. 2021년 8월은 5개 page만 받은 부분월이므로 성능 감사에 투입하지 않는다.
+2026-07-29 15~16시대 재시도에서 2021년 6월 167개 page 전체를 확보했다. 이후 2021년 7월도 124개 page 전체를 확보했다. 따라서 2021년 4~7월은 `numRows=100` robust cache 기준 완전월이며, feasibility audit에 투입할 수 있다. 2021년 8월은 33개 page만 받은 부분월이고 page 22 이후 재시도에서 `HTTP 429`가 반복되었으므로 성능 감사에 투입하지 않는다.
 
 raw 파싱 sanity check:
 
@@ -111,10 +111,11 @@ raw 파싱 sanity check:
 | page 141~175 | page 141,143~145,147,150~155,157 성공, 일부 timeout 후 중단 |
 | 202106 page 1~167 | 여러 차례 timeout 재시도 후 전체 page 확보 |
 | 202107 page 1~124 | 전·중·후반 page chunk 병렬 재시도 후 전체 page 확보 |
+| 202108 page 6~50 | page 6~20 추가 확보 후 page 21~26에서 `HTTP 429`; 재감사 기준 33/92 page 확보 |
 
 현재 대표 누락 page:
 
-- 없음
+- 202108: 22~35, 44~66, 71~92 등 59개 page
 
 ## 2021년 4~7월 완전월 성능 감사
 
@@ -147,7 +148,7 @@ raw 파싱 sanity check:
 | 2023 부분기간 PPS 미세 보정 감사 | 가능 | `construction_pps_sigungu_spatial_audit.md` |
 | 2021 Q1 속보형 PPS 감사 | 가능 | `construction_pps_sigungu_spatial_audit_2021q1_flash.md` |
 | 2021 4~7월 완전월 추가 감사 | 가능 | `construction_pps_sigungu_spatial_audit_2021m04_flash.md`, `construction_pps_sigungu_spatial_audit_2021m05_flash.md`, `construction_pps_sigungu_spatial_audit_2021m06_flash.md`, `construction_pps_sigungu_spatial_audit_2021m07_flash.md`, `construction_pps_sigungu_spatial_audit_2021m01_m06_flash.md` |
-| 2021~2025 rolling out-of-year PPS 검증 | 불가 | 전 기간 raw 불완전. 2021년 4~6월은 완전월이지만 2021년 하반기 이후가 아직 부족 |
+| 2021~2025 rolling out-of-year PPS 검증 | 불가 | 전 기간 raw 불완전. 2021년 4~7월은 완전월이지만 2021년 8월 이후가 아직 부족 |
 
 ## 현재 판정
 
@@ -161,3 +162,4 @@ raw 파싱 sanity check:
 1. 조달청 공사공고 API는 월 단위 전량 수집을 유지하되, timeout 발생 월은 페이지 단위 retry/resume manifest를 남기도록 collector를 보강한다.
 2. 가능하면 공사공고보다 계약/낙찰 API를 우선한다. 입찰공고보다 계약금액·계약일·공사기간이 GVA 발생시점에 더 가깝다.
 3. 2021~2025 전체 PPS가 채워진 뒤에만 과거연도 가중치 선택 → 목표연도 평가 방식의 rolling out-of-year 검증을 수행한다.
+4. 2021년 8월은 API throttling이 풀린 뒤 page 22부터 작은 chunk로 재개한다. 완전월 조건(`92/92 page`, `9,161건`, missing page 0)을 만족하기 전에는 어떤 성능표에도 포함하지 않는다.
