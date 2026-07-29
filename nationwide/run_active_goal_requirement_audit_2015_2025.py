@@ -47,6 +47,9 @@ PPS_CONTRACT_SAFE_CANDIDATES = (
     / "phase250_guardrail_safe_candidates.csv"
 )
 PHASE252_ROUTE_SUMMARY = OUT / "phase252_summary_by_track_quarter.csv"
+PHASE261_CONSTRUCTION_OVERALL = OUT / "phase261_construction_regime_gate_overall_summary.csv"
+PHASE261_CONSTRUCTION_HOLDOUT = OUT / "phase261_construction_regime_gate_holdout_summary.csv"
+PHASE261_CONSTRUCTION_SELECTION = OUT / "phase261_construction_regime_gate_selection.csv"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -267,6 +270,43 @@ def phase252_status() -> dict[str, object]:
     return out
 
 
+def phase261_status() -> dict[str, object]:
+    """Summarize construction regime-gated diagnostic.
+
+    The CSV outputs are ignored artifacts; only decision-level evidence is
+    surfaced in the persistent audit.
+    """
+
+    out: dict[str, object] = {}
+    if PHASE261_CONSTRUCTION_OVERALL.exists():
+        overall = pd.read_csv(PHASE261_CONSTRUCTION_OVERALL)
+        if not overall.empty:
+            base = overall[overall["scenario"].eq("baseline_parent_control")]
+            gated = overall[overall["scenario"].eq("regime_gated")]
+            if not base.empty and not gated.empty:
+                out["baseline_wape_pct"] = float(base.iloc[0]["wape_pct"])
+                out["gated_wape_pct"] = float(gated.iloc[0]["wape_pct"])
+                out["active_cells"] = int(gated.iloc[0].get("active_cells", 0))
+                out["rows"] = int(gated.iloc[0].get("rows", 0))
+    if PHASE261_CONSTRUCTION_HOLDOUT.exists():
+        holdout = pd.read_csv(PHASE261_CONSTRUCTION_HOLDOUT)
+        if not holdout.empty:
+            years = sorted(int(y) for y in holdout["year"].unique())
+            out["warmup_years"] = ",".join(str(y) for y in years if y <= 2021)
+            out["holdout_years"] = ",".join(str(y) for y in years if y > 2021)
+            out["holdout_active_cells"] = int(holdout["active_cells"].sum())
+            out["holdout_worse_rows"] = int((holdout["selected_wape_pct"] > holdout["baseline_wape_pct"]).sum())
+    if PHASE261_CONSTRUCTION_SELECTION.exists():
+        sel = pd.read_csv(PHASE261_CONSTRUCTION_SELECTION)
+        if not sel.empty:
+            out["selection_rows"] = int(len(sel))
+            out["selected_nonbaseline_regimes"] = int(sel["selected_scenario"].ne("baseline_parent_control").sum())
+            out["sparse_or_fallback_rows"] = int(
+                sel["selection_reason"].astype(str).str.startswith(("fallback_", "no_")).sum()
+            )
+    return out
+
+
 def requirement_rows(
     source_counts: pd.DataFrame,
     sigungu_matrix: pd.DataFrame,
@@ -274,6 +314,7 @@ def requirement_rows(
     national_summary: pd.DataFrame,
     pps: dict[str, object],
     phase252: dict[str, object],
+    phase261: dict[str, object],
 ) -> pd.DataFrame:
     direct_coverage_count = int(source_counts[source_counts["coverage_status"].eq("covers_2015_2025")]["source_count"].sum())
     sigungu_year_min = int(sigungu_matrix["year"].min())
@@ -341,6 +382,21 @@ def requirement_rows(
                 f"PPS공고 complete={pps.get('bid_complete_periods')}, first incomplete={pps.get('bid_first_incomplete_period')}"
             ),
             "next_action": "429 해제 후 월/일 단위 재개; 계약은 quality_complete 연도만, 공고는 완전월만 rolling 검증에 투입하고, safe candidate 0개 상태에서는 건설업 route로 채택하지 않음",
+        },
+        {
+            "requirement": "건설업 대체자료 지역유형 gate",
+            "current_status": "diagnosed_rejected_for_operational_adoption",
+            "evidence": (
+                f"Phase261 rows={phase261.get('rows', '')}, "
+                f"warmup_years={phase261.get('warmup_years', '')}, "
+                f"holdout_years={phase261.get('holdout_years', '')}, "
+                f"active_cells={phase261.get('active_cells', '')}, "
+                f"baseline_wape={fmt_pct_points(phase261.get('baseline_wape_pct'))}%, "
+                f"gated_wape={fmt_pct_points(phase261.get('gated_wape_pct'))}%, "
+                f"nonbaseline_selected_regimes={phase261.get('selected_nonbaseline_regimes', '')}, "
+                f"fallback_or_sparse_rows={phase261.get('sparse_or_fallback_rows', '')}"
+            ),
+            "next_action": "CALS·BuildingHUB·서울정비 조합만으로는 자동채택하지 않음; PPS 완전월·민간건축 금액형·전국 정비사업 이력 확보 후 같은 rolling gate 재검증",
         },
         {
             "requirement": "활동지표 route rolling 자동채택",
@@ -467,7 +523,16 @@ def main() -> None:
     sido_summary, national_summary, activity_summary = validation_summary()
     pps = pps_status()
     phase252 = phase252_status()
-    requirements = requirement_rows(source_counts, sigungu_matrix, sido_summary, national_summary, pps, phase252)
+    phase261 = phase261_status()
+    requirements = requirement_rows(
+        source_counts,
+        sigungu_matrix,
+        sido_summary,
+        national_summary,
+        pps,
+        phase252,
+        phase261,
+    )
 
     source_counts.to_csv(OUT / "active_goal_requirement_source_counts.csv", index=False, encoding="utf-8-sig")
     sigungu_matrix.to_csv(OUT / "active_goal_sigungu_actual_publication_matrix.csv", index=False, encoding="utf-8-sig")
@@ -555,6 +620,7 @@ def main() -> None:
 - `reports/partial_statistics_estimation_phase258_construction_alt_source_readiness.md`
 - `reports/partial_statistics_estimation_phase259_mfg_electricity_holdout.md`
 - `reports/partial_statistics_estimation_phase260_mfg_electricity_factory_interaction.md`
+- `reports/partial_statistics_estimation_phase261_construction_regime_gated_route.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)

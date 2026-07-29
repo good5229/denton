@@ -19,6 +19,7 @@
 | 조달청 공사계약 기반 건설업 전국 route 채택 | 보류 | 2021~2025 전량 수집 전에는 rolling out-of-year 검증 불가 |
 | 조달청 공사공고 robust 수집 | 부분 진전 | 2021년 4~7월 `numRows=100` 완전월 확보. 2026-07-29 21:06 KST Phase257 no-raw smoke에서도 202108 page 34가 429, 성능감사 미사용 |
 | 건설업 대체 공개자료 readiness | 완료, route 미채택 | Phase258에서 BuildingHUB·CALS·LH·서울정비·PPS 부분자료를 점검. 모두 보조/진단 후보이나 전국 2015~2025 운영 route 승격은 보류 |
+| 건설업 지역유형 gate 다중자료 rolling 진단 | 완료, route 미채택 | Phase261에서 CALS·서울 정비사업·BuildingHUB 신호를 지역유형별 rolling gate로 재검증. 최소 표본·guardrail 적용 후 모든 후보가 탈락해 baseline 유지 |
 | 활동지표 route rolling 선택 | 미채택 | Phase252에서 기존 hard-region no-worse의 actual 누수 위험을 분리하고, 17개 시도 rolling holdout으로 재검증. strict route는 68행만 채택됐으나 Q1/Q2에서 WAPE와 10% 초과 셀이 늘어 운영 산출물 자동반영 금지 |
 | 시군구×업종 잔여오차 우선순위 감사 | 완료 | Phase255에서 공개 actual 구간의 잔여오차를 금액오차·WAPE·대형 actual 10% 초과 셀로 분해. 건설업은 상대오차 병목, 광업·제조업은 금액오차 병목으로 분리 |
 | 광업·제조업 tail 자료준비도 감사 | 완료 | Phase256에서 제조업 생산지수·전력·공장등록 연결 가능성을 점검. 228개 시군구는 holdout 설계 후보 bundle이나, route 채택·성능 개선 주장으로 쓰지 않음 |
@@ -202,6 +203,21 @@ Phase258은 PPS가 막힌 상태에서 BuildingHUB·CALS·LH·서울 정비사�
 | PPS 공사공고/계약 | 공공공사 예산·계약금액 | API/coverage 차단 | Phase257 429, 완전월/완전연도 부족 |
 
 따라서 다음 건설업 개선은 단일 자료를 전국에 일괄 반영하는 방식이 아니라, `민간건축형`, `공공·토목형`, `공공주택형`, `정비사업형` 지역유형 gate를 사전 고정하고 discovery/holdout 또는 out-of-year rolling으로 검증해야 한다.
+
+### 3.1-1 건설업 지역유형 gate rolling 진단
+
+Phase261은 위 원칙을 실제로 적용해 CALS·서울 정비사업·BuildingHUB 신호를 지역유형별로 묶고, 2022년은 2021년 성과만, 2023년은 2021~2022년 성과만으로 후보를 선택했다. 훈련 표본 5셀 이상·3개 시군구 이상과 WAPE·10%·20%·대형 actual 10%·max APE 비악화 guardrail을 모두 요구했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| 검증범위 | 2021~2023 건설업 시군구×연간 GVA actual 공표 셀 607개 |
+| 지역유형 coverage | CALS 31개 도시, 서울 정비사업 9개 구, BuildingHUB 5개 도시 |
+| 2022 적용 셀 | 0개 |
+| 2023 적용 셀 | 0개 |
+| 전체 WAPE | baseline 19.429%, region-gated 19.429% |
+| 판정 | 모든 후보 baseline fallback, route 미채택 |
+
+이 결과는 대체자료가 무의미하다는 뜻이 아니라, 현재 로컬 coverage와 금액형 신호만으로는 전국 건설업 10% 목표를 안정적으로 달성하기 어렵다는 뜻이다. 특히 첫 실행에서 다중신호 1셀만으로 통과한 후보가 holdout에서 악화되는 문제가 확인되어, 최소 표본 gate를 명시적으로 추가했다. PPS 계약/공고 완전월, 민간건축 장기 금액형 자료, 전국 정비사업 이력이 확보되기 전에는 건설업 자동 route를 채택하지 않는다.
 
 ## 4. 데이터 출처·공표주기 기록
 
