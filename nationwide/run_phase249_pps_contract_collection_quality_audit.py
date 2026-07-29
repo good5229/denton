@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -15,6 +16,7 @@ MONTHLY = ROOT / "data" / "processed" / "phase248_pps_contract_monthly"
 OUT = ROOT / "data" / "processed" / "phase249_pps_contract_quality_audit"
 REPORT = ROOT / "reports" / "partial_statistics_estimation_phase249_pps_contract_quality_audit.md"
 MANIFEST = ROOT / "data" / "processed" / "phase248_pps_contract_collection_manifest.csv"
+PERIOD_RE = re.compile(r"^\d{6}$")
 
 
 def safe_read(path: Path) -> pd.DataFrame:
@@ -49,6 +51,13 @@ def clean_manifest_text(value: object) -> str:
     return str(value)
 
 
+def valid_period_text(value: object) -> bool:
+    text = clean_manifest_text(value).strip()
+    if not PERIOD_RE.fullmatch(text):
+        return False
+    return 1 <= int(text[4:6]) <= 12
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     manifest = safe_read(MANIFEST)
@@ -56,10 +65,10 @@ def main() -> int:
         raise SystemExit(f"Missing or empty manifest: {MANIFEST}")
     invalid_manifest_period_rows = 0
     if "period" in manifest.columns:
-        valid_manifest_period = manifest["period"].astype(str).str.fullmatch(r"\d{6}", na=False)
+        valid_manifest_period = manifest["period"].map(valid_period_text)
         invalid_manifest_period_rows = int((~valid_manifest_period).sum())
         manifest = manifest[valid_manifest_period].copy()
-        manifest["period"] = manifest["period"].astype(str).str.zfill(6)
+        manifest["period"] = manifest["period"].astype(str).str.strip()
     else:
         invalid_manifest_period_rows = len(manifest)
         manifest = pd.DataFrame(columns=["period"])

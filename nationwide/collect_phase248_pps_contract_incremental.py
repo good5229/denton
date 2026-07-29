@@ -347,6 +347,7 @@ def update_manifest(row: dict[str, Any]) -> None:
 
 
 def manifest_complete(period: str) -> bool:
+    period = validate_period(period)
     path = OUT / "phase248_pps_contract_collection_manifest.csv"
     if not path.exists():
         return False
@@ -356,7 +357,9 @@ def manifest_complete(period: str) -> bool:
         return False
     if m.empty or "period" not in m.columns or "complete" not in m.columns:
         return False
-    hit = m[m["period"].astype(str).str.zfill(6).eq(period)]
+    raw_period = m["period"].astype(str).str.strip()
+    valid_period = raw_period.map(lambda x: bool(PERIOD_RE.fullmatch(x)) and 1 <= int(x[4:6]) <= 12)
+    hit = m[valid_period & raw_period.eq(period)]
     if hit.empty:
         return False
     value = hit.iloc[-1]["complete"]

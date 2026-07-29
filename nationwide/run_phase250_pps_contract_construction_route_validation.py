@@ -161,6 +161,49 @@ def annual_signal(monthly_signal: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def signal_coverage_by_validation_year(base: pd.DataFrame, signal: pd.DataFrame) -> pd.DataFrame:
+    """Report whether complete PPS signals overlap the actual validation cells."""
+    years = sorted(int(y) for y in base["year"].dropna().unique())
+    signal_types = sorted(signal["signal_type"].dropna().unique()) if not signal.empty and "signal_type" in signal else []
+    if not signal_types:
+        signal_types = ["no_signal"]
+    base_keys = base[["province_full", "city", "year"]].drop_duplicates().copy()
+    rows = []
+    for signal_type in signal_types:
+        sg = signal[signal["signal_type"].eq(signal_type)].copy() if signal_type != "no_signal" else pd.DataFrame()
+        if not sg.empty:
+            sg = sg.rename(columns={"matched_province_full": "province_full", "matched_city": "city"})
+            sg = sg.groupby(["province_full", "city", "year"], as_index=False).agg(
+                signal_amount_eok=("signal_amount_eok", "sum"),
+                signal_rows=("signal_rows", "sum"),
+            )
+        for year in years:
+            cells = base_keys[base_keys["year"].eq(year)].copy()
+            if sg.empty:
+                matched = pd.DataFrame()
+                nonzero = 0
+                signal_rows = 0
+                amount = 0.0
+            else:
+                matched = cells.merge(sg, on=["province_full", "city", "year"], how="left")
+                nonzero = int(pd.to_numeric(matched.get("signal_amount_eok"), errors="coerce").fillna(0).gt(0).sum())
+                signal_rows = int(pd.to_numeric(matched.get("signal_rows"), errors="coerce").fillna(0).sum())
+                amount = float(pd.to_numeric(matched.get("signal_amount_eok"), errors="coerce").fillna(0).sum())
+            total_cells = int(len(cells))
+            rows.append(
+                {
+                    "signal_type": signal_type,
+                    "validation_year": year,
+                    "validation_city_year_cells": total_cells,
+                    "cells_with_nonzero_signal": nonzero,
+                    "signal_cell_coverage_pct": nonzero / total_cells * 100 if total_cells else np.nan,
+                    "signal_rows": signal_rows,
+                    "signal_amount_eok": amount,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
 def metric_by_year(df: pd.DataFrame, pred_col: str, train_years: set[int] | None = None, holdout_years: set[int] | None = None) -> dict[str, float | int | str]:
     x = df.copy()
     if holdout_years is not None:
@@ -274,6 +317,7 @@ def main() -> int:
     monthly_signal = contract_signal_monthly(contracts)
     signal = annual_signal(monthly_signal)
     base = base_frame()
+    signal_coverage = signal_coverage_by_validation_year(base, signal)
     summary, detail, rolling = evaluate(base, signal) if not signal.empty else (
         pd.DataFrame([dict(metric_by_year(base, "baseline_parent_predicted_eok"), scenario="baseline_parent_control", signal_type="baseline", alpha=0.0, fold="all")]),
         pd.DataFrame(),
@@ -310,6 +354,13 @@ def main() -> int:
     if not roll_gate.empty:
         safe = safe.merge(roll_gate, on=["scenario", "signal_type", "alpha"], how="left")
         safe = safe[safe["mean_wape_improvement_pctp"].gt(0) & safe["improved_folds"].ge((safe["holdout_folds"] * 0.5).round())].copy()
+    if not safe.empty and not signal_coverage.empty:
+        coverage_gate = (
+            signal_coverage.groupby("signal_type", as_index=False)
+            .agg(min_validation_signal_coverage_pct=("signal_cell_coverage_pct", "min"))
+        )
+        safe = safe.merge(coverage_gate, on="signal_type", how="left")
+        safe = safe[safe["min_validation_signal_coverage_pct"].ge(80)].copy()
     monthly_signal.to_csv(OUT / "phase250_pps_contract_signal_sigungu_month.csv", index=False, encoding="utf-8-sig")
     (
         monthly_signal.groupby(["signal_type", "matched_province_full", "matched_city", "year", "quarter"], as_index=False)
@@ -319,6 +370,7 @@ def main() -> int:
         else pd.DataFrame().to_csv(OUT / "phase250_pps_contract_signal_sigungu_quarter.csv", index=False, encoding="utf-8-sig")
     )
     signal.to_csv(OUT / "phase250_pps_contract_signal_sigungu_year.csv", index=False, encoding="utf-8-sig")
+    signal_coverage.to_csv(OUT / "phase250_signal_coverage_by_validation_year.csv", index=False, encoding="utf-8-sig")
     summary.to_csv(OUT / "phase250_candidate_summary.csv", index=False, encoding="utf-8-sig")
     if not rolling.empty:
         rolling.to_csv(OUT / "phase250_rolling_holdout_detail.csv", index=False, encoding="utf-8-sig")
@@ -349,21 +401,25 @@ def main() -> int:
 
 {md_table(summary[["scenario", "signal_type", "alpha", "rows", "actual_sum_eok", "abs_error_sum_eok", "wape_pct", "over10_cells", "over20_cells", "max_ape_pct"]], max_rows=20, digits=3)}
 
-## 3. Guardrail 통과 후보
+## 3. 검증연도 신호 coverage
 
-{md_table(safe[["scenario", "signal_type", "alpha", "actual_sum_eok", "abs_error_sum_eok", "wape_pct", "over10_cells", "over20_cells", "max_ape_pct"]], max_rows=20, digits=3) if not safe.empty else "_없음_"}
+{md_table(signal_coverage, max_rows=30, digits=3) if not signal_coverage.empty else "_신호 없음_"}
 
-## 4. Rolling holdout 검증
+## 4. Guardrail 통과 후보
+
+{md_table(safe[["scenario", "signal_type", "alpha", "actual_sum_eok", "abs_error_sum_eok", "wape_pct", "over10_cells", "over20_cells", "max_ape_pct", "min_validation_signal_coverage_pct"]], max_rows=20, digits=3) if not safe.empty else "_없음_"}
+
+## 5. Rolling holdout 검증
 
 {md_table(roll_gate[["scenario", "signal_type", "alpha", "holdout_folds", "improved_folds", "mean_baseline_wape_pct", "mean_holdout_wape_pct", "mean_wape_improvement_pctp", "max_holdout_wape_pct"]].sort_values("mean_wape_improvement_pctp", ascending=False), max_rows=20, digits=3) if not roll_gate.empty else "_신호가 부족해 산출하지 못함_"}
 
-## 5. 월·분기 추정 산출물
+## 6. 월·분기 추정 산출물
 
 안전 후보가 있을 때 `phase250_selected_sigungu_month_estimates.csv`, `phase250_selected_sigungu_quarter_estimates.csv`를 생성한다. 연간 검증 가능한 GVA를 먼저 통과한 후보만 월·분기로 배분하며, city-year 신호가 없으면 연간 합 보존을 위해 균등 12개월 fallback을 명시적으로 적용한다.
 
-## 6. 판정
+## 7. 판정
 
-전량 수집 완료 후 `contract_date`, `start_date`, `duration_allocated` 세 기준을 비교해 운영 route를 선택한다. 본모형 채택은 전체 WAPE 개선, over10/over20 셀 비증가, max APE 비악화, rolling holdout 평균 개선을 동시에 요구한다. 현재 산출값은 수집 완료월 기준의 중간 점검값이다.
+전량 수집 완료 후 `contract_date`, `start_date`, `duration_allocated` 세 기준을 비교해 운영 route를 선택한다. 본모형 채택은 전체 WAPE 개선, over10/over20 셀 비증가, max APE 비악화, rolling holdout 평균 개선, 검증연도 신호 coverage 80% 이상을 동시에 요구한다. 현재 산출값은 수집 완료월 기준의 중간 점검값이다.
 """
     REPORT.write_text(report, encoding="utf-8")
     print(REPORT)

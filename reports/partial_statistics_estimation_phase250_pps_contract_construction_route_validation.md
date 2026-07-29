@@ -1,6 +1,6 @@
 # Phase250 조달청 계약정보 기반 건설업 route 검증
 
-생성시각: 2026-07-29T13:39:41+09:00
+생성시각: 2026-07-29T14:26:55+09:00
 
 ## 1. 입력 상태
 
@@ -35,11 +35,25 @@
 | duration_allocated_alpha0.050 | duration_allocated | 0.050 | 607 | 2,985,125.440 | 606,039.687 | 20.302 | 369 | 236 | 472.374 |
 | contract_date_alpha0.050 | contract_date | 0.050 | 607 | 2,985,125.440 | 623,561.909 | 20.889 | 367 | 235 | 294.569 |
 
-## 3. Guardrail 통과 후보
+## 3. 검증연도 신호 coverage
+
+| signal_type | validation_year | validation_city_year_cells | cells_with_nonzero_signal | signal_cell_coverage_pct | signal_rows | signal_amount_eok |
+| --- | --- | --- | --- | --- | --- | --- |
+| contract_date | 2,021 | 229 | 5 | 2.183 | 5 | 719.074 |
+| contract_date | 2,022 | 229 | 2 | 0.873 | 2 | 145.811 |
+| contract_date | 2,023 | 149 | 0 | 0.000 | 0 | 0.000 |
+| duration_allocated | 2,021 | 229 | 14 | 6.114 | 62 | 127.398 |
+| duration_allocated | 2,022 | 229 | 0 | 0.000 | 0 | 0.000 |
+| duration_allocated | 2,023 | 149 | 0 | 0.000 | 0 | 0.000 |
+| start_date | 2,021 | 229 | 0 | 0.000 | 0 | 0.000 |
+| start_date | 2,022 | 229 | 0 | 0.000 | 0 | 0.000 |
+| start_date | 2,023 | 149 | 0 | 0.000 | 0 | 0.000 |
+
+## 4. Guardrail 통과 후보
 
 _없음_
 
-## 4. Rolling holdout 검증
+## 5. Rolling holdout 검증
 
 | scenario | signal_type | alpha | holdout_folds | improved_folds | mean_baseline_wape_pct | mean_holdout_wape_pct | mean_wape_improvement_pctp | max_holdout_wape_pct |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -64,10 +78,10 @@ _없음_
 | contract_date_alpha0.050 | contract_date | 0.050 | 3 | 0 | 19.797 | 21.126 | -1.329 | 24.309 |
 | duration_allocated_alpha0.080 | duration_allocated | 0.080 | 3 | 1 | 19.797 | 21.249 | -1.452 | 23.703 |
 
-## 5. 월·분기 추정 산출물
+## 6. 월·분기 추정 산출물
 
 안전 후보가 있을 때 `phase250_selected_sigungu_month_estimates.csv`, `phase250_selected_sigungu_quarter_estimates.csv`를 생성한다. 연간 검증 가능한 GVA를 먼저 통과한 후보만 월·분기로 배분하며, city-year 신호가 없으면 연간 합 보존을 위해 균등 12개월 fallback을 명시적으로 적용한다.
 
-## 6. 판정
+## 7. 판정
 
-전량 수집 완료 후 `contract_date`, `start_date`, `duration_allocated` 세 기준을 비교해 운영 route를 선택한다. 본모형 채택은 전체 WAPE 개선, over10/over20 셀 비증가, max APE 비악화, rolling holdout 평균 개선을 동시에 요구한다. 현재 산출값은 수집 완료월 기준의 중간 점검값이다.
+전량 수집 완료 후 `contract_date`, `start_date`, `duration_allocated` 세 기준을 비교해 운영 route를 선택한다. 본모형 채택은 전체 WAPE 개선, over10/over20 셀 비증가, max APE 비악화, rolling holdout 평균 개선, 검증연도 신호 coverage 80% 이상을 동시에 요구한다. 현재 산출값은 수집 완료월 기준의 중간 점검값이다.
