@@ -1,12 +1,12 @@
 # Phase249 조달청 공사계약 수집 품질 감사
 
-생성시각: 2026-07-29T14:08:01+09:00
+생성시각: 2026-07-29T14:16:28+09:00
 
 ## 1. 요약
 
-| months_seen | months_quality_complete | adoptable_years | rows_collected | api_total_count_seen | overall_collection_rate_pct | mean_province_match_rate_pct | mean_sigungu_match_rate_pct |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 132 | 21 | 1 | 613,790 | 910,191 | 67.44 | 87.62 | 73.85 |
+| months_seen | months_quality_complete | adoptable_years | invalid_manifest_period_rows | rows_collected | api_total_count_seen | overall_collection_rate_pct | mean_province_match_rate_pct | mean_sigungu_match_rate_pct |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 132 | 21 | 1 | 0 | 613,790 | 910,191 | 67.44 | 87.62 | 73.85 |
 
 ## 2. 월별 수집·매칭 품질
 

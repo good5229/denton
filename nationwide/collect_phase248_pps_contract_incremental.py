@@ -41,6 +41,7 @@ OUT = ROOT / "data" / "processed"
 ENDPOINT = "https://apis.data.go.kr/1230000/ao/CntrctInfoService/getCntrctInfoListCnstwk"
 CREATED_AT = datetime.now(timezone(timedelta(hours=9))).isoformat(timespec="seconds")
 MANIFEST_LOCK = Lock()
+PERIOD_RE = re.compile(r"^\d{6}$")
 
 PROVINCES = [
     "서울특별시",
@@ -102,12 +103,24 @@ def month_iter(start: str, end: str) -> list[str]:
     return out
 
 
+def validate_period(value: object) -> str:
+    period = str(value).strip()
+    if not PERIOD_RE.fullmatch(period):
+        raise ValueError(f"invalid period: {period!r}")
+    month = int(period[4:6])
+    if not 1 <= month <= 12:
+        raise ValueError(f"invalid period month: {period!r}")
+    return period
+
+
 def bounds(period: str) -> tuple[str, str]:
+    period = validate_period(period)
     y, m = int(period[:4]), int(period[4:])
     return f"{period}010000", f"{period}{monthrange(y, m)[1]:02d}2359"
 
 
 def day_bounds(period: str, day: int) -> tuple[str, str]:
+    period = validate_period(period)
     return f"{period}{day:02d}0000", f"{period}{day:02d}2359"
 
 
@@ -286,15 +299,27 @@ def normalize_month(period: str, rows: list[dict[str, Any]]) -> pd.DataFrame:
 def update_manifest(row: dict[str, Any]) -> None:
     with MANIFEST_LOCK:
         path = OUT / "phase248_pps_contract_collection_manifest.csv"
-        row["period"] = str(row["period"])
+        row["period"] = validate_period(row["period"])
         previous = pd.DataFrame()
         if path.exists():
             try:
                 m = pd.read_csv(path, dtype={"period": str})
             except pd.errors.EmptyDataError:
                 m = pd.DataFrame()
-            m["period"] = m["period"].astype(str).str.zfill(6)
-            previous = m[m["period"].astype(str).eq(str(row["period"]).zfill(6))].copy()
+            if not m.empty and "period" in m.columns:
+                valid = m["period"].astype(str).map(lambda x: bool(PERIOD_RE.fullmatch(x)) and 1 <= int(x[4:6]) <= 12)
+                m = m[valid].copy()
+                m["period"] = m["period"].astype(str)
+            previous = m[m["period"].astype(str).eq(row["period"])].copy()
+            if not previous.empty and not row.get("complete") and not row.get("ok"):
+                prev = previous.iloc[-1]
+                prev_complete = str(prev.get("complete", "")).strip().lower() in {"true", "1", "yes"}
+                prev_ok = str(prev.get("ok", "")).strip().lower() in {"true", "1", "yes"}
+                if prev_complete and prev_ok:
+                    preserved = prev.to_dict()
+                    preserved["last_failed_at"] = CREATED_AT
+                    preserved["last_error"] = row.get("error", "")
+                    row = preserved
             if not previous.empty and not row.get("complete") and not row.get("ok"):
                 prev = previous.iloc[-1]
                 # Do not let a failed refresh attempt with no response body erase
@@ -310,11 +335,11 @@ def update_manifest(row: dict[str, Any]) -> None:
                         new_value = 0
                     if old_value > new_value:
                         row[col] = old_value
-            m = m[m["period"].astype(str).ne(str(row["period"]))]
+            m = m[m["period"].astype(str).ne(row["period"])]
             m = pd.concat([m, pd.DataFrame([row])], ignore_index=True)
         else:
             m = pd.DataFrame([row])
-        m["period"] = m["period"].astype(str).str.zfill(6)
+        m["period"] = m["period"].map(validate_period)
         m = m.sort_values("period")
         tmp = path.with_suffix(path.suffix + ".tmp")
         m.to_csv(tmp, index=False, encoding="utf-8-sig")

@@ -54,7 +54,15 @@ def main() -> int:
     manifest = safe_read(MANIFEST)
     if manifest.empty:
         raise SystemExit(f"Missing or empty manifest: {MANIFEST}")
-    manifest["period"] = manifest["period"].astype(str).str.zfill(6)
+    invalid_manifest_period_rows = 0
+    if "period" in manifest.columns:
+        valid_manifest_period = manifest["period"].astype(str).str.fullmatch(r"\d{6}", na=False)
+        invalid_manifest_period_rows = int((~valid_manifest_period).sum())
+        manifest = manifest[valid_manifest_period].copy()
+        manifest["period"] = manifest["period"].astype(str).str.zfill(6)
+    else:
+        invalid_manifest_period_rows = len(manifest)
+        manifest = pd.DataFrame(columns=["period"])
     rows = []
     province_rows = []
     unmatched_samples = []
@@ -181,6 +189,7 @@ def main() -> int:
         "months_seen": len(audit),
         "months_quality_complete": int(audit["quality_complete"].sum()),
         "adoptable_years": int(annual_gate["adoptable_year"].sum()) if not annual_gate.empty else 0,
+        "invalid_manifest_period_rows": invalid_manifest_period_rows,
         "rows_collected": int(audit["rows_collected"].sum()),
         "api_total_count_seen": int(audit["api_total_count"].sum()),
         "overall_collection_rate_pct": float(audit["rows_collected"].sum() / audit["api_total_count"].sum() * 100) if audit["api_total_count"].sum() else np.nan,
