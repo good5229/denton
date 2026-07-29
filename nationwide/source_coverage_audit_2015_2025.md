@@ -1,6 +1,6 @@
 # 2015~2025 전국 자료 coverage 감사
 
-생성시각: 2026-07-29T14:27:12+09:00
+생성시각: 2026-07-29T15:02:56+09:00
 
 ## 1. 목적
 
@@ -15,7 +15,7 @@
 | limited_period | 1 |
 | metadata_ok | 1 |
 | partial_by_definition | 4 |
-| usable_for_2021_2025_backtest_with_limits | 3 |
+| usable_for_2021_2025_backtest_with_limits | 5 |
 
 ## 3. 자료별 판정
 
@@ -23,12 +23,14 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | sigungu_annual_gva | 시군구 경제활동별 연간 실질 GVA | True | 12844 | 2019 | 2023 | 2019 | 2023 | 17 | 207 | real_value_not_index | nationwide_with_publication_gaps | usable_for_2021_2025_backtest_with_limits | 공표 시도별 연도 범위가 다르며 일부 광역시는 2023 시군구 원천이 없다. |
 | sido_quarterly_grdp_experimental | 시도별 분기 실질 GRDP/GDP 실험적 통계 | True | 16560 | 2015Q1 | 2026Q1 | 2015 | 2026 |  |  | real_value_not_index | nationwide | covers_2015_2025 | 세종 단층처리와 순생산물세 bridge에 사용. |
-| national_quarterly_gdp | 전국 분기 GDP | True | 2508 | 201501 | 202504 | 2015 | 2025 | 57 |  | real_value_not_index | national | covers_2015_2025 | 전국 경계 WAPE는 외부 일관성 참고지표로만 해석. |
+| national_quarterly_gdp | 전국 분기 GDP | True | 2508 | 201501 | 202504 | 2015 | 2025 |  |  | real_value_not_index | national | covers_2015_2025 | 전국 경계 WAPE는 외부 일관성 참고지표로만 해석. |
 | manufacturing_production_index | 시도별 제조업 광공업생산지수 | True | 792 | 201501 | 202504 | 2015 | 2025 | 18 |  | 2020=100 | nationwide | covers_2015_2025 | 공개 actual 검증은 광업+제조업 합산 경계에서 수행. |
 | mining_production_index | 시도별 광업 생산지수 | True | 576 | 201501 | 202504 | 2015 | 2025 | 14 |  | 2020=100 | nationwide | covers_2015_2025 | 일부 기간/지역 결측 가능. |
-| manufacturing_detail_production_index | 제조업 세부 생산지수 | True | 2145 | 202001 | 202505 | 2020 | 2025 | 6 |  | 2020=100 | partial_industry | partial_by_definition | 전체 KSIC 중분류를 덮지 못하므로 보조 후보. |
+| manufacturing_detail_production_index | 제조업 세부 생산지수 | True | 2145 | 202001 | 202505 | 2020 | 2025 |  |  | 2020=100 | partial_industry | partial_by_definition | 전체 KSIC 중분류를 덮지 못하므로 보조 후보. |
 | service_production_index | 시도별 서비스업생산지수 | True | 10472 | 201501 | 202504 | 2015 | 2025 | 17 |  | 2020=100 | nationwide | covers_2015_2025 | 상반기 조기점검 보조에는 유효하나 자동채택은 rolling gate 필요. |
-| service_detail_national_index | 전국 세부 서비스업생산지수 | True | 6412 | 201901 | 202404 | 2019 | 2024 | 238 |  | 2020=100 | national_detail | usable_for_2021_2025_backtest_with_limits | 지역 차원이 없어 시군구 공간배분 단독 근거로 사용 금지. |
+| service_detail_national_index | 전국 세부 서비스업생산지수 | True | 6412 | 201901 | 202404 | 2019 | 2024 |  |  | 2020=100 | national_detail | usable_for_2021_2025_backtest_with_limits | 지역 차원이 없어 시군구 공간배분 단독 근거로 사용 금지. |
+| service_industry_national_monthly_index | 전국 산업별 서비스업생산지수 | True | 17420 | 202001 | 202505 | 2020 | 2025 |  |  | 2020=100 | national_industry | usable_for_2021_2025_backtest_with_limits | 전국 산업별 월 지수이므로 공간배분 근거로 사용 금지. 지역별 분기 총량은 그대로 보존한다. |
+| all_industry_national_monthly_index | 전국 전산업생산지수 원지수 | True | 325 | 202001 | 202505 | 2020 | 2025 |  |  | 2020=100 | national_broad_industry | usable_for_2021_2025_backtest_with_limits | 전국 월 지수이므로 공간배분 근거로 사용 금지. 조달청 PPS 미통과 상태에서도 분기 내 시간경로로만 사용한다. |
 | electricity_sigungu_monthly | 시군구 전력사용량 historical as-of 패널 | True | 69673 | 202001 | 202307 | 2020 | 2023 |  |  | usage_not_index | nationwide_or_large_panel | usable_for_2021_2025_backtest_with_limits | 업종귀속이 거칠어 단독 route보다 보조 후보. |
 | electricity_sigungu_current_monthly | 시군구 전력사용량 최신 월별 원천 | True | 148616 | 202501 | 202604 | 2025 | 2026 | 17 | 207 | usage_not_index | nationwide_current_snapshot | limited_period | 최신 공표분 중심 자료. 과거 backtest에는 historical as-of 패널을 우선 사용. |
 | electricity_gas_production_index | 전기·가스 생산지수 | True | 792 | 201501 | 202504 | 2015 | 2025 | 18 |  | 2020=100 | nationwide | covers_2015_2025 | 지수형 입력. 기준연도 bridge 감사 대상. |

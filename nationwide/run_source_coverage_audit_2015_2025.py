@@ -123,6 +123,30 @@ SOURCE_SPECS: list[dict[str, Any]] = [
         "notes": "지역 차원이 없어 시군구 공간배분 단독 근거로 사용 금지.",
     },
     {
+        "source_id": "service_industry_national_monthly_index",
+        "label": "전국 산업별 서비스업생산지수",
+        "path": "data/processed/phase208_monthly_indicator_collection/phase208_DT_1KC2020_산업별_서비스업생산지수_2020_100.0.csv",
+        "provider": "KOSIS 서비스업동향조사",
+        "expected_time": "month",
+        "expected_geo": "national",
+        "expected_scope": "national_industry",
+        "index_base": "2020=100",
+        "role": "서비스업 시군구×업종 분기값의 월별 시간배분",
+        "notes": "전국 산업별 월 지수이므로 공간배분 근거로 사용 금지. 지역별 분기 총량은 그대로 보존한다.",
+    },
+    {
+        "source_id": "all_industry_national_monthly_index",
+        "label": "전국 전산업생산지수 원지수",
+        "path": "data/processed/phase208_monthly_indicator_collection/phase208_DT_1JH20201_전산업생산지수_원지수.csv",
+        "provider": "KOSIS 산업활동동향",
+        "expected_time": "month",
+        "expected_geo": "national",
+        "expected_scope": "national_broad_industry",
+        "index_base": "2020=100",
+        "role": "건설업·공공행정 분기값의 월별 시간배분",
+        "notes": "전국 월 지수이므로 공간배분 근거로 사용 금지. 조달청 PPS 미통과 상태에서도 분기 내 시간경로로만 사용한다.",
+    },
+    {
         "source_id": "electricity_sigungu_monthly",
         "label": "시군구 전력사용량 historical as-of 패널",
         "path": "data/processed/municipality_electricity_asof_long.csv",
@@ -300,9 +324,11 @@ def period_stats(df: pd.DataFrame) -> dict[str, Any]:
     return out
 
 
-def geo_stats(df: pd.DataFrame) -> dict[str, Any]:
+def geo_stats(df: pd.DataFrame, expected_geo: str = "") -> dict[str, Any]:
     out = {"region_col": "", "region_count": "", "province_count": "", "sigungu_count": ""}
     if df.empty:
+        return out
+    if expected_geo in {"national", "metadata"} or str(expected_geo).startswith("national"):
         return out
     region_col = first_col(
         df,
@@ -393,7 +419,7 @@ def main() -> int:
             "columns": int(len(df.columns)) if read_status == "ok" else 0,
         }
         row.update(period_stats(df))
-        row.update(geo_stats(df))
+        row.update(geo_stats(df, spec.get("expected_geo", "")))
         if spec.get("special") == "pps_manifest":
             row.update(pps_manifest_stats(df))
         row["coverage_status"] = coverage_status(row)
