@@ -116,7 +116,7 @@ def activity_group(label: str) -> str | None:
         return "사업서비스업"
     if t in {"공공행정국방및사회보장행정", "공공행정국방사회보장행정"}:
         return "공공 행정, 국방·사회보장"
-    if t in {"교육서비스업"}:
+    if t in {"교육서비스업"} or t.startswith("교육서비스업"):
         return "교육 서비스업"
     if t in {"보건업및사회복지서비스업", "보건업및사회복지서비스업"}:
         return "보건 및 사회복지업"
