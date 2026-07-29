@@ -54,6 +54,7 @@ PHASE262_SERVICE_READINESS = OUT / "phase262_service_residual_readiness_summary.
 PHASE263_SERVICE_SOURCE_PROBE = ROOT / "reports" / "partial_statistics_estimation_phase263_service_direct_source_probe.md"
 PHASE264_SERVICE_COLLECTION_SMOKE = ROOT / "reports" / "partial_statistics_estimation_phase264_service_direct_collection_smoke.md"
 PHASE265_COLLECTION_BLOCKER_REGISTRY = ROOT / "reports" / "partial_statistics_estimation_phase265_collection_blocker_registry.md"
+PHASE266_NLIC_WAREHOUSE_COVERAGE = OUT / "phase266_nlic_warehouse_location_coverage.csv"
 
 
 def md_table(df: pd.DataFrame, digits: int = 3) -> str:
@@ -462,6 +463,12 @@ def requirement_rows(
             "next_action": "국토부 물류창고업등록정보 활용신청 상태 확인, LOCALDATA 전체다운로드 UI/authKey 경로 확보 후 전국 원본 우선 수집",
         },
         {
+            "requirement": "물류창고업 시도 등록현황 직접 다운로드",
+            "current_status": "collected_as_province_level_auxiliary_signal",
+            "evidence": phase266_warehouse_evidence(),
+            "next_action": "H52 창고업·운수창고업 시도 단위 보조 gate 후보로만 보관; 시군구 공간배분 또는 GVA actual로 해석하지 않음",
+        },
+        {
             "requirement": "과학자/평가자 검증",
             "current_status": "latest_monthly_bridge_postaudit_reflected",
             "evidence": "월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적",
@@ -475,6 +482,23 @@ def requirement_rows(
         },
     ]
     return pd.DataFrame(status_rows)
+
+
+def phase266_warehouse_evidence() -> str:
+    if not PHASE266_NLIC_WAREHOUSE_COVERAGE.exists():
+        return "phase266_nlic_warehouse_location_coverage.csv 없음"
+    d = pd.read_csv(PHASE266_NLIC_WAREHOUSE_COVERAGE)
+    if d.empty:
+        return "phase266 coverage 비어 있음"
+    years = sorted(d["year"].astype(int).unique())
+    missing_rows = int(d["source_row_missing_province_count"].sum())
+    latest = d[d["year"].eq(max(years))].iloc[0]
+    return (
+        f"2015~2025 {len(years)}개 연도 XLS 수집, 17개 시도 패널, "
+        f"법령×창고구분 {int(latest['category_count'])}개, "
+        f"원본 생략 시도행 {missing_rows}개는 0+flag 처리, "
+        f"2025 전체 등록건수 {int(latest['total_registered_count'])}건"
+    )
 
 
 def long_window_evidence() -> str:
@@ -684,6 +708,7 @@ def main() -> None:
 - `reports/partial_statistics_estimation_phase263_service_direct_source_probe.md`
 - `reports/partial_statistics_estimation_phase264_service_direct_collection_smoke.md`
 - `reports/partial_statistics_estimation_phase265_collection_blocker_registry.md`
+- `reports/partial_statistics_estimation_phase266_nlic_warehouse_registration.md`
 """
     REPORT.write_text(md, encoding="utf-8")
     print(REPORT)

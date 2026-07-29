@@ -1,6 +1,6 @@
 # 2015~2025 전국 목표 요구사항 감사
 
-생성시각: 2026-07-29T21:39:01+09:00
+생성시각: 2026-07-29T21:50:40+09:00
 
 ## 판정 요약
 
@@ -24,6 +24,7 @@
 | 비건설 잔여 서비스업 자료준비도 | diagnosed_not_route_ready | Phase262 activities=6, not_route_ready=6, local_candidate_sources=15, monthly_indicator_sources=23, top_residual=운수 및 창고업, 정보통신업, 사업서비스업, top_wape=8.124% | 월별 KOSIS 지표는 시간경로 전용으로 유지; 운수·숙박음식·정보통신은 시군구 금액형/공간형 직접 활동자료 수집 후 rolling gate 재검증 |
 | 비건설 서비스업 직접활동자료 수집 후보 | source_candidates_identified_not_collected | Phase263 웹 후보 점검 완료: 운수·창고업=해수부 항만 물동량/국토부 물류창고업등록정보, 숙박·음식점업=LOCALDATA 음식점·숙박 인허가 전체자료, 정보통신업=방송산업 실태조사/KOBIS 보조 | 물류창고업등록정보와 LOCALDATA 전체자료를 우선 수집하고, 항만·방송·KOBIS는 세부업종 gate로 제한해 rolling out-of-year 검증 후 채택 여부 결정 |
 | 비건설 서비스업 직접활동자료 수집 smoke | blocked_by_403_or_download_route | Phase264 smoke: LOCALDATA 파일 서버 직접 URL은 403, 국토부 물류창고업등록정보 OpenAPI도 현재 공공데이터포털 key와 공식 ServiceKey 파라미터로 403 | 국토부 물류창고업등록정보 활용신청 상태 확인, LOCALDATA 전체다운로드 UI/authKey 경로 확보 후 전국 원본 우선 수집 |
+| 물류창고업 시도 등록현황 직접 다운로드 | collected_as_province_level_auxiliary_signal | 2015~2025 11개 연도 XLS 수집, 17개 시도 패널, 법령×창고구분 8개, 원본 생략 시도행 11개는 0+flag 처리, 2025 전체 등록건수 658건 | H52 창고업·운수창고업 시도 단위 보조 gate 후보로만 보관; 시군구 공간배분 또는 GVA actual로 해석하지 않음 |
 | 과학자/평가자 검증 | latest_monthly_bridge_postaudit_reflected | 월별 bridge 사후평가에서 전국 월별 지표를 공간배분 근거로 오해하지 않도록 indicator_rows_pct 해석 보강 필요 지적 | 후속 실험마다 사전/사후 검증을 반복하고, 자동채택 표현은 rolling gate 통과분으로 제한 |
 | 잔여 수집 병목 레지스트리 | documented_goal_not_complete | Phase265: PPS 429, LOCALDATA/물류창고업 403, 시군구 actual 공표범위, 민간건축·정비사업 전국자료 부족을 분리 기록 | PPS no-raw smoke 성공 또는 서비스업 활용신청/다운로드 경로 확보 후 원본 우선 수집 |
 
@@ -125,3 +126,4 @@
 - `reports/partial_statistics_estimation_phase263_service_direct_source_probe.md`
 - `reports/partial_statistics_estimation_phase264_service_direct_collection_smoke.md`
 - `reports/partial_statistics_estimation_phase265_collection_blocker_registry.md`
+- `reports/partial_statistics_estimation_phase266_nlic_warehouse_registration.md`

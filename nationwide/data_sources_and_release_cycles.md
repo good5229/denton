@@ -65,6 +65,7 @@ Phase263에서는 건설업 외 잔여오차가 반복되는 운수·창고업, 
 | --- | --- | --- | --- | --- | --- |
 | 운수·창고업 | 해양수산부 화물처리실적통계(화물수송 총괄) | 공공데이터포털 OpenAPI `https://www.data.go.kr/dataset/3036255/openapi.do?lang=ko` | 공공데이터포털 key, 활용신청 필요 가능 | API 페이지 기준 수정일 2025-12-09 | 항만도시 H50/H52 gate 후보. 항만 없는 내륙 지역 직접 적용 금지 |
 | 운수·창고업 | 국토교통부 물류창고업등록정보 | 공공데이터포털 OpenAPI `https://www.data.go.kr/data/3048029/openapi.do` | 공공데이터포털 key, 자동승인·무료 | 실시간 | 창고 위치·면적·품목·종업원 기반 H52 공간구조 후보. GVA flow 대체 금지 |
+| 운수·창고업 | 지역별 물류창고업 등록현황 | 공공데이터포털 fileData `15083282` / 국가물류통합정보센터 XLS 다운로드 `https://www.nlic.go.kr/nlic/WhsStatsWarehouseLocation.action?command=DWLOAD&S_D_FROM=YYYY&S_D_TO=YYYY` | API key 불필요, 2015~2025 원본 XLS 수집 완료 | 연간 통계 다운로드. 일부 0건 시도는 원본 행 생략되어 파서에서 0+flag 처리 | H52 창고업 시도 단위 등록건수 보조 flow 후보. 시군구 공간배분·GVA actual·운영 route로 사용 금지 |
 | 숙박·음식점업 | LOCALDATA 음식점·숙박·관광 인허가 전체자료 | LOCALDATA 데이터다운로드 `https://www.localdata.kr/devcenter/dataDown.do?menuNo=20001` | 전체자료 다운로드, 변동분 API는 authKey | 전체분은 전월까지, 변동분은 당월 1일~2일 전 | 음식점·숙박업 영업상태·면적·객실 후보. 매출 actual 대체 금지 |
 | 정보통신업 | 방송산업 실태조사 보고서 | 공공데이터포털 파일자료 `https://www.data.go.kr/data/15157917/fileData.do` | 별도 API key 불필요 | 연간, 차기 2027-03-31 | J60 방송업 매출·종사자 구조 후보. 시군구 직접 매출표 여부는 파싱 후 판정 |
 | 정보통신·문화 | KOBIS 월별 박스오피스 | KOBIS API/기존 cache | KOBIS key 사용 가능 | 일·월 단위 | J59·문화 일부 시간경로 보조. J00 전체 대표 금지 |
