@@ -133,7 +133,7 @@ def collect_monthly_kosis() -> tuple[pd.DataFrame, pd.DataFrame]:
         tbl_id="DT_1F02001",
         item_id="T10",
         period="M",
-        start="201901",
+        start="201501",
         end="202505",
         obj={1: "ALL", 2: "C"},
     )
